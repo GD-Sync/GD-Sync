@@ -1,0 +1,388 @@
+[gd_scene load_steps=8 format=3 uid="uid://1ho7vq1qum7y"]
+
+[ext_resource type="Script" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
+[ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDMLogo.png" id="3_eccmp"]
+
+[sub_resource type="Animation" id="Animation_x05bw"]
+resource_name = "Open"
+length = 1.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Background:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.1, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0.588235)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoControl:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.2, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+tracks/3/type = "bezier"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/LogoControl/Logo:position:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.25, 0, -350, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/4/type = "bezier"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoControl/Logo:scale:x")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0, 0.5, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/5/type = "bezier"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("CenterContainer/LogoControl/Logo:scale:y")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0, 0.5, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("CenterContainer/UI:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(1.3, 1.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_qx43o"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Background:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoControl:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/3/type = "bezier"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/LogoControl/Logo:position:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/4/type = "bezier"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoControl/Logo:scale:x")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/5/type = "bezier"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("CenterContainer/LogoControl/Logo:scale:y")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("CenterContainer/UI:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_d74rd"]
+_data = {
+"Open": SubResource("Animation_x05bw"),
+"RESET": SubResource("Animation_qx43o")
+}
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw5my"]
+bg_color = Color(1, 1, 1, 1)
+
+[node name="ConfigMenu" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+speed_scale = 2.0
+libraries = {
+"": SubResource("AnimationLibrary_d74rd")
+}
+
+[node name="Background" type="PanelContainer" parent="."]
+modulate = Color(0, 0, 0, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gw5my")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LogoControl" type="Control" parent="CenterContainer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="Logo" type="Sprite2D" parent="CenterContainer/LogoControl"]
+unique_name_in_owner = true
+texture = ExtResource("3_eccmp")
+
+[node name="UI" type="Control" parent="CenterContainer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer/UI"]
+layout_mode = 0
+offset_left = -475.0
+offset_top = -275.0
+offset_right = 475.0
+offset_bottom = 325.0
+theme = ExtResource("2_wd24h")
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer/UI"]
+layout_mode = 0
+offset_left = -450.0
+offset_top = -250.0
+offset_right = -50.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UI/Panel"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Welcome to the GD-Sync configuration menu! Here you can find basic settings and links to official resources.
+
+- [url=https://www.gd-sync.com/documentation]Official Documentation[/url]
+- [url=https://www.gd-sync.com/app/api-keys]API Key Generation[/url]"
+
+[node name="Panel2" type="PanelContainer" parent="CenterContainer/UI"]
+layout_mode = 0
+offset_left = -450.0
+offset_top = 25.0
+offset_right = -50.0
+offset_bottom = 250.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UI/Panel2"]
+layout_mode = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Please fill in an API Key so the engine may connect to the GD-Sync network."
+fit_content = true
+
+[node name="PublicLabel" type="Label" parent="CenterContainer/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Public Key"
+
+[node name="PublicKey" type="LineEdit" parent="CenterContainer/UI/Panel2/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "350dbf004a5ba324"
+caret_blink = true
+
+[node name="PrivateLabel" type="Label" parent="CenterContainer/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Private Key"
+
+[node name="PrivateKey" type="LineEdit" parent="CenterContainer/UI/Panel2/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "c9750697486eac2e"
+caret_blink = true
+
+[node name="Settings" type="PanelContainer" parent="CenterContainer/UI"]
+layout_mode = 0
+offset_left = 50.0
+offset_top = -250.0
+offset_right = 450.0
+offset_bottom = 250.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/UI/Settings"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ProtectionMode" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+layout_mode = 2
+
+[node name="Protected" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+button_pressed = true
+
+[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Protected Mode"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_function()[/color] and [color=#408eab]GDSync.expose_property()[/color] to allow the plugin to access Nodes remotely.
+
+[color=indianred]WARNING: Disabling this will allow other clients to call any function on any Node. Use at your own risk and only during testing."
+fit_content = true
+
+[node name="Spacing1" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+layout_mode = 2
+
+[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Unique Usernames"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Tells the server whether is should allow duplicate usernames when joining a lobby. If enabled, a username can only appear once inside a lobby.
+
+Usernames can be set using [color=#408eab]GDSync.set_player_username()[/color]."
+fit_content = true
+
+[node name="Close" type="Button" parent="CenterContainer/UI"]
+layout_mode = 0
+offset_left = -135.0
+offset_top = 270.0
+offset_right = 115.0
+offset_bottom = 310.0
+theme = ExtResource("2_wd24h")
+text = "Close"
+
+[connection signal="meta_clicked" from="CenterContainer/UI/Panel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
+[connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
+[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
+[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
+[connection signal="pressed" from="CenterContainer/UI/Close" to="." method="close"]

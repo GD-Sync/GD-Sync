@@ -1,0 +1,78 @@
+[gd_scene load_steps=2 format=3 uid="uid://cva15bed5a0cc"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/LobbyBrowser/lobby_label.gd" id="1_13l6x"]
+
+[node name="LobbyLabel" type="HBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("1_13l6x")
+
+[node name="NameBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LobbyName" type="Label" parent="NameBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lobby Name"
+clip_text = true
+
+[node name="PlayerCountBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlayerCount" type="Label" parent="PlayerCountBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Player Count"
+clip_text = true
+
+[node name="GamemodeBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Gamemode" type="Label" parent="GamemodeBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+
+[node name="PasswordBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PasswordProtected" type="Label" parent="PasswordBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Password Protected"
+clip_text = true
+
+[node name="OpenBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Open" type="Label" parent="OpenBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Open"
+clip_text = true
+
+[node name="JoinBox" type="CenterContainer" parent="."]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="JoinButton" type="Button" parent="JoinBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 50)
+layout_mode = 2
+text = "JOIN"
+
+[connection signal="pressed" from="JoinBox/JoinButton" to="." method="_on_join_button_pressed"]

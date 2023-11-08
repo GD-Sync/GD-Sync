@@ -1,0 +1,93 @@
+[gd_scene load_steps=2 format=3 uid="uid://8qy4jenu2w1m"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/LobbyBrowser/lobby_browser.gd" id="1_gf4jf"]
+
+[node name="LobbyBrowser" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_gf4jf")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="NameBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LobbyName" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/NameBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Lobby Name"
+clip_text = true
+
+[node name="PlayerCountBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PlayerCount" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/PlayerCountBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Player Count"
+clip_text = true
+
+[node name="GamemodeBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Gamemode" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/GamemodeBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Gamemode"
+clip_text = true
+
+[node name="PasswordBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PasswordProtected" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/PasswordBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Password Protected"
+clip_text = true
+
+[node name="OpenBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Open" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/OpenBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Open"
+clip_text = true
+
+[node name="JoinBox" type="Control" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LobbyList" type="VBoxContainer" parent="PanelContainer/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
