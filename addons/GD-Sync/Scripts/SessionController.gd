@@ -41,13 +41,11 @@ var lobby_password : String = ""
 var connect_time : float = 0
 var lobby_switch_pending : bool = false
 
-var rng : RandomNumberGenerator = RandomNumberGenerator.new()
-
 func _ready():
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
-	rng.randomize()
+	
 	GDSync.client_left.connect(client_left)
 	GDSync.client_id_changed.connect(client_id_changed)
 

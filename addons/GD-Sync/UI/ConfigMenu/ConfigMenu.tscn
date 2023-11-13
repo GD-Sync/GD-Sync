@@ -252,7 +252,8 @@ theme = ExtResource("2_wd24h")
 bbcode_enabled = true
 text = "Welcome to the GD-Sync configuration menu! Here you can find basic settings and links to official resources.
 
-- [url=https://www.gd-sync.com/documentation]Official Documentation[/url]
+- [url=https://www.gd-sync.com]Official Website[/url]
+- [url=https://www.gd-sync.com/documentation]Documentation[/url]
 - [url=https://www.gd-sync.com/app/api-keys]API Key Generation[/url]"
 
 [node name="Panel2" type="PanelContainer" parent="CenterContainer/UI"]
@@ -336,7 +337,7 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
-text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_function()[/color] and [color=#408eab]GDSync.expose_property()[/color] to allow the plugin to access Nodes remotely.
+text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_func()[/color] and [color=#408eab]GDSync.expose_var()[/color] to allow the plugin to access Nodes remotely.
 
 [color=indianred]WARNING: Disabling this will allow other clients to call any function on any Node. Use at your own risk and only during testing."
 fit_content = true
