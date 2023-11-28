@@ -85,6 +85,8 @@ func lobby_left():
 	name_cache.clear()
 	name_index_cache.clear()
 	
+	lobby_name = ""
+	
 	for id in player_data.keys():
 		if id != own_id:
 			player_data.erase(id)
@@ -293,9 +295,9 @@ func property_is_exposed(node : Node, propertyName : String):
 	var exposedArray : Array = node.get_meta("ExposedProperties", [])
 	return exposedArray.has(propertyName)
 
-func set_mc_owner(node : Node, owner):
+func set_gdsync_owner(node : Node, owner):
 	set_mc_owner_remote(node, owner)
-	request_processor.set_mc_owner(node, owner)
+	request_processor.set_gdsync_owner(node, owner)
 
 func set_mc_owner_remote(node : Node, owner):
 	node.set_meta("mcOwner", owner)
@@ -306,7 +308,7 @@ func emit_mc_owner_changed(node : Node, owner):
 	for child in node.get_children():
 		emit_mc_owner_changed(child, owner)
 
-func get_mc_owner(node : Node):
+func get_gdsync_owner(node : Node):
 	var ownerID = null
 	var p : Node = node
 	while p != null and ownerID == null:
@@ -316,12 +318,12 @@ func get_mc_owner(node : Node):
 		p = p.get_parent()
 	return ownerID
 
-func is_mc_owner(node : Node) -> bool:
-	return get_mc_owner(node) == GDSync.get_client_id()
+func is_gdsync_owner(node : Node) -> bool:
+	return get_gdsync_owner(node) == GDSync.get_client_id()
 
-func connect_mc_owner_changed(node : Node, callable : Callable):
+func connect_gdsync_owner_changed(node : Node, callable : Callable):
 	node.add_user_signal("mc_owner_changed", ["owner"])
 	node.connect("mc_owner_changed", callable)
 
-func disconnect_mc_owner_changed(node : Node, callable : Callable):
+func disconnect_gdsync_owner_changed(node : Node, callable : Callable):
 	node.disconnect("mc_owner_changed", callable)

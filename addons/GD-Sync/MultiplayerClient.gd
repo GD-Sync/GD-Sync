@@ -55,7 +55,7 @@ signal disconnected()
 
 ##Emitted when the Client ID changes. This happens when using [method start_mutliplayer()] and might happen 
 ##when using [method join_lobby]. This will NEVER happen while inside a lobby, so don't worry when 
-##using methods such as [method set_mc_owner], [method call_func_on], etc.
+##using methods such as [method set_gdsync_owner], [method call_func_on], etc.
 signal client_id_changed(own_id : int)
 
 ##Emitted if [method create_lobby] was succesful.
@@ -346,21 +346,21 @@ func hide_var(node : Node, variable_name : String) -> void:
 ##[br]
 ##[br][b]node -[/b] The Node on which you want to assign ownership to.
 ##[br][b]variable_name -[/b] The name of the variable you want to hide.
-func set_mc_owner(node : Node, owner : int) -> void:
+func set_gdsync_owner(node : Node, owner : int) -> void:
 	if !_connection_controller.valid_connection(): return
-	_session_controller.set_mc_owner(node, owner)
+	_session_controller.set_gdsync_owner(node, owner)
 
 ##Returns the Client ID of the client that has ownership of the Node. Returns null if there is no owner.
 ##[br]
 ##[br][b]node -[/b] The Node from which you want to retrieve the owner.
-func get_mc_owner(node : Node) -> void:
-	return _session_controller.get_mc_owner(node)
+func get_gdsync_owner(node : Node) -> void:
+	return _session_controller.get_gdsync_owner(node)
 
 ##Returns true if you are the owner of the Node in question. Returns false if you are not the owner or when there is not owner.
 ##[br]
 ##[br][b]node -[/b] The Node on which you want to perform the ownership check.
-func is_mc_owner(node : Node) -> bool:
-	return _session_controller.is_mc_owner(node)
+func is_gdsync_owner(node : Node) -> bool:
+	return _session_controller.is_gdsync_owner(node)
 
 ##Connects up a signal so that a specific function gets called if the owner of the Node changes. 
 ##The function must have one parameter which is the Client ID of the new owner. 
@@ -368,16 +368,16 @@ func is_mc_owner(node : Node) -> bool:
 ##[br]
 ##[br][b]node -[/b] The Node on which you want to monitor ownership.
 ##[br][b]callable -[/b] The function that should get called if the owner changes.
-func connect_mc_owner_changed(node : Node, callable : Callable) -> void:
-	_session_controller.connect_mc_owner_changed(node, callable)
+func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
+	_session_controller.connect_gdsync_owner_changed(node, callable)
 
 
-##Disconnects a function from the ownership signal created in [method connect_mc_owner_changed].
+##Disconnects a function from the ownership signal created in [method connect_gdsync_owner_changed].
 ##[br]
 ##[br][b]node -[/b] The Node on which you want to disconnect ownership monitoring.
 ##[br][b]callable -[/b] The function that should get disconnected.
-func disconnect_mc_owner_changed(node : Node, callable : Callable) -> void:
-	_session_controller.disconnect_mc_owner_changed(node, callable)
+func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
+	_session_controller.disconnect_gdsync_owner_changed(node, callable)
 
 
 
@@ -451,6 +451,10 @@ func leave_lobby() -> void:
 ##Returns the amount of players in the current lobby.
 func get_lobby_player_count() -> int:
 	return _session_controller.get_all_clients().size()
+
+##Get the current lobby name
+func get_lobby_name() -> String:
+	return GDSync._session_controller.lobby_name
 
 ##Returns the player limit of the current lobby.
 func get_lobby_player_limit() -> int:

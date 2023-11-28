@@ -9,7 +9,7 @@ func _ready():
 	GDSync.lobbies_received.connect(lobbies_received)
 
 var last_refresh : float = 0
-func _process(delta):
+func _process(_delta):
 #	Refresh the lobby list every 5 seconds
 	var current_time : float = Time.get_unix_time_from_system()
 	if current_time - last_refresh >= 5:
@@ -26,8 +26,8 @@ func lobbies_received(lobbies : Array):
 	for label in lobby_labels: label.set_meta("delete", true)
 	
 	for lobby_data in lobbies:
-		var name : String = lobby_data["Name"]
-		var lobby_label : Node = %LobbyList.get_node_or_null(name)
+		var lobby_name : String = lobby_data["Name"]
+		var lobby_label : Node = %LobbyList.get_node_or_null(lobby_name)
 		
 		if lobby_label == null:
 			lobby_label = LABEL_SCENE.instantiate()

@@ -528,7 +528,7 @@ func create_erase_lobby_data_request(name : String):
 	
 	requestsSERV.append(request)
 
-func set_mc_owner(node : Node, owner):
+func set_gdsync_owner(node : Node, owner):
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.SET_MC_OWNER,
 		String(node.get_path()),

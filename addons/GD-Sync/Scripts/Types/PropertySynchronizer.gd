@@ -109,7 +109,7 @@ func _ready():
 		GDSync.expose_func(_pause_interpolation_remote)
 		GDSync.host_changed.connect(_host_changed)
 		GDSync.client_joined.connect(_client_joined)
-		GDSync.connect_mc_owner_changed(self, _owner_changed)
+		GDSync.connect_gdsync_owner_changed(self, _owner_changed)
 		_update_sync_mode()
 		set_process(process == PROCESS_MODE.PROCESS)
 		set_physics_process(process == PROCESS_MODE.PHYSICS_PROCESS)
@@ -137,7 +137,7 @@ func _host_changed(is_host : bool, new_host_id : int):
 func _update_sync_mode():
 	if Engine.is_editor_hint() || GDSync == null: return
 	var is_host : bool = GDSync.is_host()
-	var is_owner : bool = GDSync.is_mc_owner(self)
+	var is_owner : bool = GDSync.is_gdsync_owner(self)
 	match (broadcast):
 		BROADCAST_MODE.WHEN_HOST:
 			_should_broadcast = is_host
@@ -146,7 +146,7 @@ func _update_sync_mode():
 		BROADCAST_MODE.WHEN_OWNER:
 			_should_broadcast = is_owner
 		BROADCAST_MODE.WHEN_HOST_AND_NO_OWNER_OR_OWNER:
-			_should_broadcast = (is_host and GDSync.get_mc_owner(self) == null) || is_owner
+			_should_broadcast = (is_host and GDSync.get_gdsync_owner(self) == null) || is_owner
 		BROADCAST_MODE.ALWAYS:
 			_should_broadcast = true
 		BROADCAST_MODE.NEVER:

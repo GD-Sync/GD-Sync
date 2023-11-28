@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3 uid="uid://dgbv7r0yrg4yk"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/TextChat/text_chat.gd" id="1_rkot3"]
+
+[node name="TextChat" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_rkot3")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="MessageContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+alignment = 2
+
+[node name="TemplateMessage" type="RichTextLabel" parent="PanelContainer/VBoxContainer/ScrollContainer/MessageContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+bbcode_enabled = true
+text = "[Channel][Username] Test message"
+fit_content = true
+scroll_active = false
+scroll_following = true
+
+[node name="TypingContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_stretch_ratio = 0.2
+
+[node name="TextEdit" type="TextEdit" parent="PanelContainer/VBoxContainer/TypingContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[connection signal="text_changed" from="PanelContainer/VBoxContainer/TypingContainer/TextEdit" to="." method="_on_text_changed"]

@@ -203,7 +203,6 @@ func external_lobby_switch(server : String):
 
 var timePassed : float = 0.0
 func _process(delta):
-#	print(ENUMS.CONNECTION_STATUS.keys()[status+1])
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
