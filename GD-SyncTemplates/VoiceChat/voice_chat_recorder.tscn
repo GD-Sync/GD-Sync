@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://x1v4xwqjfo7g"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/VoiceChat/voice_chat_recorder.gd" id="1_5t6hx"]
+
+[node name="VoiceChatRecorder" type="Node"]
+script = ExtResource("1_5t6hx")
+
+[node name="Timer" type="Timer" parent="."]
+wait_time = 0.2
+
+[connection signal="timeout" from="Timer" to="." method="_on_timer_timeout"]
