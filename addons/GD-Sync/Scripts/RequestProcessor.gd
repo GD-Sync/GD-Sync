@@ -296,7 +296,7 @@ func secure_connection():
 
 func create_set_var_request(node : Node, variableName : String, client_id : int, reliable : bool):
 	var request : Array = []
-	var nodePath = String(node.get_path())
+	var nodePath : String = String(node.get_path())
 	
 	var value = null
 	if variableName in node:
@@ -307,16 +307,16 @@ func create_set_var_request(node : Node, variableName : String, client_id : int,
 			ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED,
 			session_controller.get_nodepath_index(nodePath),
 			session_controller.get_name_index(variableName),
+			client_id,
 			value,
-			client_id
 		]
 	else:
 		request = [
 			ENUMS.REQUEST_TYPE.SET_VARIABLE,
 			nodePath,
 			variableName,
+			client_id,
 			value,
-			client_id
 		]
 		
 		create_nodepath_cache(nodePath)
@@ -331,7 +331,7 @@ func create_function_call_request(function : Callable, parameters, client_id : i
 	var node : Node = function.get_object()
 	var functionName : String = function.get_method()
 	var request : Array = []
-	var nodePath = String(node.get_path())
+	var nodePath : String = String(node.get_path())
 	
 	if session_controller.nodepath_is_cached(nodePath) and session_controller.name_is_cached(functionName):
 		request = [
