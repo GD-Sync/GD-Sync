@@ -142,6 +142,8 @@ func cache_nodepath(node_path : String, index : int) -> void:
 	var node : Node = get_node_or_null(node_path)
 	if node:
 		await node.tree_exiting
+		await get_tree().process_frame
+		await get_tree().process_frame
 		request_processor.create_erase_nodepath_cache_request(index)
 
 func erase_nodepath_cache(index : int) -> void:

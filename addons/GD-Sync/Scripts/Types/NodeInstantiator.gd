@@ -30,8 +30,8 @@ func instantiate_node() -> Node:
 	var id : int = _assign_instance_id(node)
 	node.name = str(id)
 	
-	if target_location:
-		target_location.add_child(node)
+	if target:
+		target.add_child(node)
 	else:
 		add_child(node)
 	
@@ -54,7 +54,8 @@ enum SPAWN_TYPE {
 signal node_instantiated(node : Node)
 
 @export var spawn_type : SPAWN_TYPE = SPAWN_TYPE.NODEPATH : set = _set_spawn_type
-var target_location : Node
+var target_location : NodePath
+var target : Node
 var scene : PackedScene
 var sync_starting_changes : bool = true
 
@@ -76,7 +77,9 @@ func _ready() -> void:
 	rng.randomize()
 	
 	if spawn_type == SPAWN_TYPE.SCENE_ROOT:
-		target_location = get_tree().current_scene
+		target = get_tree().current_scene
+	elif spawn_type == SPAWN_TYPE.NODEPATH:
+		target = get_node(target_location)
 
 func _call_multiplayer_ready(node : Node) -> void:
 	await get_tree().process_frame
@@ -130,8 +133,8 @@ func _instance_remote(id : int, changed_properties : Dictionary) -> void:
 	_await_id_deletion(node)
 	node.name = str(id)
 	
-	if target_location:
-		target_location.add_child(node)
+	if target:
+		target.add_child(node)
 	else:
 		add_child(node)
 	
