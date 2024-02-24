@@ -71,5 +71,9 @@ func _on_unique_usernames_toggled(button_pressed):
 	ProjectSettings.set_setting("GD-Sync/uniqueUsername", button_pressed)
 	ProjectSettings.save()
 
+func _on_sender_id_toggled(button_pressed):
+	ProjectSettings.set_setting("GD-Sync/useSenderID", button_pressed)
+	ProjectSettings.save()
+
 func _on_description_meta_clicked(meta):
 	OS.shell_open(meta)

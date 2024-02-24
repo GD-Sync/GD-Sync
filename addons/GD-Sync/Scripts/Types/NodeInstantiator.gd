@@ -69,7 +69,7 @@ var GDSync
 var rng : RandomNumberGenerator = RandomNumberGenerator.new()
 var node_id_list : Dictionary = {}
 
-func _ready():
+func _ready() -> void:
 	if Engine.is_editor_hint(): return
 	GDSync = get_node("/root/GDSync")
 	GDSync.expose_func(_instance_remote)
@@ -78,7 +78,7 @@ func _ready():
 	if spawn_type == SPAWN_TYPE.SCENE_ROOT:
 		target_location = get_tree().current_scene
 
-func _call_multiplayer_ready(node : Node):
+func _call_multiplayer_ready(node : Node) -> void:
 	await get_tree().process_frame
 	node.propagate_call("_multiplayer_ready")
 
@@ -95,15 +95,15 @@ func _assign_instance_id(node : Node) -> int:
 	_await_id_deletion(node)
 	return id
 
-func _remove_node_id(id : int):
+func _remove_node_id(id : int) -> void:
 	if node_id_list.has(id):
 		node_id_list.erase(id)
 
-func _await_id_deletion(node : Node):
+func _await_id_deletion(node : Node) -> void:
 	await node.tree_exiting
 	_remove_node_id(node.get_meta("GDID"))
 
-func _send_remote_instantiate(node : Node, starting_properties : Dictionary):
+func _send_remote_instantiate(node : Node, starting_properties : Dictionary) -> void:
 	var start : float = Time.get_ticks_msec()
 	var changed_properties : Dictionary = {}
 	
@@ -123,7 +123,7 @@ func _send_remote_instantiate(node : Node, starting_properties : Dictionary):
 	
 	GDSync.call_func(_instance_remote, [node.get_meta("GDID"), changed_properties])
 
-func _instance_remote(id : int, changed_properties : Dictionary):
+func _instance_remote(id : int, changed_properties : Dictionary) -> void:
 	var node : Node = scene.instantiate()
 	node_id_list[id] = node
 	node.set_meta("GDID", id)
@@ -148,11 +148,11 @@ func _get_properties_as_bytes(node : Node) -> Dictionary:
 	
 	return property_values
 
-func _set_spawn_type(t : int):
+func _set_spawn_type(t : int) -> void:
 	spawn_type = t
 	notify_property_list_changed()
 
-func _get_property_list():
+func _get_property_list() -> Array:
 	var properties : Array = []
 	
 	properties.append({

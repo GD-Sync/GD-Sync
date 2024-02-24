@@ -26,13 +26,13 @@ class_name PropertySynchronizer
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
-func synchronize(forced : bool = true):
+func synchronize(forced : bool = true) -> void:
 	var new_property = node.get(property_name)
 	if !forced and new_property == _property: return
 	_property = new_property
 	GDSync.call_func(_sync_received, [_property], false)
 
-func pause_interpolation(seconds : float):
+func pause_interpolation(seconds : float) -> void:
 	_pause_interpolation_remote(seconds)
 	GDSync.call_func(_pause_interpolation_remote, [seconds])
 
@@ -88,7 +88,7 @@ var _interval_cooldown : float = 0.0
 var _should_broadcast : bool = false
 var _type : int = -1
 
-func _ready():
+func _ready() -> void:
 	node = get_node_or_null(node_path)
 	if Engine.is_editor_hint():
 		set_process(false)
@@ -119,22 +119,22 @@ func _ready():
 			await value_changed
 			interpolated = true
 
-func _pause_interpolation_remote(seconds : float):
+func _pause_interpolation_remote(seconds : float) -> void:
 	interpolated = false
 	await get_tree().create_timer(seconds).timeout
 	interpolated = true
 
-func _set_broadcast(mode : int):
+func _set_broadcast(mode : int) -> void:
 	broadcast = mode
 	_update_sync_mode()
 
-func _owner_changed(owner):
+func _owner_changed(owner) -> void:
 	_update_sync_mode()
 
-func _host_changed(is_host : bool, new_host_id : int):
+func _host_changed(is_host : bool, new_host_id : int) -> void:
 	_update_sync_mode()
 
-func _update_sync_mode():
+func _update_sync_mode() -> void:
 	if Engine.is_editor_hint() || GDSync == null: return
 	var is_host : bool = GDSync.is_host()
 	var is_owner : bool = GDSync.is_gdsync_owner(self)
@@ -152,14 +152,14 @@ func _update_sync_mode():
 		BROADCAST_MODE.NEVER:
 			_should_broadcast = false
 
-func _process(delta):
+func _process(delta) -> void:
 	if !GDSync.is_active(): return
 	if _should_broadcast:
 		if _may_synchronize(delta): synchronize(false)
 	else:
 		if interpolated: _interpolate(delta)
 
-func _physics_process(delta):
+func _physics_process(delta) -> void:
 	if !GDSync.is_active(): return
 	if _should_broadcast:
 		if _may_synchronize(delta):
@@ -183,16 +183,16 @@ func _may_interval_synchronize(delta) -> bool:
 		return true
 	return false
 
-func _client_joined(clientID):
+func _client_joined(clientID) -> void:
 	synchronize()
 
-func _sync_received(new_value):
+func _sync_received(new_value) -> void:
 	_property = new_value
 	if !interpolated:
 		node.set(property_name, _property)
 		value_changed.emit(_property)
 
-func _interpolate(delta):
+func _interpolate(delta) -> void:
 	var current_value = node.get(property_name)
 	
 	if _type == TYPE_BASIS:
@@ -225,13 +225,13 @@ func _can_interpolate() -> bool:
 		|| property_type == TYPE_BASIS)
 
 var _may_interpolate : bool = false
-func _refresh_property_list():
+func _refresh_property_list() -> void:
 	var can_interpolate : bool = _can_interpolate()
 	if _may_interpolate != _can_interpolate():
 		_may_interpolate = can_interpolate
 		notify_property_list_changed()
 
-func _get_property_list():
+func _get_property_list() -> Array:
 	var properties : Array = []
 	
 	var can_interpolate : bool = _can_interpolate()

@@ -28,6 +28,7 @@ var request_processor
 var GDSync
 
 var current_client_id : int = -1
+var sender_id : int = -1
 var player_data : Dictionary = {}
 var lobby_data : Dictionary = {}
 
@@ -36,12 +37,14 @@ var node_path_index_cache : Dictionary = {}
 var name_cache : Dictionary = {}
 var name_index_cache : Dictionary = {}
 
+var owner_cache : Dictionary = {}
+
 var lobby_name : String = ""
 var lobby_password : String = ""
 var connect_time : float = 0
 var lobby_switch_pending : bool = false
 
-func _ready():
+func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
@@ -49,7 +52,7 @@ func _ready():
 	GDSync.client_left.connect(client_left)
 	GDSync.client_id_changed.connect(client_id_changed)
 
-func client_id_changed(client_id : int):
+func client_id_changed(client_id : int) -> void:
 	var own_data = null
 	if player_data.has(current_client_id):
 		own_data = player_data[current_client_id]
@@ -63,7 +66,7 @@ func client_id_changed(client_id : int):
 	current_client_id = client_id
 	player_data[client_id] = own_data
 
-func broadcast_player_data():
+func broadcast_player_data() -> void:
 	var own_id : int = GDSync.get_client_id()
 	GDSync.set_player_username(get_player_data(own_id, "Username", ""))
 	
@@ -72,11 +75,11 @@ func broadcast_player_data():
 		if key != "Username":
 			GDSync.set_player_data(key, own_data[key])
 
-func set_lobby_data(name : String, password : String):
+func set_lobby_data(name : String, password : String) -> void:
 	lobby_name = name
 	lobby_password = password
 
-func lobby_left():
+func lobby_left() -> void:
 	var own_id = GDSync.get_client_id()
 	
 	lobby_data.clear()
@@ -84,6 +87,7 @@ func lobby_left():
 	node_path_index_cache.clear()
 	name_cache.clear()
 	name_index_cache.clear()
+	sender_id = -1
 	
 	lobby_name = ""
 	
@@ -91,11 +95,17 @@ func lobby_left():
 		if id != own_id:
 			player_data.erase(id)
 
-func client_left(id : int):
+func client_left(id : int) -> void:
 	if player_data.has(id): player_data.erase(id)
 
 func get_all_clients() -> Array:
 	return player_data.keys()
+
+func set_sender_id(id : int) -> void:
+	sender_id = id
+
+func get_sender_id() -> int:
+	return sender_id
 
 func nodepath_is_cached(node_path : String) -> bool:
 	return node_path_cache.has(node_path)
@@ -121,7 +131,7 @@ func has_nodepath_from_index(index : int) -> bool:
 func has_name_from_index(index : int) -> bool:
 	return name_index_cache.has(index)
 
-func cache_nodepath(node_path : String, index : int):
+func cache_nodepath(node_path : String, index : int) -> void:
 	if node_path_index_cache.has(index):
 		var oldCachePath : String = node_path_index_cache[index]
 		node_path_cache.erase(oldCachePath)
@@ -134,13 +144,13 @@ func cache_nodepath(node_path : String, index : int):
 		await node.tree_exiting
 		request_processor.create_erase_nodepath_cache_request(index)
 
-func erase_nodepath_cache(index : int):
+func erase_nodepath_cache(index : int) -> void:
 	if node_path_index_cache.has(index):
 		var node_path : String = node_path_index_cache[index]
 		node_path_cache.erase(node_path)
 		node_path_index_cache.erase(index)
 
-func cache_name(name : String, index : int):
+func cache_name(name : String, index : int) -> void:
 	if name_index_cache.has(index):
 		var oldCachePath : String = name_index_cache[index]
 		name_cache.erase(oldCachePath)
@@ -148,17 +158,17 @@ func cache_name(name : String, index : int):
 	name_cache[name] = index
 	name_index_cache[index] = name
 
-func erase_name_cache(index : int):
+func erase_name_cache(index : int) -> void:
 	if name_index_cache.has(index):
 		var name : String = name_index_cache[index]
 		name_cache.erase(name)
 		name_index_cache.erase(index)
 
-func set_player_data(key : String, value):
+func set_player_data(key : String, value) -> void:
 	player_data[GDSync.get_client_id()][key] = value
 	player_data_changed(GDSync.get_client_id(), key)
 
-func player_data_changed(client_id : int, key : String):
+func player_data_changed(client_id : int, key : String) -> void:
 	if !player_data.has(client_id): return
 	var data : Dictionary = player_data[client_id]
 	if data.has(key):
@@ -166,7 +176,7 @@ func player_data_changed(client_id : int, key : String):
 	else:
 		GDSync.player_data_changed.emit(client_id, key, null)
 
-func erase_player_data(key : String):
+func erase_player_data(key : String) -> void:
 	if player_data[GDSync.get_client_id()].has(key):
 		player_data[GDSync.get_client_id()].erase(key)
 		player_data_changed(GDSync.get_client_id(), key)
@@ -184,7 +194,7 @@ func get_all_player_data(client_id : int) -> Dictionary:
 		return data
 	return {}
 
-func override_player_data(data : Dictionary):
+func override_player_data(data : Dictionary) -> void:
 	var id = data["ID"]
 	data.erase(id)
 	if player_data.has(id):
@@ -195,14 +205,14 @@ func override_player_data(data : Dictionary):
 	for key in data:
 		player_data[id][key] = data[key]
 
-func override_lobby_data(data : Dictionary):
+func override_lobby_data(data : Dictionary) -> void:
 	lobby_data = data
 
 func get_player_limit() -> int:
 	if !lobby_data.has("PlayerLimit"): return 0
 	return lobby_data["PlayerLimit"]
 
-func lobby_data_changed(key : String):
+func lobby_data_changed(key : String) -> void:
 	if !lobby_data.has("Data"): return
 	var data : Dictionary = lobby_data["Data"]
 	if !data.has(key):
@@ -210,7 +220,7 @@ func lobby_data_changed(key : String):
 	else:
 		GDSync.lobby_data_changed.emit(key, data[key])
 
-func lobby_tags_changed(key : String):
+func lobby_tags_changed(key : String) -> void:
 	if !lobby_data.has("Tags"): return
 	var tags : Dictionary = lobby_data["Tags"]
 	if !tags.has(key):
@@ -256,62 +266,84 @@ func get_all_lobby_tags() -> Dictionary:
 	else:
 		return {}
 
-func expose_node(node : Node):
+func expose_node(node : Node) -> void:
 	node.set_meta("Exposed", true)
 
-func hide_node(node : Node):
+func hide_node(node : Node) -> void:
 	node.set_meta("Exposed", false)
 
-func node_is_exposed(node : Node):
+func node_is_exposed(node : Node) -> bool:
 	return node.get_meta("Exposed", false)
 
-func expose_func(function : Callable):
+func expose_func(function : Callable) -> void:
 	var node : Node = function.get_object()
 	var functionName : String = function.get_method()
 	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
 	exposedArray.append(functionName)
 	node.set_meta("ExposedFunctions", exposedArray)
 
-func hide_function(function : Callable):
+func hide_function(function : Callable) -> void:
 	var node : Node = function.get_object()
 	var functionName : String = function.get_method()
 	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
 	if exposedArray.has(functionName): exposedArray.erase(functionName)
 
-func function_is_exposed(node : Node, function_name : String):
+func function_is_exposed(node : Node, function_name : String) -> bool:
 	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
 	return exposedArray.has(function_name)
 
-func expose_property(node : Node, property_name : String):
+func expose_property(node : Node, property_name : String) -> void:
 	var exposedArray : Array = node.get_meta("ExposedProperties", [])
 	exposedArray.append(property_name)
 	node.set_meta("ExposedProperties", exposedArray)
 
-func hide_property(node : Node, propertyName : String):
+func hide_property(node : Node, propertyName : String) -> void:
 	var exposedArray : Array = node.get_meta("ExposedProperties", [])
 	if exposedArray.has(propertyName): exposedArray.erase(propertyName)
 
-func property_is_exposed(node : Node, propertyName : String):
+func property_is_exposed(node : Node, propertyName : String) -> bool:
 	var exposedArray : Array = node.get_meta("ExposedProperties", [])
 	return exposedArray.has(propertyName)
 
-func set_gdsync_owner(node : Node, owner):
+func set_gdsync_owner(node : Node, owner) -> void:
 	set_mc_owner_remote(node, owner)
 	request_processor.set_gdsync_owner(node, owner)
 
-func set_mc_owner_remote(node : Node, owner):
+func set_mc_owner_remote(node : Node, owner) -> void:
+	var path_string : String = str(node.get_path())
+	if owner_cache.has(path_string): owner_cache.erase(path_string)
+	
 	node.set_meta("mcOwner", owner)
 	emit_mc_owner_changed(node, owner)
 
-func emit_mc_owner_changed(node : Node, owner):
+func set_mc_owner_delayed(node_path : String, owner) -> void:
+	owner_cache[node_path] = owner
+	
+	await get_tree().process_frame
+	
+	set_from_owner_cache(node_path)
+
+func set_from_owner_cache(node_path : String) -> void:
+	if !owner_cache.has(node_path): return
+	var owner = owner_cache[node_path]
+	var node : Node = get_node_or_null(node_path)
+	owner_cache.erase(node_path)
+	if node == null: return
+	set_mc_owner_remote(node, owner)
+
+func emit_mc_owner_changed(node : Node, owner) -> void:
 	if node.has_user_signal("mc_owner_changed"): node.emit_signal("mc_owner_changed", owner)
 	for child in node.get_children():
 		emit_mc_owner_changed(child, owner)
 
-func get_gdsync_owner(node : Node):
-	var ownerID = null
+func get_gdsync_owner(node : Node) -> int:
+	var path_string : String = str(node.get_path())
+	if owner_cache.has(path_string):
+		set_mc_owner_remote(node, owner_cache[path_string])
+	
+	var ownerID : int = -1
 	var p : Node = node
-	while p != null and ownerID == null:
+	while p != null and ownerID < 0:
 		if p.has_meta("mcOwner"):
 			var id = p.get_meta("mcOwner", null)
 			if id != null: ownerID = id
@@ -321,9 +353,9 @@ func get_gdsync_owner(node : Node):
 func is_gdsync_owner(node : Node) -> bool:
 	return get_gdsync_owner(node) == GDSync.get_client_id()
 
-func connect_gdsync_owner_changed(node : Node, callable : Callable):
+func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	node.add_user_signal("mc_owner_changed", ["owner"])
 	node.connect("mc_owner_changed", callable)
 
-func disconnect_gdsync_owner_changed(node : Node, callable : Callable):
+func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	node.disconnect("mc_owner_changed", callable)

@@ -53,7 +53,7 @@ signal connection_failed(error : int)
 ##[br][b]IMPORTANT: The plugin does not automatically try to reconnect when a disconnect occurs.[/b]
 signal disconnected()
 
-##Emitted when the Client ID changes. This happens when using [method start_mutliplayer()] and might happen 
+##Emitted when the Client ID changes. This happens when using [method start_mutliplayer] and might happen 
 ##when using [method join_lobby]. This will NEVER happen while inside a lobby, so don't worry when 
 ##using methods such as [method set_gdsync_owner], [method call_func_on], etc.
 signal client_id_changed(own_id : int)
@@ -184,6 +184,14 @@ func _manual_connect(address : String) -> void:
 ##Returns your own Client ID. Returns -1 if you are not connected to a server.
 func get_client_id() -> int:
 	return _connection_controller.client_id
+
+##Returns the Client ID of the last client to perform a remote function call on this client. 
+##Useful for knowing where a remote function call came from. 
+##Returns -1 if nobody performed a remote function call yet.
+##[br]
+##[br][b]IMPORTANT:[/b] For this function to work, make sure to enable it in the GD-Sync configuration menu.
+func get_sender_id() -> int:
+	return _session_controller.get_sender_id()
 
 ##Returns the client IDs of all clients in the current lobby.
 func get_all_clients() -> Array:
@@ -350,10 +358,10 @@ func set_gdsync_owner(node : Node, owner : int) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_gdsync_owner(node, owner)
 
-##Returns the Client ID of the client that has ownership of the Node. Returns null if there is no owner.
+##Returns the Client ID of the client that has ownership of the Node. Returns -1 if there is no owner.
 ##[br]
 ##[br][b]node -[/b] The Node from which you want to retrieve the owner.
-func get_gdsync_owner(node : Node) -> void:
+func get_gdsync_owner(node : Node) -> int:
 	return _session_controller.get_gdsync_owner(node)
 
 ##Returns true if you are the owner of the Node in question. Returns false if you are not the owner or when there is not owner.
@@ -366,7 +374,7 @@ func is_gdsync_owner(node : Node) -> bool:
 ##The function must have one parameter which is the Client ID of the new owner. 
 ##This can either be an int or null.
 ##[br]
-##[br][b]node -[/b] The Node on which you want to monitor ownership.
+##[br][b]node -[/b] The Node of which you want to monitor ownership.
 ##[br][b]callable -[/b] The function that should get called if the owner changes.
 func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	_session_controller.connect_gdsync_owner_changed(node, callable)
@@ -374,7 +382,7 @@ func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 
 ##Disconnects a function from the ownership signal created in [method connect_gdsync_owner_changed].
 ##[br]
-##[br][b]node -[/b] The Node on which you want to disconnect ownership monitoring.
+##[br][b]node -[/b] The Node of which you want to disconnect ownership monitoring.
 ##[br][b]callable -[/b] The function that should get disconnected.
 func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	_session_controller.disconnect_gdsync_owner_changed(node, callable)
@@ -465,7 +473,7 @@ func get_lobby_player_limit() -> int:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
-##a response from the server is returned. If operation was succesful [signal lobby_tag_changed] is emitted.
+##a response from the server is returned. If the operation was succesful [signal lobby_tag_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 ##[br][b]value -[/b] The value of the tag that should be stored.
@@ -477,7 +485,7 @@ func set_lobby_tag(key : String, value) -> void:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
-##a response from the server is returned. If operation was succesful [signal lobby_tag_changed] is emitted.
+##a response from the server is returned. If the operation was succesful [signal lobby_tag_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 func erase_lobby_tag(key : String) -> void:

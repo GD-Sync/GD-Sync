@@ -27,10 +27,13 @@ extends Node
 var GDSync
 var request_processor
 
+const API_VERSION : int = 1
+
 var _PUBLIC_KEY : String = ""
 var _PRIVATE_KEY : String = ""
-var _UNIQUE_USERNAMES : bool = false
-var _PROTECTED : bool = true
+var UNIQUE_USERNAMES : bool = false
+var PROTECTED : bool = true
+var USE_SENDER_ID : bool = true
 
 var client : ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 var client_id : int = -1
@@ -51,7 +54,7 @@ var load_balancers : PackedStringArray = [
 	"lb3.gd-sync.com",
 ]
 
-func _ready():
+func _ready() -> void:
 	name = "ConnectionController"
 	process_priority = -1000
 	GDSync = get_node("/root/GDSync")
@@ -66,9 +69,11 @@ func _ready():
 	if ProjectSettings.has_setting("GD-Sync/privateKey"):
 		_PRIVATE_KEY = ProjectSettings.get_setting("GD-Sync/privateKey")
 	if ProjectSettings.has_setting("GD-Sync/protectedMode"):
-		_PROTECTED = ProjectSettings.get_setting("GD-Sync/protectedMode")
+		PROTECTED = ProjectSettings.get_setting("GD-Sync/protectedMode")
 	if ProjectSettings.has_setting("GD-Sync/uniqueUsername"):
-		_UNIQUE_USERNAMES = ProjectSettings.get_setting("GD-Sync/uniqueUsername")
+		UNIQUE_USERNAMES = ProjectSettings.get_setting("GD-Sync/uniqueUsername")
+	if ProjectSettings.has_setting("GD-Sync/useSenderID"):
+		USE_SENDER_ID = ProjectSettings.get_setting("GD-Sync/useSenderID")
 	
 	if _PUBLIC_KEY == "" || _PRIVATE_KEY == "":
 		push_error("
@@ -76,7 +81,7 @@ func _ready():
 		Please add one under Project->Tools->GD-Sync."
 		)
 
-func is_active():
+func is_active() -> bool:
 	return status >= ENUMS.CONNECTION_STATUS.CONNECTING
 
 func valid_connection() -> bool:
@@ -86,7 +91,7 @@ func valid_connection() -> bool:
 		return false
 	return true
 
-func reset_multiplayer():
+func reset_multiplayer() -> void:
 	client.close()
 	encryptor.finish()
 	decryptor.finish()
@@ -95,7 +100,7 @@ func reset_multiplayer():
 	client_id = -1
 	host = -1
 
-func start_multiplayer():
+func start_multiplayer() -> void:
 	if status != ENUMS.CONNECTION_STATUS.DISABLED: return
 	reset_multiplayer()
 	status = ENUMS.CONNECTION_STATUS.FINDING_LB
@@ -116,10 +121,10 @@ func start_multiplayer():
 		reset_multiplayer()
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 
-func stop_multiplayer():
+func stop_multiplayer() -> void:
 	reset_multiplayer()
 
-func lb_request_completed(result, response_code, headers, body : PackedByteArray):
+func lb_request_completed(result, response_code, headers, body : PackedByteArray) -> void:
 	if status != ENUMS.CONNECTION_STATUS.FINDING_LB: return
 	if response_code == 401:
 		reset_multiplayer()
@@ -134,11 +139,11 @@ func lb_request_completed(result, response_code, headers, body : PackedByteArray
 	await get_tree().create_timer(1.0).timeout
 	find_best_server(serverPings)
 
-func ping_game_servers(servers : Array, serverPings : Dictionary):
+func ping_game_servers(servers : Array, serverPings : Dictionary) -> void:
 	for server in servers:
 		ping_game_server(server, serverPings)
 
-func ping_game_server(server : String, serverPings : Dictionary):
+func ping_game_server(server : String, serverPings : Dictionary) -> void:
 	var peer : PacketPeerUDP = PacketPeerUDP.new()
 	peer.connect_to_host(server, 8081)
 	await get_tree().create_timer(0.1).timeout
@@ -152,7 +157,7 @@ func ping_game_server(server : String, serverPings : Dictionary):
 	await get_tree().create_timer(0.2)
 	status = ENUMS.CONNECTION_STATUS.CONNECTING
 
-func listen_for_pings(peer, server, serverPings):
+func listen_for_pings(peer, server, serverPings) -> void:
 	var totalPing : int = 0
 	var pings : int = 0
 	
@@ -165,7 +170,7 @@ func listen_for_pings(peer, server, serverPings):
 	if pings > 0:
 		serverPings[totalPing/pings] = server
 
-func find_best_server(serverPings : Dictionary):
+func find_best_server(serverPings : Dictionary) -> void:
 	if serverPings.size() == 0:
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 		reset_multiplayer()
@@ -176,7 +181,7 @@ func find_best_server(serverPings : Dictionary):
 	var lowestPing : int = pings[0]
 	connect_to_server(serverPings[lowestPing])
 
-func connect_to_server(server : String):
+func connect_to_server(server : String) -> void:
 	client.create_client(server, 8080)
 	
 	connection_i += 1
@@ -196,13 +201,13 @@ func connect_to_server(server : String):
 		status = ENUMS.CONNECTION_STATUS.CONNECTING
 		connect_to_server(server_ip)
 
-func external_lobby_switch(server : String):
+func external_lobby_switch(server : String) -> void:
 	status = ENUMS.CONNECTION_STATUS.LOBBY_SWITCH
 	reset_multiplayer()
 	connect_to_server(server)
 
 var timePassed : float = 0.0
-func _process(delta):
+func _process(delta) -> void:
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
@@ -228,23 +233,24 @@ func _process(delta):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
 				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.UNRELIABLE))
 
-func set_client_id(client_id : int):
+func set_client_id(client_id : int) -> void:
 	self.client_id = client_id
 	GDSync.client_id_changed.emit(client_id)
 	status = ENUMS.CONNECTION_STATUS.CONNECTED
 	request_processor.validate_public_key()
 
-func set_client_key(client_key):
+func set_client_key(client_key) -> void:
 	if client_key == null:
 		reset_multiplayer()
 		GDSync.emit_signal("connection_failed", ENUMS.CONNECTION_FAILED.INVALID_PUBLIC_KEY)
 		return
 	
+	request_processor.apply_settings()
 	request_processor.secure_connection()
 	
 	encryptor.start(AESContext.MODE_ECB_ENCRYPT,(_PRIVATE_KEY+client_key).to_utf8_buffer())
 	decryptor.start(AESContext.MODE_ECB_DECRYPT,(_PRIVATE_KEY+client_key).to_utf8_buffer())
 
-func set_host(host : int):
+func set_host(host : int) -> void:
 	self.host = host
 	get_parent().emit_signal("host_changed", host == GDSync.get_client_id(), host)

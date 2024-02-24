@@ -344,23 +344,23 @@ fit_content = true
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="UniqueUsernames" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
 layout_mode = 2
 
-[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 
-[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Unique Usernames"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -368,6 +368,35 @@ bbcode_enabled = true
 text = "Tells the server whether is should allow duplicate usernames when joining a lobby. If enabled, a username can only appear once inside a lobby.
 
 Usernames can be set using [color=#408eab]GDSync.set_player_username()[/color]."
+fit_content = true
+
+[node name="Spacing2" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="SenderID" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+layout_mode = 2
+
+[node name="SenderID" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Sender ID"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Tells the server whether is should append extra data to each remote function call that includes the sender ID. This allows you to see which client a remote function call came from, at the cost of using slightly more data.
+
+Retreiving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
 fit_content = true
 
 [node name="Close" type="Button" parent="CenterContainer/UI"]
@@ -383,5 +412,6 @@ text = "Close"
 [connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
 [connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
 [connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
-[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
+[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
+[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
 [connection signal="pressed" from="CenterContainer/UI/Close" to="." method="close"]
