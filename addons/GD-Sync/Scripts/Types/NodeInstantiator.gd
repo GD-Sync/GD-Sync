@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -27,6 +27,7 @@ extends Node
 
 func instantiate_node() -> Node:
 	var node : Node = scene.instantiate()
+	read_original_properties(node)
 	var id : int = _assign_instance_id(node)
 	node.name = str(id)
 	
@@ -35,7 +36,7 @@ func instantiate_node() -> Node:
 	else:
 		add_child(node)
 	
-	_send_remote_instantiate.call_deferred(node, _get_properties_as_bytes(node))
+	_send_remote_instantiate.call_deferred(node, _original_properties)
 	_call_multiplayer_ready(node)
 	node_instantiated.emit(node)
 	return node
@@ -47,19 +48,41 @@ func instantiate_node() -> Node:
 #Private functions ----------------------------------------------------------------------
 
 enum SPAWN_TYPE {
-	NODEPATH,
+	NODE_PATH,
 	SCENE_ROOT
 }
 
 signal node_instantiated(node : Node)
 
-@export var spawn_type : SPAWN_TYPE = SPAWN_TYPE.NODEPATH : set = _set_spawn_type
+##Decides where the instantiated Node is added.
+##[br][br][enum NODE_PATH] 
+##- Adds instantiated Nodes to the selected [member target_location].
+##[br][br][enum SCENE_ROOT] 
+##- Adds instantiated Nodes to the current scene.
+@export var spawn_type : SPAWN_TYPE = SPAWN_TYPE.SCENE_ROOT : set = _set_spawn_type
+##The Node which instantiated Nodes are added to.
 var target_location : NodePath
 var target : Node
+##The [PackedScene] which will be instantiated.
 var scene : PackedScene
-var sync_starting_changes : bool = true
+##If enabled, when a new Client joins the lobby the NodeInstantiator will make sure 
+##to spawn in any Nodes that were spawned in before the Client joined.
+var replicate_on_join : bool = true
+##If enabled, any changes made to the instantiated Node within the same frame will 
+##automatically be synchronized across all clients. Changes are only synchronized on the parent Node, 
+##not chilren. Also works in combination with [member replicate_on_join].
+##[br][br]As an example, this setting can be useful for when setting the position, direction and 
+##speed of a bullet, doing this will set those values on all clients. 
+##[br][br]This setting will only synchronize variants, not Objects like Nodes or Resources. 
+##If the plugin detects an [Array] or [Dictionary] with an Object in it, it will also not be synchronized.
+var sync_starting_changes : bool = true :
+	set(value):
+		sync_starting_changes = value
+		notify_property_list_changed()
+##Excludes properties from being synced with [member sync_starting_changes].
+var excluded_properties : PackedStringArray = []
 
-const EXCLUDED_PROPERTIES : PackedStringArray = [
+const _PERMANENT_EXCLUDED_PROPERTIES : PackedStringArray = [
 	"position",
 	"rotation",
 	"scale"
@@ -67,51 +90,74 @@ const EXCLUDED_PROPERTIES : PackedStringArray = [
 
 var GDSync
 
-var rng : RandomNumberGenerator = RandomNumberGenerator.new()
-var node_id_list : Dictionary = {}
+var _rng : RandomNumberGenerator = RandomNumberGenerator.new()
+var _node_id_list : Dictionary = {}
+
+var _original_properties = null
+
+var replicate_settings = null
 
 func _ready() -> void:
 	if Engine.is_editor_hint(): return
+	
 	GDSync = get_node("/root/GDSync")
-	GDSync.expose_func(_instance_remote)
-	rng.randomize()
+	GDSync.expose_func(_instantiate_remote)
+	_rng.randomize()
 	
 	if spawn_type == SPAWN_TYPE.SCENE_ROOT:
 		target = get_tree().current_scene
-	elif spawn_type == SPAWN_TYPE.NODEPATH:
+	elif spawn_type == SPAWN_TYPE.NODE_PATH:
 		target = get_node(target_location)
+	
+	if replicate_on_join and replicate_settings == null:
+		replicate_settings = [
+			get_path(),
+			sync_starting_changes,
+			excluded_properties,
+			scene.resource_path if scene != null else null,
+			target.get_path(),
+			{}
+		]
 
 func _call_multiplayer_ready(node : Node) -> void:
 	await get_tree().process_frame
 	node.propagate_call("_multiplayer_ready")
 
 func _get_random_id() -> int:
-	var id : int = rng.randi()
-	if node_id_list.has(id):
+	var id : int = _rng.randi()
+	if _node_id_list.has(id):
 		return _get_random_id()
 	return id
 
 func _assign_instance_id(node : Node) -> int:
 	var id : int = _get_random_id()
-	node_id_list[id] = node
+	var instantiator_path : String = str(get_path())
+	_node_id_list[id] = node
 	node.set_meta("GDID", id)
+	node.set_meta("Instantiator", instantiator_path)
+	
+	if replicate_on_join:
+		GDSync._node_tracker.register_replication(node, instantiator_path, replicate_settings)
+	
 	_await_id_deletion(node)
 	return id
 
-func _remove_node_id(id : int) -> void:
-	if node_id_list.has(id):
-		node_id_list.erase(id)
-
 func _await_id_deletion(node : Node) -> void:
 	await node.tree_exiting
-	_remove_node_id(node.get_meta("GDID"))
+	var id : int = node.get_meta("GDID")
+	
+	if _node_id_list.has(id):
+		_node_id_list.erase(id)
+	
+	if replicate_on_join:
+		GDSync._node_tracker.deregister_replication(node)
 
 func _send_remote_instantiate(node : Node, starting_properties : Dictionary) -> void:
-	var start : float = Time.get_ticks_msec()
 	var changed_properties : Dictionary = {}
 	
 	if sync_starting_changes:
 		var new_properties : Dictionary = _get_properties_as_bytes(node)
+		
 		for name in starting_properties:
 			if new_properties[name] != starting_properties[name]:
 				var new_value = bytes_to_var(new_properties[name])
@@ -121,15 +167,37 @@ func _send_remote_instantiate(node : Node, starting_properties : Dictionary) -> 
 					TYPE_CALLABLE: continue
 					TYPE_SIGNAL: continue
 					TYPE_RID: continue
-				if EXCLUDED_PROPERTIES.has(name): continue
+				if _PERMANENT_EXCLUDED_PROPERTIES.has(name): continue
+				if excluded_properties.has(name): continue
+				if _contains_object(new_value): continue
 				changed_properties[name] = new_value
 	
-	GDSync.call_func(_instance_remote, [node.get_meta("GDID"), changed_properties])
+	GDSync.call_func(_instantiate_remote, [node.get_meta("GDID"), changed_properties])
 
-func _instance_remote(id : int, changed_properties : Dictionary) -> void:
+func _contains_object(value) -> bool:
+	if value is Object: return true
+	
+	if value is Array:
+		for element in value:
+			if _contains_object(element):
+				return true
+	
+	if value is Dictionary:
+		for key in value:
+			if _contains_object(key) or _contains_object(value[key]):
+				return true
+	
+	return false
+
+func _instantiate_remote(id : int, changed_properties : Dictionary) -> void:
+	var instantiator_path : String = str(get_path())
 	var node : Node = scene.instantiate()
-	node_id_list[id] = node
+	read_original_properties(node)
+	_node_id_list[id] = node
 	node.set_meta("GDID", id)
+	node.set_meta("Instantiator", instantiator_path)
+	if replicate_on_join:
+		GDSync._node_tracker.register_replication(node, instantiator_path, replicate_settings)
 	_await_id_deletion(node)
 	node.name = str(id)
 	
@@ -151,6 +219,11 @@ func _get_properties_as_bytes(node : Node) -> Dictionary:
 	
 	return property_values
 
+func read_original_properties(node : Node) -> void:
+	if _original_properties == null:
+		_original_properties = _get_properties_as_bytes(node)
+		replicate_settings[ENUMS.NODE_REPLICATION_SETTINGS.ORIGINAL_PROPERTIES] = _original_properties
+
 func _set_spawn_type(t : int) -> void:
 	spawn_type = t
 	notify_property_list_changed()
@@ -161,7 +234,7 @@ func _get_property_list() -> Array:
 	properties.append({
 		"name" : "target_location",
 		"type" : TYPE_NODE_PATH,
-		"usage" : PROPERTY_USAGE_DEFAULT if spawn_type == SPAWN_TYPE.NODEPATH else PROPERTY_USAGE_NO_EDITOR 
+		"usage" : PROPERTY_USAGE_DEFAULT if spawn_type == SPAWN_TYPE.NODE_PATH else PROPERTY_USAGE_NO_EDITOR 
 	})
 	
 	properties.append({
@@ -172,9 +245,21 @@ func _get_property_list() -> Array:
 	})
 	
 	properties.append({
+		"name" : "replicate_on_join",
+		"type" : TYPE_BOOL,
+		"usage" : PROPERTY_USAGE_DEFAULT
+	})
+	
+	properties.append({
 		"name" : "sync_starting_changes",
 		"type" : TYPE_BOOL,
 		"usage" : PROPERTY_USAGE_DEFAULT
+	})
+	
+	properties.append({
+		"name" : "excluded_properties",
+		"type" : TYPE_PACKED_STRING_ARRAY,
+		"usage" : PROPERTY_USAGE_DEFAULT if sync_starting_changes else PROPERTY_USAGE_NO_EDITOR 
 	})
 	
 	return properties

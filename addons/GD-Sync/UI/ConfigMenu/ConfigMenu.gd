@@ -1,7 +1,7 @@
 @tool
 extends Control
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,

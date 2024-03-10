@@ -1,8 +1,7 @@
 @tool
 extends Node
-class_name PropertySynchronizer
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -26,12 +25,16 @@ class_name PropertySynchronizer
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
+##Allows you to manually synchronize a property. This function will only synchronize if the 
+##property has actually changed.
+##[br][br]If [param forced] is true, it will synchronize regardless of if the property has changed.
 func synchronize(forced : bool = true) -> void:
 	var new_property = node.get(property_name)
 	if !forced and new_property == _property: return
 	_property = new_property
 	GDSync.call_func(_sync_received, [_property], false)
 
+##Temporarily pauses interpolation for [param seconds].
 func pause_interpolation(seconds : float) -> void:
 	_pause_interpolation_remote(seconds)
 	GDSync.call_func(_pause_interpolation_remote, [seconds])
@@ -58,18 +61,46 @@ enum PROCESS_MODE {
 	PHYSICS_PROCESS,
 }
 
+##Decides when to broadcast the property to other clients.
+##[br][br][enum WHEN_HOST] 
+##- Broadcast when you are the host of this lobby
+##[br][br][enum WHEN_CLIENT] 
+##- Broadcast when you are the not host of this lobby
+##[br][br][enum WHEN_OWNER] 
+##- Broadcast when you are the owner of this Node or any parent Node.
+##[br][br][enum WHEN_HOST_AND_NO_OWNER_OR_OWNER] 
+##- Broadcast when you are the host of this lobby and this Node has no owner. 
+##If it does have an owner, only the owner broadcasts. 
+##[br]Useful for scenario's like picking up and holding objects, where you want the owner to broadcast 
+##when the item is picked up. When it is dropped and the owner is removed, the lobby 
+##host goes back to broadcasting it.
+##[br][br][enum ALWAYS] 
+##- Always broadcast. Never recommended.
+##[br][br][enum NEVER] 
+##- Never broadcast.
 @export var broadcast: BROADCAST_MODE : set = _set_broadcast
+##Whether the property should synchronize during [method _process] or [method _physics_process].
 @export var process : PROCESS_MODE
+##How many times per second the property should be synchronized.
 @export var refresh_rate : int = 30
+##The Node on which you want to synchronize a property.
 @export var node_path : NodePath :
 	set(value):
 		node_path = value
 		node = get_node_or_null(node_path)
 		_refresh_property_list()
+		update_configuration_warnings()
+##The property which you want to synchronize.
 @export var property_name : String :
 	set(value):
 		property_name = value
 		_refresh_property_list()
+		update_configuration_warnings()
+
+##If enabled, the chosen property is interpolated. This will smooth out the synchronization. 
+##[br][br]
+##Interpolation may be temporarily paused with [method pause_interpolation]. 
+##Useful when teleporting a Node from one spot to another to prevent it from gliding there.
 var interpolated : bool = false :
 	set(value):
 		interpolated = value
@@ -77,6 +108,9 @@ var interpolated : bool = false :
 
 var GDSync
 
+##How fast the chosen property is interpolated. 
+##[br][br]It is recommended to keep 
+##this number the same or slightly higher than the [member refresh_rate].
 var interpolation_speed : float = 1.0
 
 var node : Node
@@ -129,6 +163,7 @@ func _set_broadcast(mode : int) -> void:
 	_update_sync_mode()
 
 func _owner_changed(owner) -> void:
+	push_warning("Sync owner changed ", owner)
 	_update_sync_mode()
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
@@ -146,20 +181,20 @@ func _update_sync_mode() -> void:
 		BROADCAST_MODE.WHEN_OWNER:
 			_should_broadcast = is_owner
 		BROADCAST_MODE.WHEN_HOST_AND_NO_OWNER_OR_OWNER:
-			_should_broadcast = (is_host and GDSync.get_gdsync_owner(self) == null) || is_owner
+			_should_broadcast = (is_host and GDSync.get_gdsync_owner(self) < 0) || is_owner
 		BROADCAST_MODE.ALWAYS:
 			_should_broadcast = true
 		BROADCAST_MODE.NEVER:
 			_should_broadcast = false
 
-func _process(delta) -> void:
+func _process(delta : float) -> void:
 	if !GDSync.is_active(): return
 	if _should_broadcast:
 		if _may_synchronize(delta): synchronize(false)
 	else:
 		if interpolated: _interpolate(delta)
 
-func _physics_process(delta) -> void:
+func _physics_process(delta : float) -> void:
 	if !GDSync.is_active(): return
 	if _should_broadcast:
 		if _may_synchronize(delta):
@@ -169,22 +204,23 @@ func _physics_process(delta) -> void:
 	else:
 		if interpolated: _interpolate(delta)
 
-func _may_synchronize(delta) -> bool:
+func _may_synchronize(delta : float) -> bool:
 	_current_cooldown -= delta
 	if _current_cooldown <= 0:
 		_current_cooldown += _cooldown
 		return true
 	return false
 
-func _may_interval_synchronize(delta) -> bool:
+func _may_interval_synchronize(delta : float) -> bool:
 	_interval_cooldown -= delta
 	if _interval_cooldown <= 0:
 		_interval_cooldown = 10.0
 		return true
 	return false
 
-func _client_joined(clientID) -> void:
-	synchronize()
+func _client_joined(client_id : int) -> void:
+	if _should_broadcast:
+		synchronize()
 
 func _sync_received(new_value) -> void:
 	_property = new_value
@@ -192,7 +228,7 @@ func _sync_received(new_value) -> void:
 		node.set(property_name, _property)
 		value_changed.emit(_property)
 
-func _interpolate(delta) -> void:
+func _interpolate(delta : float) -> void:
 	var current_value = node.get(property_name)
 	
 	if _type == TYPE_BASIS:
@@ -223,6 +259,20 @@ func _can_interpolate() -> bool:
 		|| property_type == TYPE_COLOR
 		|| property_type == TYPE_QUATERNION
 		|| property_type == TYPE_BASIS)
+
+func _get_configuration_warnings() -> PackedStringArray:
+	var node : Node = get_node_or_null(node_path)
+	if node == null:
+		return ["No NodePath is specified."]
+	
+	var propertyList : Array = node.get_property_list()
+	if node.get_script() != null: propertyList.append_array(node.get_script().get_script_property_list())
+	
+	for node_property in propertyList:
+		if node_property["name"] == property_name:
+			return []
+	
+	return ["The selected Node does not have the property \""+property_name+"\""]
 
 var _may_interpolate : bool = false
 func _refresh_property_list() -> void:

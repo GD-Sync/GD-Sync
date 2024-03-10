@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -59,7 +59,7 @@ func has_packets(type : int) -> bool:
 func package_requests(client_id : int, type : int) -> PackedByteArray:
 	var message : Dictionary = {}
 	
-	var requests
+	var requests : Array
 	var packetType : int
 	var bytes : PackedByteArray
 	
@@ -77,9 +77,12 @@ func package_requests(client_id : int, type : int) -> PackedByteArray:
 			requests = requestsUDP
 			packetType = ENUMS.PACKET_VALUE.CLIENT_REQUESTS
 	
-	message[packetType] = requests
+	var safe_requests : Array = check_request_size_safety(requests.duplicate())
+	message[packetType] = safe_requests
 	bytes = var_to_bytes(message)
-	requests.clear()
+	
+	for request in safe_requests:
+		requests.erase(request)
 	
 	var padding = bytes.size()
 	if connection_controller.status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
@@ -90,8 +93,14 @@ func package_requests(client_id : int, type : int) -> PackedByteArray:
 	
 	var packet : Array = [padding, bytes.compress(2)]
 	emit_signal("packets_processed")
-	
 	return var_to_bytes(packet)
+
+func check_request_size_safety(requests : Array) -> Array:
+	var size : int = var_to_bytes(requests).size()
+	if size > 20480 and requests.size() > 1:
+		return check_request_size_safety(requests.slice(0, ceili(requests.size()/2.0)))
+	else:
+		return requests
 
 func unpack_packet(bytes : PackedByteArray) -> void:
 	var packet : Array = bytes_to_var(bytes)
@@ -373,7 +382,8 @@ func create_function_call_request(function : Callable, parameters, client_id : i
 	
 	if parameters != null:
 		if parameters is Array:
-			request.append(parameters)
+			if parameters.size() > 0:
+				request.append(parameters)
 		else:
 			push_error("Parameters must be put in an array due to an engine limitation.")
 			return

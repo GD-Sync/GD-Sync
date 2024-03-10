@@ -1,7 +1,7 @@
 extends Node
 class_name MultiplayerClient
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -142,16 +142,19 @@ signal host_changed(is_host : bool, new_host_id : int)
 var _request_processor
 var _connection_controller
 var _session_controller
+var _node_tracker
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
 	_connection_controller = preload("res://addons/GD-Sync/Scripts/ConnectionController.gd").new()
 	_session_controller = preload("res://addons/GD-Sync/Scripts/SessionController.gd").new()
+	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
 
 func _ready():
 	add_child(_request_processor)
 	add_child(_connection_controller)
 	add_child(_session_controller)
+	add_child(_node_tracker)
 
 
 
@@ -353,10 +356,19 @@ func hide_var(node : Node, variable_name : String) -> void:
 ##[br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
 ##[br]
 ##[br][b]node -[/b] The Node on which you want to assign ownership to.
-##[br][b]variable_name -[/b] The name of the variable you want to hide.
+##[br][b]owner -[/b] The client ID of the new owner.
 func set_gdsync_owner(node : Node, owner : int) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_gdsync_owner(node, owner)
+
+##Clears the owner of a Node. Node ownership is recursive and will be removed on all children. 
+##[br]
+##[br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+##[br]
+##[br][b]node -[/b] The Node on which you want to clear ownership.
+func clear_gdsync_owner(node : Node) -> void:
+	if !_connection_controller.valid_connection(): return
+	_session_controller.set_gdsync_owner(node, -1)
 
 ##Returns the Client ID of the client that has ownership of the Node. Returns -1 if there is no owner.
 ##[br]
@@ -372,7 +384,7 @@ func is_gdsync_owner(node : Node) -> bool:
 
 ##Connects up a signal so that a specific function gets called if the owner of the Node changes. 
 ##The function must have one parameter which is the Client ID of the new owner. 
-##This can either be an int or null.
+##The Client ID will be -1 if the doesn't have an owner anymore
 ##[br]
 ##[br][b]node -[/b] The Node of which you want to monitor ownership.
 ##[br][b]callable -[/b] The function that should get called if the owner changes.
@@ -590,7 +602,7 @@ func erase_player_data(key : String) -> void:
 ##[br][b]key -[/b] The key of the player data.
 ##[br][b]default -[/b] The default value that is returned if the given key does not exist.
 func get_player_data(client_id : int, key : String, default = null):
-	if !_connection_controller.valid_connection(): return null
+	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, key, default)
 
 ##Gets all data from a specific client. If you want to retreive your own data you can input your own id. 

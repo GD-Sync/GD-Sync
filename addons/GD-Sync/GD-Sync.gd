@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -35,6 +35,7 @@ func _disable_plugin():
 	remove_tool_menu_item("GD-Sync")
 	remove_custom_type("PropertySynchronizer")
 	remove_custom_type("NodeInstantiator")
+	remove_custom_type("SynchronizedAnimationPlayer")
 	remove_autoload_singleton("GDSync")
 
 var config_menu : Control
@@ -51,6 +52,10 @@ func _enter_tree():
 			"Node",
 			load("res://addons/GD-Sync/Scripts/Types/NodeInstantiator.gd"),
 			load("res://addons/GD-Sync/UI/Icons/NodeInstantiator.png"))
+	add_custom_type("SynchronizedAnimationPlayer",
+			"AnimationPlayer",
+			load("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationPlayer.gd"),
+			load("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png"))
 
 func _exit_tree():
 	config_menu.free()

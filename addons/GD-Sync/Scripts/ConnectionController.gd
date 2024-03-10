@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -193,7 +193,8 @@ func connect_to_server(server : String) -> void:
 		await get_tree().create_timer(8.0).timeout
 		if status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return
 		if current_i == connection_i:
-			if status >= ENUMS.CONNECTION_STATUS.CONNECTING: GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
+			if status >= ENUMS.CONNECTION_STATUS.CONNECTING:
+				GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 			reset_multiplayer()
 	else:
 		await get_tree().create_timer(8.0).timeout

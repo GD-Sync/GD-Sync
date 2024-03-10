@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -226,9 +226,9 @@ func lobby_tags_changed(key : String) -> void:
 	if !lobby_data.has("Tags"): return
 	var tags : Dictionary = lobby_data["Tags"]
 	if !tags.has(key):
-		GDSync.lobby_tags_changed.emit(key, null)
+		GDSync.lobby_tag_changed.emit(key, null)
 	else:
-		GDSync.lobby_tags_changed.emit(key, tags[key])
+		GDSync.lobby_tag_changed.emit(key, tags[key])
 
 func has_lobby_data(key : String) -> bool:
 	if !lobby_data.has("Data"): return false
@@ -248,7 +248,7 @@ func get_lobby_data(key : String, default):
 	else:
 		return data[key]
 
-func get_lobby_tags(key : String, default):
+func get_lobby_tag(key : String, default):
 	if !lobby_data.has("Tags"): return
 	var tags : Dictionary = lobby_data["Tags"]
 	if !tags.has(key):

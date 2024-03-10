@@ -1,6 +1,4 @@
-[gd_resource type="Theme" load_steps=18 format=3 uid="uid://5whm1igkt23h"]
-
-[ext_resource type="FontFile" uid="uid://t50djx4didf7" path="res://DemoPage/Fonts/Montserrat-Medium.ttf" id="1_wpl6y"]
+[gd_resource type="Theme" load_steps=17 format=3 uid="uid://5whm1igkt23h"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_qgnno"]
 content_margin_left = 15.0
@@ -126,7 +124,6 @@ corner_radius_bottom_left = 20
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_tcim6"]
 
 [resource]
-default_font = ExtResource("1_wpl6y")
 default_font_size = 16
 Button/styles/disabled = SubResource("StyleBoxFlat_qgnno")
 Button/styles/focus = SubResource("StyleBoxFlat_lnhoy")

@@ -1,6 +1,6 @@
 class_name ENUMS
 
-#Copyright (c) 2023 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -183,4 +183,18 @@ enum LOBBY_JOIN_ERROR {
 	LOBBY_IS_FULL,
 	INCORRECT_PASSWORD,
 	DUPLICATE_USERNAME,
+}
+
+enum NODE_REPLICATION_SETTINGS {
+	INSTANTIATOR,
+	SYNC_STARTING_CHANGES,
+	EXCLUDED_PROPERTIES,
+	SCENE,
+	TARGET,
+	ORIGINAL_PROPERTIES,
+}
+
+enum NODE_REPLICATION_DATA {
+	ID,
+	CHANGED_PROPERTIES,
 }
