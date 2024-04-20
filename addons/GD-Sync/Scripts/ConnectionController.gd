@@ -42,6 +42,8 @@ var host : int = -1
 var connecting : bool = false
 var connection_i : int = 0
 
+var last_poll : float = 0.0
+
 var server_ip : String = ""
 var encryptor : AESContext = AESContext.new()
 var decryptor : AESContext = AESContext.new()
@@ -92,13 +94,15 @@ func valid_connection() -> bool:
 	return true
 
 func reset_multiplayer() -> void:
+	var emit_disconnect : bool = status > ENUMS.CONNECTION_STATUS.CONNECTED
+	
 	client.close()
 	encryptor.finish()
 	decryptor.finish()
-	if status > ENUMS.CONNECTION_STATUS.CONNECTED: GDSync.disconnected.emit()
 	status = ENUMS.CONNECTION_STATUS.DISABLED
 	client_id = -1
 	host = -1
+	if emit_disconnect: GDSync.disconnected.emit()
 
 func start_multiplayer() -> void:
 	if status != ENUMS.CONNECTION_STATUS.DISABLED: return
@@ -183,6 +187,7 @@ func find_best_server(serverPings : Dictionary) -> void:
 
 func connect_to_server(server : String) -> void:
 	client.create_client(server, 8080)
+	last_poll = Time.get_unix_time_from_system()
 	
 	connection_i += 1
 	var current_i : int = connection_i
@@ -207,8 +212,12 @@ func external_lobby_switch(server : String) -> void:
 	reset_multiplayer()
 	connect_to_server(server)
 
-var timePassed : float = 0.0
 func _process(delta) -> void:
+	var current_time : float = Time.get_unix_time_from_system()
+	if current_time - last_poll >= 5:
+		reset_multiplayer()
+	last_poll = current_time
+	
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
