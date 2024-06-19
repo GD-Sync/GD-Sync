@@ -163,7 +163,6 @@ func _set_broadcast(mode : int) -> void:
 	_update_sync_mode()
 
 func _owner_changed(owner) -> void:
-	push_warning("Sync owner changed ", owner)
 	_update_sync_mode()
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
