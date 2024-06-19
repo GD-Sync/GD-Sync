@@ -109,11 +109,14 @@ func start_multiplayer() -> void:
 	reset_multiplayer()
 	status = ENUMS.CONNECTION_STATUS.FINDING_LB
 	
+	last_poll = Time.get_unix_time_from_system()
+	
 	var load_balancers : Array = self.load_balancers.duplicate()
 	load_balancers.shuffle()
 	while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
 		var address = load_balancers[randi() % load_balancers.size()]
 		load_balancers.erase(address)
+		
 		lb_request.request(
 			"http://"+address+":8080/connect",
 			[],
@@ -213,10 +216,11 @@ func external_lobby_switch(server : String) -> void:
 	connect_to_server(server)
 
 func _process(delta) -> void:
-	var current_time : float = Time.get_unix_time_from_system()
-	if current_time - last_poll >= 5:
-		reset_multiplayer()
-	last_poll = current_time
+	if status == ENUMS.CONNECTION_STATUS.CONNECTED:
+		var current_time : float = Time.get_unix_time_from_system()
+		if current_time - last_poll >= 5:
+			reset_multiplayer()
+		last_poll = current_time
 	
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
