@@ -1,6 +1,6 @@
 extends AnimationPlayer
 
-#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -70,7 +70,7 @@ func play(name: StringName = "", custom_blend: float = -1, custom_speed: float =
 		GDSync.call_func(_play_remote, parameters)
 
 func play_backwards(name: StringName = "", custom_blend: float = -1) -> void:
-	self.play(name, custom_blend, 1.0, true)
+	self.play(name, custom_blend, -1.0, true)
 
 func pause() -> void:
 	super.pause()
@@ -143,6 +143,8 @@ func _ready() -> void:
 
 func _client_joined(client_id : int) -> void:
 	if is_playing():
+		GDSync.call_func_on(client_id, _stop_remote)
+		
 		GDSync.call_func_on(client_id, _play_remote, [
 			Time.get_unix_time_from_system(),
 			current_animation,
@@ -151,7 +153,7 @@ func _client_joined(client_id : int) -> void:
 			_playing_backwards
 		])
 		
-		GDSync.call_func(_advance_remote, [current_animation_position/_custom_speed])
+		GDSync.call_func_on(client_id, _advance_remote, [current_animation_position/_custom_speed])
 
 func _play_remote_cached(start_time : float = 0.0, name_index = 0, custom_blend : float = -1, custom_speed : float = 1.0, from_end : bool = false) -> void:
 	if !GDSync._session_controller.has_name_from_index(name_index): return

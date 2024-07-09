@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -26,6 +26,7 @@ extends Node
 
 var GDSync
 var request_processor
+var https_controller
 
 const API_VERSION : int = 1
 
@@ -41,12 +42,14 @@ var status : int = ENUMS.CONNECTION_STATUS.DISABLED
 var host : int = -1
 var connecting : bool = false
 var connection_i : int = 0
-
 var last_poll : float = 0.0
 
 var server_ip : String = ""
 var encryptor : AESContext = AESContext.new()
 var decryptor : AESContext = AESContext.new()
+
+var cbc_key : PackedByteArray
+var cbc_iv : PackedByteArray
 
 var lb_request : HTTPRequest
 
@@ -61,9 +64,10 @@ func _ready() -> void:
 	process_priority = -1000
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
+	https_controller = GDSync._https_controller
 	lb_request = HTTPRequest.new()
 	add_child(lb_request)
-	lb_request.timeout = 2.0
+	lb_request.timeout = 4.0
 	lb_request.request_completed.connect(lb_request_completed)
 	
 	if ProjectSettings.has_setting("GD-Sync/publicKey"):
@@ -99,9 +103,11 @@ func reset_multiplayer() -> void:
 	client.close()
 	encryptor.finish()
 	decryptor.finish()
+	
 	status = ENUMS.CONNECTION_STATUS.DISABLED
 	client_id = -1
 	host = -1
+	
 	if emit_disconnect: GDSync.disconnected.emit()
 
 func start_multiplayer() -> void:
@@ -115,14 +121,16 @@ func start_multiplayer() -> void:
 	load_balancers.shuffle()
 	while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
 		var address = load_balancers[randi() % load_balancers.size()]
+		var complete_url : String = "https://"+address
+		https_controller.active_lb = complete_url
 		load_balancers.erase(address)
-		
 		lb_request.request(
-			"http://"+address+":8080/connect",
+			complete_url+"/connect",
 			[],
 			HTTPClient.METHOD_GET,
 			_PUBLIC_KEY)
-		await get_tree().create_timer(2.1).timeout
+		await get_tree().create_timer(4.1).timeout
+		lb_request.cancel_request()
 	
 	if status == ENUMS.CONNECTION_STATUS.FINDING_LB:
 		reset_multiplayer()
@@ -139,10 +147,13 @@ func lb_request_completed(result, response_code, headers, body : PackedByteArray
 		return
 	if response_code != 200:
 		return
+	var servers : Array = str_to_var(body.get_string_from_ascii())
+	if servers.size() == 0:
+		return
 	status = ENUMS.CONNECTION_STATUS.PINGING_SERVERS
 	var serverPings : Dictionary = {}
 	
-	ping_game_servers(str_to_var(body.get_string_from_ascii()), serverPings)
+	ping_game_servers(servers, serverPings)
 	await get_tree().create_timer(1.0).timeout
 	find_best_server(serverPings)
 
@@ -262,8 +273,19 @@ func set_client_key(client_key) -> void:
 	request_processor.apply_settings()
 	request_processor.secure_connection()
 	
-	encryptor.start(AESContext.MODE_ECB_ENCRYPT,(_PRIVATE_KEY+client_key).to_utf8_buffer())
-	decryptor.start(AESContext.MODE_ECB_DECRYPT,(_PRIVATE_KEY+client_key).to_utf8_buffer())
+	cbc_key = _PRIVATE_KEY.to_utf8_buffer()
+	cbc_iv = client_key.to_utf8_buffer()
+	
+	refresh_encryptor()
+	refresh_decryptor()
+
+func refresh_encryptor() -> void:
+	encryptor.finish()
+	encryptor.start(AESContext.MODE_CBC_ENCRYPT, cbc_key, cbc_iv)
+
+func refresh_decryptor() -> void:
+	decryptor.finish()
+	decryptor.start(AESContext.MODE_CBC_DECRYPT, cbc_key, cbc_iv)
 
 func set_host(host : int) -> void:
 	self.host = host

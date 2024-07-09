@@ -1,0 +1,111 @@
+[gd_scene load_steps=2 format=3 uid="uid://cekqljqrlxm2j"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/Leaderboards/leaderboard_browser.gd" id="1_bxr2j"]
+
+[node name="LeaderboardBrowser" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_bxr2j")
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="RankBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Rank" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/RankBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rank"
+clip_text = true
+
+[node name="Username" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Gamemode" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/Username"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Username"
+clip_text = true
+
+[node name="ScoreBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Score" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer/ScoreBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Score"
+clip_text = true
+
+[node name="HSeparator" type="HSeparator" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeaderboardContainer" type="VBoxContainer" parent="PanelContainer/VBoxContainer/ScrollContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HSeparator2" type="HSeparator" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="PreviousBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Previous" type="Button" parent="PanelContainer/VBoxContainer/HBoxContainer2/PreviousBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Previous"
+
+[node name="PageBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="PageLabel" type="Label" parent="PanelContainer/VBoxContainer/HBoxContainer2/PageBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1/1"
+horizontal_alignment = 1
+clip_text = true
+
+[node name="NextBox" type="HBoxContainer" parent="PanelContainer/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Next" type="Button" parent="PanelContainer/VBoxContainer/HBoxContainer2/NextBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Next"
+
+[connection signal="pressed" from="PanelContainer/VBoxContainer/HBoxContainer2/PreviousBox/Previous" to="." method="_on_previous_pressed"]
+[connection signal="pressed" from="PanelContainer/VBoxContainer/HBoxContainer2/NextBox/Next" to="." method="_on_next_pressed"]

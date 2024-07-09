@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://b11acmdcq41ko"]
+
+[ext_resource type="Script" path="res://GD-SyncTemplates/Leaderboards/leaderboard_label.gd" id="1_gg6n8"]
+
+[node name="LeaderboardLabel" type="HBoxContainer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+script = ExtResource("1_gg6n8")
+
+[node name="RankBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Rank" type="Label" parent="RankBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "1"
+clip_text = true
+
+[node name="UsernameBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Username" type="Label" parent="UsernameBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Username"
+clip_text = true
+
+[node name="ScoreBox" type="HBoxContainer" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Score" type="Label" parent="ScoreBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+text = "100"
+clip_text = true

@@ -1,7 +1,7 @@
 extends Node
 class_name MultiplayerClient
 
-#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -142,18 +142,24 @@ signal host_changed(is_host : bool, new_host_id : int)
 var _request_processor
 var _connection_controller
 var _session_controller
+var _https_controller
+var _data_controller
 var _node_tracker
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
 	_connection_controller = preload("res://addons/GD-Sync/Scripts/ConnectionController.gd").new()
 	_session_controller = preload("res://addons/GD-Sync/Scripts/SessionController.gd").new()
+	_https_controller = preload("res://addons/GD-Sync/Scripts/HTTPSController.gd").new()
+	_data_controller = preload("res://addons/GD-Sync/Scripts/DataController.gd").new()
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
 
 func _ready():
 	add_child(_request_processor)
 	add_child(_connection_controller)
 	add_child(_session_controller)
+	add_child(_https_controller)
+	add_child(_data_controller)
 	add_child(_node_tracker)
 
 
@@ -621,3 +627,352 @@ func get_all_player_data(client_id : int) -> Dictionary:
 func set_player_username(name : String) -> void:
 	_request_processor.create_set_username_request(name)
 	_session_controller.set_player_data("Username", name)
+
+
+
+
+
+
+
+
+
+
+# Accounts & Persistent Data Storage ------------------------------------------
+# *****************************************************************************
+# -----------------------------------------------------------------------------
+
+##Creates an account in the database linked to the API key. 
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CREATION_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account. The email has to be unique.
+##[br][b]username -[/b] The username of the account. The username has to be unique. 
+##The username has to be between 3 and 20 characters long.
+##[br][b]password -[/b] The password of the account. 
+##The password has to be between 3 and 20 characters long.
+func create_account(email : String, username : String, password : String) -> int:
+	return await _data_controller.create_account(email, username, password)
+
+##Deletes an existing account in the database linked to the API key. 
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DELETION_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+##[br][b]password -[/b] The password of the account.
+func delete_account(email : String, password : String) -> int:
+	return await _data_controller.delete_account(email, password)
+
+##Can be used to verify the email of an account. Requires email verification to be enabled in the User Accounts 
+##settings. An email can be verified by inputting the verification code sent to the email address. 
+##Verifying the email will automatically log in the user. 
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_VERIFICATION_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+##[br][b]code -[/b] The verification code that was sent to the email address.
+##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
+func verify_account(email : String, code : String, valid_time : float = 86400) -> int:
+	return await _data_controller.verify_account(email, code, valid_time)
+
+##Sends a new verification code to the email address. A new code can only be sent once the most recent 
+##code has expired. Requires email verification to be enabled in the User Account settings.
+##[br][br]Returns the result of the request as [constant ENUMS.RESEND_VERIFICATION_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+##[br][b]password -[/b] The password of the account.
+func resend_verification_code(email : String, password : String) -> int:
+	return await _data_controller.resend_verification_code(email, password)
+
+##Returns if the specified account has a verified email. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.IS_VERIFIED_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]username -[/b] The username of the account.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : true
+##}[/codeblock]
+func is_verified(username : String = "") -> Dictionary:
+	return await _data_controller.is_verified(username)
+
+##Attempt to login into an existing account. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.LOGIN_RESPONSE_CODE] response code. 
+##[br]
+##[br]
+##If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will 
+##expire. If the ban is permanent, the value will be -1. 
+##[br]
+##[br][b]email -[/b] The email of the account.
+##[br][b]password -[/b] The password of the account.
+##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "BanTime" : 1719973379
+##}[/codeblock]
+func login(email : String, password : String, valid_time : float = 86400) -> Dictionary:
+	return await _data_controller.login(email, password, valid_time)
+
+##Attempt to login with a previous session. If that session has not yet expired it will login using 
+##and refresh the session time. 
+##[br][br]Returns the result of the request as [constant ENUMS.LOGIN_RESPONSE_CODE].
+##[br]
+##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
+func login_from_session(valid_time : float = 86400) -> int:
+	return await _data_controller.login_from_session(valid_time)
+
+##Invalidates the current login session. 
+##[br][br]Returns the result of the request as [constant ENUMS.LOGOUT_RESPONSE_CODE].
+func logout() -> int:
+	return await _data_controller.logout()
+
+##Changes the username of the currently logged in account.
+##[br][br]Returns the result of the request as [constant ENUMS.CHANGE_USERNAME_RESPONSE_CODE].
+##[br]
+##[br][b]new_username -[/b] The new username. The username has to be unique and between 3 and 20 characters long.
+func change_account_username(new_username : String) -> int:
+	return await _data_controller.change_username(new_username)
+
+##Changes the password of an existing account.
+##[br][br]Returns the result of the request as [constant ENUMS.CHANGE_PASSWORD_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+##[br][b]password -[/b] The current password of the account.
+##[br][b]new_password -[/b] The new password of the account.
+func change_account_password(email : String, password : String, new_password : String) -> int:
+	return await _data_controller.change_password(email, password, new_password)
+
+##Requests a password reset code for the specified account. The reset code will be sent to the email address.
+##[br][br]Returns the result of the request as [constant ENUMS.REQUEST_PASSWORD_RESET_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+func request_account_password_reset(email : String) -> int:
+	return await _data_controller.request_password_reset(email)
+
+##Attempt to use a password reset code. If the code is valid the password of the account will be changed. 
+##See [method request_account_password_reset] for sending the password reset code. 
+##[br][br]Returns the result of the request as [constant ENUMS.RESET_PASSWORD_RESPONSE_CODE].
+##[br]
+##[br][b]email -[/b] The email of the account.
+func reset_password(email : String, reset_code : String, new_password : String) -> int:
+	return await _data_controller.reset_password(email, reset_code, new_password)
+
+##Files a report against the specified account.
+##[br][br]Returns the result of the request as [constant ENUMS.REPORT_USER_RESPONSE_CODE].
+##[br]
+##[br][b]username_to_report -[/b] The username of the account you want to report.
+##[br][b]report -[/b] The report message. Has a maximum limit of 3000 characters.
+func report_account(username_to_report : String, report : String) -> int:
+	return await _data_controller.report_user(username_to_report, report)
+
+##Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document 
+##will be stored on the specified location. If the collections specified in the path don't already 
+##exist, they are automatically created. Documents may also be nested in other documents.
+##[br][br]Documents can be private or public. If externally visible, other players may retrieve and read 
+##the document contents. Setting [param externally_visible] to true will automatically make all parent 
+##collections/documents visible as well. Setting [param externally_visible] to false will automatically 
+##hide all nested collections and documents.
+##[br][br]Returns the result of the request as [constant ENUMS.SET_PLAYER_DOCUMENT_RESPONSE_CODE].
+##[br]
+##[br][b]path -[/b] The path where the document should be stored. An example path could be "saves/save1".
+##[br][b]document -[/b] The data that you want to store in the cloud.
+##[br][b]externally_visible -[/b] Decides if the document is public or private.
+func set_player_document(path : String, document : Dictionary, externally_visible : bool = false) -> int:
+	return await _data_controller.set_player_document(path, document, externally_visible)
+
+##Documents can be private or public. If externally visible, other players may retrieve and read 
+##the document contents. Setting [param externally_visible] to true will automatically make all parent 
+##collections/documents visible as well. Setting [param externally_visible] to false will automatically 
+##hide all nested collections and documents.
+##[br][br]Returns the result of the request as [constant ENUMS.SET_EXTERNAL_VISIBLE_RESPONSE_CODE].
+##[br]
+##[br][b]path -[/b] The path of the document or collection.
+##[br][b]externally_visible -[/b] Decides if the document is public or private.
+func set_external_visible(path : String, externally_visible : bool = false) -> int:
+	return await _data_controller.set_external_visible(path, externally_visible)
+
+##Retrieve a dictionary/document of data from the currently logged-in account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : {<document>}
+##}[/codeblock]
+func get_player_document(path : String) -> Dictionary:
+	return await _data_controller.get_player_document(path, "")
+
+##Check if a dictionary/document or collection exists on the currently logged-in account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.HAS_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : true
+##}[/codeblock]
+func has_player_document(path : String) -> Dictionary:
+	return await _data_controller.has_player_document(path, "")
+
+##Browse through a collection from the currently logged-in account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.BROWSE_PLAYER_COLLECTION_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" :
+##      [
+##         {"ExternallyVisible": true, "Name": "profile", "Path": "saves/profile", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "save1", "Path": "saves/save1", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "save2", "Path": "saves/save2", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
+##      ]
+##}[/codeblock]
+func browse_player_collection(path : String) -> Dictionary:
+	return await _data_controller.browse_player_collection(path, "")
+
+##Delete a dictionary/document or collection from the currently logged-in account using GD-Sync cloud storage. 
+##[br][br]Returns the result of the request as [constant ENUMS.DELETE_PLAYER_DOCUMENT_RESPONSE_CODE].
+##[br]
+##[br][b]path -[/b] The path of the document or collection.
+func delete_player_document(path : String) -> int:
+	return await _data_controller.delete_player_document(path)
+
+##Retrieve a dictionary/document of data from another account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]external_username -[/b] The username of the account you want to perform the action on.
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : {<document>}
+##}[/codeblock]
+func get_external_player_document(external_username : String, path : String) -> Dictionary:
+	return await _data_controller.get_player_document(path, external_username)
+
+##Check if a dictionary/document or collection exists on another account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.HAS_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]external_username -[/b] The username of the account you want to perform the action on.
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : true
+##}[/codeblock]
+func has_external_player_document(external_username : String, path : String) -> Dictionary:
+	return await _data_controller.has_player_document(path, external_username)
+
+##Browse through a collection from another account using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.BROWSE_PLAYER_COLLECTION_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]external_username -[/b] The username of the account you want to perform the action on.
+##[br][b]path -[/b] The path of the document or collection.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" :
+##      [
+##         {"ExternallyVisible": true, "Name": "profile", "Path": "saves/profile", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "save1", "Path": "saves/save1", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "save2", "Path": "saves/save2", "Type": "Document"},
+##         {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
+##      ]
+##}[/codeblock]
+func browse_external_player_collection(external_username : String, path : String) -> Dictionary:
+	return await _data_controller.browse_player_collection(path, external_username)
+
+##Check if a leaderboard exists using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.HAS_LEADERBOARD_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : true
+##}[/codeblock]
+func has_leaderboard(leaderboard : String) -> Dictionary:
+	return await _data_controller.has_leaderboard(leaderboard)
+
+##Retrieve a list of all leaderboards using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_LEADERBOARDS_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : 
+##      [
+##         "Leaderboard1",
+##         "Leaderboard2"
+##      ]
+##}[/codeblock]
+func get_leaderboards() -> Dictionary:
+	return await _data_controller.get_leaderboards()
+
+
+##Browse a leaderboard and all submitted scores using GD-Sync cloud storage. 
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.BROWSE_LEADERBOARD_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+##[br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
+##[br][b]page -[/b] The page you want to retrieve. The first page is page 1.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "FinalPage": 7,
+##   "Result" : 
+##      [
+##         {"Rank": 1, "Score": 828, "Username": "User1"},
+##         {"Rank": 2, "Score": 700, "Username": "User2"},
+##         {"Rank": 3, "Score": 10, "Username": "User3"}
+##      ]
+##}[/codeblock]
+func browse_leaderboard(leaderboard : String, page_size : int, page : int) -> Dictionary:
+	return await _data_controller.browse_leaderboard(leaderboard, page_size, page)
+
+##Get the score and rank of an account for a specific leaderboard using GD-Sync cloud storage. 
+##If the user has no score submission on the leaderboard, Score will be 0 and Rank -1.
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_LEADERBOARD_SCORE_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+##[br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : 
+##      {
+##         "Score" : 100,
+##         "Rank" : 1
+##      }
+##}[/codeblock]
+func get_leaderboard_score(leaderboard : String, username : String) -> Dictionary:
+	return await _data_controller.get_leaderboard_score(leaderboard, username)
+
+##Submits a score to a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
+##If the user already has a score submission, it will be overwritten.
+##[br][br]Returns the result of the request as [constant ENUMS.SUBMIT_SCORE_RESPONSE_CODE].
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+##[br][b]score -[/b] The score you want to submit.
+func submit_score(leaderboard : String, score : int) -> int:
+	return await _data_controller.submit_score(leaderboard, score)
+
+##Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
+##[br][br]Returns the result of the request as [constant ENUMS.DELETE_SCORE_RESPONSE_CODE].
+##[br]
+##[br][b]leaderboard -[/b] The name of the leaderboard.
+func delete_score(leaderboard : String) -> int:
+	return await _data_controller.delete_score(leaderboard)

@@ -1,7 +1,7 @@
 @tool
 extends Node
 
-#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -109,7 +109,7 @@ func _ready() -> void:
 	elif spawn_type == SPAWN_TYPE.NODE_PATH:
 		target = get_node(target_location)
 	
-	if replicate_on_join and replicate_settings == null:
+	if replicate_settings == null:
 		replicate_settings = [
 			get_path(),
 			sync_starting_changes,
@@ -121,7 +121,8 @@ func _ready() -> void:
 
 func _call_multiplayer_ready(node : Node) -> void:
 	await get_tree().process_frame
-	node.propagate_call("_multiplayer_ready")
+	if is_instance_valid(node):
+		node.propagate_call("_multiplayer_ready")
 
 func _get_random_id() -> int:
 	var id : int = _rng.randi()

@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2024 Thomas Uijlen, GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -34,12 +34,14 @@ var requestsUDP : Array = []
 var GDSync
 var connection_controller
 var session_controller
+var data_controller
 
 func _ready() -> void:
 	name = "RequestProcessor"
 	GDSync = get_node("/root/GDSync")
 	connection_controller = GDSync._connection_controller
 	session_controller = GDSync._session_controller
+	data_controller = GDSync._data_controller
 
 func has_packets(type : int) -> bool:
 	match(type):
@@ -89,6 +91,7 @@ func package_requests(client_id : int, type : int) -> PackedByteArray:
 		while padding > 16: padding -= 16
 		padding = 16-padding
 		for i in range(padding): bytes.append(0)
+		connection_controller.refresh_encryptor()
 		bytes = connection_controller.encryptor.update(bytes)
 	
 	var packet : Array = [padding, bytes.compress(2)]
@@ -108,6 +111,7 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 	var message : Dictionary
 	
 	if connection_controller.status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
+		connection_controller.refresh_decryptor()
 		var requestBytes : PackedByteArray = connection_controller.decryptor.update(encryptedBytes)
 		var padding : int = packet[ENUMS.PACKET_VALUE.PADDING]
 		requestBytes.resize(requestBytes.size()-packet[1])
@@ -282,6 +286,7 @@ func validate_public_key() -> void:
 		ENUMS.REQUEST_TYPE.VALIDATE_KEY,
 		connection_controller._PUBLIC_KEY,
 		OS.get_unique_id(),
+		true,
 	]
 	
 	requestsSETUP.append(request)
@@ -571,6 +576,87 @@ func set_connect_time(connect_time : float) -> void:
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.SET_CONNECT_TIME,
 		connect_time
+	]
+	
+	requestsSERV.append(request)
+
+func create_account_creation_request(id : int, email : String, password : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.CREATE_ACCOUNT,
+		id,
+		email,
+		password
+	]
+	
+	requestsSERV.append(request)
+
+func create_account_deletion_request(id : int, email : String, password : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.DELETE_ACCOUNT,
+		id,
+		email,
+		password
+	]
+	
+	requestsSERV.append(request)
+
+func create_account_verification_request(id : int, email : String, code : String, valid_time : float) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.VERIFY_ACCOUNT,
+		id,
+		email,
+		code,
+		valid_time
+	]
+	
+	requestsSERV.append(request)
+
+func create_login_request(id : int, email : String, password : String, valid_time : float) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.LOGIN,
+		id,
+		email,
+		password,
+		valid_time
+	]
+	
+	requestsSERV.append(request)
+
+func create_login_from_session_request(id : int, email : String, token : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.LOGIN_FROM_SESSION,
+		id,
+		email,
+		token
+	]
+	
+	requestsSERV.append(request)
+
+func create_logout_request(id : int, email : String, token : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.LOGOUT,
+		id,
+		email,
+		token
+	]
+	
+	requestsSERV.append(request)
+
+func create_set_player_document_request(id : int, path : String, data : Dictionary) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.SET_PLAYER_DOCUMENT,
+		id,
+		path,
+		data
+	]
+	
+	requestsSERV.append(request)
+
+func create_get_player_document_request(id : int, path : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.GET_PLAYER_DOCUMENT,
+		id,
+		path
 	]
 	
 	requestsSERV.append(request)
