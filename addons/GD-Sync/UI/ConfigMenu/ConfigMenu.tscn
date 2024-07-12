@@ -313,6 +313,36 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+layout_mode = 2
+
+[node name="CSharpSupport" type="CheckButton" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "C# Support"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+custom_minimum_size = Vector2(0, 125)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "If enabled, the C# API of the GD-Sync plugin will be installed and enabled.
+
+After enabling you need to restart and build your project."
+fit_content = true
+
+[node name="Spacing1" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
 [node name="ProtectionMode" type="VBoxContainer" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
 layout_mode = 2
 
@@ -340,7 +370,7 @@ text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_func()[/c
 [color=indianred]WARNING: Disabling this will allow other clients to call any function on any Node. Use at your own risk and only during testing."
 fit_content = true
 
-[node name="Spacing1" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing2" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
@@ -370,7 +400,7 @@ text = "Tells the server whether is should allow duplicate usernames when joinin
 Usernames can be set using [color=#408eab]GDSync.set_player_username()[/color]."
 fit_content = true
 
-[node name="Spacing2" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing3" type="Control" parent="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
@@ -411,6 +441,7 @@ text = "Close"
 [connection signal="meta_clicked" from="CenterContainer/UI/Panel/Description" to="." method="_on_description_meta_clicked"]
 [connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
 [connection signal="text_changed" from="CenterContainer/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
+[connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/CSharpSupport" to="." method="_on_c_sharp_support_toggled"]
 [connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
 [connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
 [connection signal="toggled" from="CenterContainer/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
