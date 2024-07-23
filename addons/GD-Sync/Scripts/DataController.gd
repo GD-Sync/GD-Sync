@@ -98,6 +98,7 @@ func login(email : String, password : String, valid_time : float) -> Dictionary:
 	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
 		save_config()
+		GDSync.set_player_username(result["Username"])
 	elif result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.BANNED:
 		var ban_time : float = result["BanTime"]
 		if ban_time-Time.get_unix_time_from_system() >= 86400000:
@@ -118,6 +119,7 @@ func login_from_session(valid_time : int) -> int:
 	
 	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
+		GDSync.set_player_username(result["Username"])
 	else:
 		login_token = ""
 	save_config()

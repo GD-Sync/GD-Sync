@@ -395,7 +395,7 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
-text = "Tells the server whether is should allow duplicate usernames when joining a lobby. If enabled, a username can only appear once inside a lobby.
+text = "Tells the server whether it should allow duplicate usernames when joining a lobby. If enabled, a username can only appear once inside a lobby.
 
 Usernames can be set using [color=#408eab]GDSync.set_player_username()[/color]."
 fit_content = true
@@ -424,9 +424,9 @@ custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
-text = "Tells the server whether is should append extra data to each remote function call that includes the sender ID. This allows you to see which client a remote function call came from, at the cost of using slightly more data.
+text = "Tells the server whether it should append extra data to each remote function call that includes the sender ID. This allows you to see which client a remote function call came from, at the cost of using slightly more data.
 
-Retreiving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
+Retrieving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
 fit_content = true
 
 [node name="Close" type="Button" parent="CenterContainer/UI"]
