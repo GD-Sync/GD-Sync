@@ -127,7 +127,11 @@ signal lobbies_received(lobbies : Array)
 ##[br][b]new_host_id -[/b] The Client ID of the new host.
 signal host_changed(is_host : bool, new_host_id : int)
 
-
+##Emitted when a time synchronized event is triggered. See [method create_synced_event] for more information.
+##[br]
+##[br][b]event_name -[/b] The name of the event that has been triggered.
+##[br][b]parameters -[/b] Any parameters binded to the event.
+signal synced_event_triggered(event_name : String, parameters : Array)
 
 
 
@@ -263,6 +267,27 @@ func call_func(callable : Callable, parameters = null, reliable = true) -> void:
 ##This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func_on(client_id : int, callable : Callable, parameters = null, reliable = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
+
+##Returns a float which contains the current multiplayer time. This time is synchronized across clients in 
+##the same lobby. Can be used for time-based events. See [method create_synced_event] for creating 
+##time-based triggers.
+##[br]
+##[br][b]IMPORTANT:[/b] It may take up to a second for the time to synchronize after just joining a lobby.
+func get_multiplayer_time() -> float:
+	return _session_controller.synced_time
+
+##Create a time-based event that triggers after a delay. GD-Sync will attempt to trigger this event 
+##on all clients at the same time, regardless of the latency between clients. Useful for creating 
+##time-critical events or mechanics. After the delay, [signal synced_event_triggered] is emitted. 
+##[br]
+##[br][b]IMPORTANT:[/b] If the given delay is shorter than the latency between two clients, the 
+##event trigger might be delayed. It is recommended to always use a delay >= 1 second.
+##[br]
+##[br][b]event_name -[/b] The name of the event. Queued events can share the same name.
+##[br][b]delay -[/b] The delay in seconds after which the event should be triggered.
+##[br][b]parameters -[/b] Any parameters which should be binded to the event.
+func create_synced_event(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
+	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
 
 

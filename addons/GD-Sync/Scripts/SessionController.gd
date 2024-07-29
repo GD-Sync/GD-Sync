@@ -44,13 +44,76 @@ var lobby_password : String = ""
 var connect_time : float = 0
 var lobby_switch_pending : bool = false
 
+var synced_time : float = 0.0
+var remote_time : float = 0.0
+var remote_time_counter : int = 0
+var remote_time_latency : float = 0.0
+var synced_time_cooldown : float = 0.0
+var events : Array[Dictionary] = []
+
 func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
 	
+	GDSync.expose_func(sync_timer)
+	GDSync.expose_func(get_timer_latency)
+	GDSync.expose_func(timer_latency_callback)
+	GDSync.expose_func(register_event)
+	
+	GDSync.client_joined.connect(client_joined)
 	GDSync.client_left.connect(client_left)
 	GDSync.client_id_changed.connect(client_id_changed)
+	
+	randomize()
+	synced_time = randf_range(0, 1000)
+
+func _process(delta):
+	handle_events(delta)
+
+func handle_events(delta : float) -> void:
+	synced_time += delta
+	remote_time += delta
+	
+	for event in events:
+		if synced_time >= event["Time"]:
+			GDSync.synced_event_triggered.emit(event["Name"], event["Parameters"])
+			events.erase(event)
+	
+	if !GDSync.is_active() || !GDSync.is_host(): return
+	
+	synced_time_cooldown -= delta
+	if synced_time_cooldown <= 0.0:
+		synced_time_cooldown = 1.0
+		GDSync.call_func(sync_timer, [synced_time])
+
+func sync_timer(time : float) -> void:
+	remote_time = time
+	remote_time_counter = 0
+	remote_time_latency = 0.0
+	for i in range(5):
+		await get_tree().process_frame
+		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, [GDSync.get_client_id(), Time.get_unix_time_from_system()])
+
+func get_timer_latency(client : int, timestamp : float) -> void:
+	GDSync.call_func_on(client, timer_latency_callback, [timestamp])
+
+func timer_latency_callback(timestamp : float) -> void:
+	remote_time_counter += 1
+	remote_time_latency += (Time.get_unix_time_from_system()-timestamp)/2.0
+	
+	if remote_time_counter >= 5:
+		synced_time = remote_time + remote_time_latency/remote_time_counter
+
+func register_event(event_name : String, time : float, parameters : Array, local : bool = false) -> void:
+	events.append({
+		"Name" : event_name,
+		"Time" : time,
+		"Parameters" : parameters
+	})
+	
+	if local:
+		GDSync.call_func(register_event, [event_name, time, parameters])
 
 func client_id_changed(client_id : int) -> void:
 	var own_data = null
@@ -76,6 +139,7 @@ func broadcast_player_data() -> void:
 			GDSync.set_player_data(key, own_data[key])
 
 func set_lobby_data(name : String, password : String) -> void:
+	synced_time = 0.0
 	lobby_name = name
 	lobby_password = password
 
@@ -94,6 +158,17 @@ func lobby_left() -> void:
 	for id in player_data.keys():
 		if id != own_id:
 			player_data.erase(id)
+
+func client_joined(client_id : int) -> void:
+	if client_id == GDSync.get_client_id(): return
+	
+	if GDSync.is_host():
+		for event in events:
+			GDSync.call_func_on(client_id, register_event, [
+				event["Name"],
+				event["Time"],
+				event["Parameters"]
+			])
 
 func client_left(id : int) -> void:
 	if player_data.has(id): player_data.erase(id)
@@ -356,7 +431,8 @@ func is_gdsync_owner(node : Node) -> bool:
 	return get_gdsync_owner(node) == GDSync.get_client_id()
 
 func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
-	node.add_user_signal("mc_owner_changed", ["owner"])
+	if !node.has_user_signal("mc_owner_changed"):
+		node.add_user_signal("mc_owner_changed", ["owner"])
 	node.connect("mc_owner_changed", callable)
 
 func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:

@@ -253,9 +253,11 @@ func _process(delta) -> void:
 				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.SERVER))
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.RELIABLE):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+				client.transfer_channel = 0
 				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.RELIABLE))
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
+				client.transfer_channel = 1
 				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.UNRELIABLE))
 
 func set_client_id(client_id : int) -> void:
