@@ -29,7 +29,7 @@ const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCS
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
 
-var version : String = "0.5"
+var version : String = "0.6"
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")

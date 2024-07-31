@@ -148,6 +148,7 @@ func lb_request_completed(result, response_code, headers, body : PackedByteArray
 	if response_code != 200:
 		return
 	var servers : Array = str_to_var(body.get_string_from_ascii())
+	
 	if servers.size() == 0:
 		return
 	status = ENUMS.CONNECTION_STATUS.PINGING_SERVERS

@@ -63,6 +63,7 @@ signal node_instantiated(node : Node)
 ##The Node which instantiated Nodes are added to.
 var target_location : NodePath
 var target : Node
+var target_path : String
 ##The [PackedScene] which will be instantiated.
 var scene : PackedScene
 ##If enabled, when a new Client joins the lobby the NodeInstantiator will make sure 
@@ -102,12 +103,15 @@ func _ready() -> void:
 	
 	GDSync = get_node("/root/GDSync")
 	GDSync.expose_func(_instantiate_remote)
+	GDSync.expose_func(_set_target_remote)
 	_rng.randomize()
 	
 	if spawn_type == SPAWN_TYPE.SCENE_ROOT:
 		target = get_tree().current_scene
 	elif spawn_type == SPAWN_TYPE.NODE_PATH:
 		target = get_node(target_location)
+	
+	target_path = str(target.get_path())
 	
 	if replicate_settings == null:
 		replicate_settings = [
@@ -190,6 +194,10 @@ func _contains_object(value) -> bool:
 	
 	return false
 
+func _set_target_remote(target_path : String) -> void:
+	self.target_path = target_path
+	target = get_node_or_null(target_path)
+
 func _instantiate_remote(id : int, changed_properties : Dictionary) -> void:
 	var instantiator_path : String = str(get_path())
 	var node : Node = scene.instantiate()
@@ -201,6 +209,12 @@ func _instantiate_remote(id : int, changed_properties : Dictionary) -> void:
 		GDSync._node_tracker.register_replication(node, instantiator_path, replicate_settings)
 	_await_id_deletion(node)
 	node.name = str(id)
+	
+	if !is_instance_valid(target):
+		target = get_node_or_null(target_path)
+	if target == null:
+		push_error("Instantiate failed, target not found")
+		return
 	
 	if target:
 		target.add_child(node)

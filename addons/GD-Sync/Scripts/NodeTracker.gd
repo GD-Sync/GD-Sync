@@ -1,5 +1,7 @@
 extends Node
 
+var INSTANTIATOR_SCENE : GDScript = load("res://addons/GD-Sync/Scripts/Types/NodeInstantiator.gd")
+
 var GDSync
 var request_processor
 
@@ -7,17 +9,24 @@ var replication_cache : Dictionary = {}
 var replication_settings : Dictionary = {}
 var root_instantiator
 
+var instantiator_lib : Dictionary = {}
+
 func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
 	
-	root_instantiator = load("res://addons/GD-Sync/Scripts/Types/NodeInstantiator.gd").new()
+	root_instantiator = INSTANTIATOR_SCENE.new()
 	root_instantiator.spawn_type = 1
 	add_child(root_instantiator)
 	
 	GDSync.expose_func(replicate_remote)
+	GDSync.expose_func(create_instantiator_remote)
 	GDSync.client_joined.connect(client_joined)
+
+func lobby_left() -> void:
+	replication_cache.clear()
+	replication_settings.clear()
 
 func client_joined(client_id : int) -> void:
 	if client_id == GDSync.get_client_id(): return
@@ -45,6 +54,7 @@ func create_replication_requests(client_id : int, instantiator_path : String, no
 		var node : Node = nodes_to_replicate.pop_front()
 		replication_counter += 1
 		if !is_instance_valid(node): continue
+		if !node.is_inside_tree(): continue
 		
 		var id : int = node.get_meta("GDID")
 		var changed_properties : Dictionary = {}
@@ -104,3 +114,83 @@ func deregister_replication(node : Node) -> void:
 	if replication_cache.has(instantiator_path):
 		replication_cache[instantiator_path].erase(node)
 
+func multiplayer_instantiate(
+		scene : PackedScene,
+		parent : Node,
+		sync_starting_changes : bool,
+		excluded_properties : PackedStringArray,
+		replicate_on_join : bool) -> Node:
+	
+	if parent == null:
+		parent = get_tree().current_scene
+	
+	var settings_key : StringName = StringName(
+		str(scene.resource_path, sync_starting_changes, excluded_properties, replicate_on_join
+	))
+	
+	var instantiator : Node
+	if !instantiator_lib.has(settings_key):
+		instantiator = INSTANTIATOR_SCENE.new()
+		instantiator.spawn_type = 1
+		instantiator.scene = scene
+		instantiator.sync_starting_changes = sync_starting_changes
+		instantiator.excluded_properties = excluded_properties
+		instantiator.replicate_on_join = replicate_on_join
+		instantiator.name = settings_key
+		add_child(instantiator)
+		
+		instantiator_lib[settings_key] = instantiator
+		
+		GDSync.call_func(create_instantiator_remote, [
+			scene.resource_path,
+			str(parent.get_path()),
+			sync_starting_changes,
+			excluded_properties,
+			replicate_on_join
+		])
+	else:
+		instantiator = instantiator_lib[settings_key]
+	
+	instantiator.target = parent
+	instantiator.target_path = str(parent.get_path())
+	
+	GDSync.call_func(instantiator._set_target_remote, [instantiator.target_path])
+	
+	return instantiator.instantiate_node()
+
+func create_instantiator_remote(
+		scene_path : String,
+		parent_path : NodePath,
+		sync_starting_changes : bool,
+		excluded_properties : PackedStringArray,
+		replicate_on_join : bool
+	) -> void:
+	
+	var scene : PackedScene = load(scene_path)
+	var parent : Node = get_node_or_null(parent_path)
+	
+	if scene == null:
+		push_error("Remote instantiate failed, invalid scene path.")
+		return
+	if parent == null:
+		push_error("Remote instantiate failed, parent node not found")
+		return
+	
+	var settings_key : StringName = StringName(
+		str(scene_path, sync_starting_changes, excluded_properties, replicate_on_join
+	))
+	
+	if !instantiator_lib.has(settings_key):
+		var instantiator : Node = INSTANTIATOR_SCENE.new()
+		instantiator.spawn_type = 1
+		instantiator.scene = scene
+		instantiator.sync_starting_changes = sync_starting_changes
+		instantiator.excluded_properties = excluded_properties
+		instantiator.replicate_on_join = replicate_on_join
+		instantiator.name = settings_key
+		add_child(instantiator)
+		
+		instantiator.target = parent
+		instantiator.target_path = str(parent.get_path())
+		
+		instantiator_lib[settings_key] = instantiator

@@ -268,6 +268,25 @@ func call_func(callable : Callable, parameters = null, reliable = true) -> void:
 func call_func_on(client_id : int, callable : Callable, parameters = null, reliable = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
 
+##Instantiates a Node on all clients in the current lobby.
+##[br]
+##[br][b]IMPORTANT:[/b] Make sure the NodePath of the parent matches up on all clients. 
+##[br]
+##[br][b]scene -[/b] The [PackedScene] you want to instantiate.
+##[br][b]parent -[/b] The parent/location of where you want to instantiate the Node.
+##[br][b]sync_starting_changes -[/b] If enabled, any changes made to the root Node of the instantiated scene 
+##within the same frame will automatically be synchronized.
+##[br][b]excluded_properties -[/b] Names of properties you want to exclude from sync_starting_changes. 
+##[br][b]replicate_on_join -[/b] If enabled, the instantiated Node will be replicated on clients that 
+##join the lobby later on.
+func multiplayer_instantiate(
+		scene : PackedScene,
+		parent : Node,
+		sync_starting_changes : bool = true,
+		excluded_properties : PackedStringArray = [],
+		replicate_on_join : bool = true) -> Node:
+	return _node_tracker.multiplayer_instantiate(scene, parent, sync_starting_changes, excluded_properties, replicate_on_join)
+
 ##Returns a float which contains the current multiplayer time. This time is synchronized across clients in 
 ##the same lobby. Can be used for time-based events. See [method create_synced_event] for creating 
 ##time-based triggers.
@@ -498,6 +517,7 @@ func leave_lobby() -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_leave_lobby_request()
 	_session_controller.lobby_left()
+	_node_tracker.lobby_left()
 
 ##Returns the amount of players in the current lobby.
 func get_lobby_player_count() -> int:
