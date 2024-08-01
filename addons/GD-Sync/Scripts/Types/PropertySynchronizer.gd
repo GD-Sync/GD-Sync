@@ -28,11 +28,13 @@ extends Node
 ##Allows you to manually synchronize a property. This function will only synchronize if the 
 ##property has actually changed.
 ##[br][br]If [param forced] is true, it will synchronize regardless of if the property has changed.
-func synchronize(forced : bool = true) -> void:
-	var new_property = node.get(property_name)
-	if !forced and new_property == _property: return
-	_property = new_property
-	GDSync.call_func(_sync_received, [_property], false)
+func synchronize(forced : bool = true, force_reliable : bool = false) -> void:
+	for property_name in property_lookup:
+		var property_data : Dictionary = property_lookup[property_name]
+		var new_property = node.get(property_name)
+		if !forced and new_property == property_data["LastValue"]: continue
+		property_data["LastValue"] = new_property
+		GDSync.call_func(_sync_received, [property_name, new_property], reliable || force_reliable)
 
 ##Temporarily pauses interpolation for [param seconds].
 func pause_interpolation(seconds : float) -> void:
@@ -54,7 +56,7 @@ enum BROADCAST_MODE {
 	NEVER,
 }
 
-signal value_changed(new_value)
+signal value_changed(property_name : String, new_value)
 
 enum PROCESS_MODE {
 	PROCESS,
@@ -90,14 +92,24 @@ enum PROCESS_MODE {
 		node = get_node_or_null(node_path)
 		_refresh_property_list()
 		update_configuration_warnings()
-##The property which you want to synchronize.
-@export var property_name : String :
+
+##If reliable is enabled, packets that are lost will be 
+##resend. We do never recommend turning this on unless 
+##the synchronized properties are crucial. 
+##Enabling this can induce extra latency and data usage.
+@export var reliable : bool = false
+
+##A list of properties you want to synchronize
+@export var properties : PackedStringArray = [] : set = _set_properties
+
+var property_name : String :
 	set(value):
 		property_name = value
 		_refresh_property_list()
 		update_configuration_warnings()
 
-##If enabled, the chosen property is interpolated. This will smooth out the synchronization. 
+##If enabled, properties will be interpolated. This will smooth out the synchronization. 
+##Interpolation is only applied to types that support interpolation.
 ##[br][br]
 ##Interpolation may be temporarily paused with [method pause_interpolation]. 
 ##Useful when teleporting a Node from one spot to another to prevent it from gliding there.
@@ -114,29 +126,29 @@ var GDSync
 var interpolation_speed : float = 1.0
 
 var node : Node
-var _property
 
 var _cooldown : float = 0.0
 var _current_cooldown : float = 0.0
 var _interval_cooldown : float = 0.0
 var _should_broadcast : bool = false
-var _type : int = -1
+
+var property_lookup : Dictionary = {}
 
 func _ready() -> void:
+	#Backward compatability check
+	if property_name != "":
+		properties.append(property_name)
+	
 	node = get_node_or_null(node_path)
 	if Engine.is_editor_hint():
 		set_process(false)
 		set_physics_process(false)
+		_refresh_property_lookup()
 		_refresh_property_list()
 	else:
 		assert(node != null, "PropertySynchronizer Node is null")
-		assert(property_name in node, "Node \""+node.name+"\" does not have property \""+property_name+ "\"")
 		
 		GDSync = get_node("/root/GDSync")
-		
-		_property = node.get(property_name)
-		_type = typeof(_property)
-		if interpolated and !_can_interpolate(): interpolated = false
 		
 		_cooldown = 1.0/refresh_rate
 		GDSync.expose_func(_sync_received)
@@ -144,6 +156,8 @@ func _ready() -> void:
 		GDSync.host_changed.connect(_host_changed)
 		GDSync.client_joined.connect(_client_joined)
 		GDSync.connect_gdsync_owner_changed(self, _owner_changed)
+		_refresh_property_lookup()
+		_clean_property_lookup()
 		_update_sync_mode()
 		set_process(process == PROCESS_MODE.PROCESS)
 		set_physics_process(process == PROCESS_MODE.PHYSICS_PROCESS)
@@ -157,6 +171,11 @@ func _pause_interpolation_remote(seconds : float) -> void:
 	interpolated = false
 	await get_tree().create_timer(seconds).timeout
 	interpolated = true
+
+func _set_properties(p : PackedStringArray) -> void:
+	properties = p
+	_refresh_property_lookup()
+	update_configuration_warnings()
 
 func _set_broadcast(mode : int) -> void:
 	broadcast = mode
@@ -187,19 +206,16 @@ func _update_sync_mode() -> void:
 			_should_broadcast = false
 
 func _process(delta : float) -> void:
-	if !GDSync.is_active(): return
-	if _should_broadcast:
-		if _may_synchronize(delta): synchronize(false)
-	else:
-		if interpolated: _interpolate(delta)
+	_check_property_states(delta)
 
 func _physics_process(delta : float) -> void:
+	_check_property_states(delta)
+
+func _check_property_states(delta : float) -> void:
 	if !GDSync.is_active(): return
 	if _should_broadcast:
 		if _may_synchronize(delta):
 			synchronize(false)
-		elif _may_interval_synchronize(delta):
-			synchronize()
 	else:
 		if interpolated: _interpolate(delta)
 
@@ -210,97 +226,109 @@ func _may_synchronize(delta : float) -> bool:
 		return true
 	return false
 
-func _may_interval_synchronize(delta : float) -> bool:
-	_interval_cooldown -= delta
-	if _interval_cooldown <= 0:
-		_interval_cooldown = 10.0
-		return true
-	return false
-
 func _client_joined(client_id : int) -> void:
 	if _should_broadcast:
-		synchronize()
+		synchronize(true, true)
 
-func _sync_received(new_value) -> void:
-	_property = new_value
-	if !interpolated:
-		node.set(property_name, _property)
-		value_changed.emit(_property)
+func _sync_received(property_name : String, new_value) -> void:
+	if !property_lookup.has(property_name): return
+	
+	var property_data : Dictionary = property_lookup[property_name]
+	property_data["LastValue"] = new_value
+	if !interpolated || !property_data["Interpolated"]:
+		node.set(property_name, new_value)
+		value_changed.emit(property_name, new_value)
 
 func _interpolate(delta : float) -> void:
-	var current_value = node.get(property_name)
-	
-	if _type == TYPE_BASIS:
-		current_value = current_value.orthonormalized()
-		_property = _property.orthonormalized()
-	
-	var lerped_value = lerp(current_value, _property, delta*interpolation_speed)
-	node.set(property_name, lerped_value)
-	value_changed.emit(lerped_value)
+	for property_name in property_lookup:
+		var property_data : Dictionary = property_lookup[property_name]
+		if !property_data["Interpolated"]: continue
+		
+		var current_value = node.get(property_name)
+		var target_value = property_data["LastValue"]
+		
+		if property_data["Type"] == TYPE_BASIS:
+			current_value = current_value.orthonormalized()
+			target_value = target_value.orthonormalized()
+		
+		var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
+		node.set(property_name, lerped_value)
+		value_changed.emit(property_name, lerped_value)
 
-func _can_interpolate() -> bool:
-	if node == null: return false
+func _refresh_property_lookup() -> void:
+	if node == null: return
+	property_lookup.clear()
+	
 	var propertyList : Array = node.get_property_list()
 	if node.get_script() != null: propertyList.append_array(node.get_script().get_script_property_list())
 	
-	var property_type : int = -1
-	
-	for node_property in propertyList:
-		if node_property["name"] == property_name:
-			property_type = node_property["type"]
-			break
-	
-	return (property_type == TYPE_INT
-		|| property_type == TYPE_FLOAT
-		|| property_type == TYPE_VECTOR2
-		|| property_type == TYPE_VECTOR3
-		|| property_type == TYPE_VECTOR4
-		|| property_type == TYPE_COLOR
-		|| property_type == TYPE_QUATERNION
-		|| property_type == TYPE_BASIS)
+	for property_name in properties:
+		var property_data : Dictionary = {
+			"LastValue" : null,
+			"Type" : -1,
+			"Interpolated" : false,
+			"Exists" : false
+		}
+		property_lookup[property_name] = property_data
+		for node_property in propertyList:
+			if node_property["name"] == property_name:
+				var property_type : int = node_property["type"]
+				property_data["Exists"] = true
+				property_data["Type"] = property_type
+				
+				property_data["Interpolated"] = (property_type == TYPE_INT
+					|| property_type == TYPE_FLOAT
+					|| property_type == TYPE_VECTOR2
+					|| property_type == TYPE_VECTOR3
+					|| property_type == TYPE_VECTOR4
+					|| property_type == TYPE_COLOR
+					|| property_type == TYPE_QUATERNION
+					|| property_type == TYPE_BASIS)
+				
+				break
+
+func _clean_property_lookup() -> void:
+	for property_name in property_lookup:
+		var property_data : Dictionary = property_lookup[property_name]
+		if !property_data["Exists"]: property_lookup.erase(property_name)
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var node : Node = get_node_or_null(node_path)
 	if node == null:
 		return ["No NodePath is specified."]
 	
-	var propertyList : Array = node.get_property_list()
-	if node.get_script() != null: propertyList.append_array(node.get_script().get_script_property_list())
+	var warnings : PackedStringArray = []
 	
-	for node_property in propertyList:
-		if node_property["name"] == property_name:
-			return []
+	_refresh_property_lookup()
+	for property_name in property_lookup:
+		var property_data : Dictionary = property_lookup[property_name]
+		if !property_data["Exists"]:
+			warnings.append("The selected Node does not have the property \""+property_name+"\"")
 	
-	return ["The selected Node does not have the property \""+property_name+"\""]
+	return warnings
 
-var _may_interpolate : bool = false
 func _refresh_property_list() -> void:
-	var can_interpolate : bool = _can_interpolate()
-	if _may_interpolate != _can_interpolate():
-		_may_interpolate = can_interpolate
-		notify_property_list_changed()
+	notify_property_list_changed()
 
 func _get_property_list() -> Array:
 	var properties : Array = []
 	
-	var can_interpolate : bool = _can_interpolate()
-	
 	properties.append({
 		"name" : "interpolation",
 		"type" : TYPE_BOOL,
-		"usage" : PROPERTY_USAGE_GROUP if can_interpolate else PROPERTY_USAGE_NO_EDITOR 
+		"usage" : PROPERTY_USAGE_GROUP 
 	})
 	
 	properties.append({
 		"name" : "interpolated",
 		"type" : TYPE_BOOL,
-		"usage" : PROPERTY_USAGE_DEFAULT if can_interpolate else PROPERTY_USAGE_NO_EDITOR 
+		"usage" : PROPERTY_USAGE_DEFAULT 
 	})
 	
 	properties.append({
 		"name" : "interpolation_speed",
 		"type" : TYPE_FLOAT,
-		"usage" : PROPERTY_USAGE_DEFAULT if interpolated and can_interpolate else PROPERTY_USAGE_NO_EDITOR 
+		"usage" : PROPERTY_USAGE_DEFAULT if interpolated else PROPERTY_USAGE_NO_EDITOR 
 	})
 	
 	return properties
