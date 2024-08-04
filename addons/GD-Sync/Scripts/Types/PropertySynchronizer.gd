@@ -159,6 +159,7 @@ func _ready() -> void:
 		GDSync.expose_func(_pause_interpolation_remote)
 		GDSync.host_changed.connect(_host_changed)
 		GDSync.client_joined.connect(_client_joined)
+		GDSync.client_left.connect(_client_left)
 		GDSync.connect_gdsync_owner_changed(self, _owner_changed)
 		
 		_refresh_property_lookup()
@@ -238,6 +239,9 @@ func _may_synchronize(delta : float) -> bool:
 func _client_joined(client_id : int) -> void:
 	if _should_broadcast:
 		synchronize(true, true)
+
+func _client_left(client_id : int) -> void:
+	_update_sync_mode()
 
 func _sync_received(property_name : String, new_value) -> void:
 	if !property_lookup.has(property_name): return
