@@ -188,7 +188,7 @@ func _set_broadcast(mode : int) -> void:
 	_update_sync_mode()
 
 func _owner_changed(owner) -> void:
-	last_owner = owner
+	if owner >= 0: last_owner = owner
 	_update_sync_mode()
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
@@ -207,7 +207,7 @@ func _update_sync_mode() -> void:
 			_should_broadcast = is_owner
 		BROADCAST_MODE.WHEN_LAST_VALID_OWNER:
 			var valid_owner : bool = GDSync.get_all_clients().has(last_owner)
-			_should_broadcast = (is_host and !valid_owner) || (valid_owner and is_owner)
+			_should_broadcast = (is_host and !valid_owner) || (valid_owner and last_owner == GDSync.get_client_id())
 		BROADCAST_MODE.WHEN_HOST_AND_NO_OWNER_OR_OWNER:
 			_should_broadcast = (is_host and GDSync.get_gdsync_owner(self) < 0) || is_owner
 		BROADCAST_MODE.ALWAYS:
