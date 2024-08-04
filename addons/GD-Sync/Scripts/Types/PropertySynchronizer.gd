@@ -51,6 +51,7 @@ enum BROADCAST_MODE {
 	WHEN_HOST,
 	WHEN_CLIENT,
 	WHEN_OWNER,
+	WHEN_LAST_VALID_OWNER,
 	WHEN_HOST_AND_NO_OWNER_OR_OWNER,
 	ALWAYS,
 	NEVER,
@@ -131,6 +132,7 @@ var _cooldown : float = 0.0
 var _current_cooldown : float = 0.0
 var _interval_cooldown : float = 0.0
 var _should_broadcast : bool = false
+var last_owner : int = -1
 
 var property_lookup : Dictionary = {}
 
@@ -151,11 +153,14 @@ func _ready() -> void:
 		GDSync = get_node("/root/GDSync")
 		
 		_cooldown = 1.0/refresh_rate
+		last_owner = GDSync.get_gdsync_owner(self)
+		
 		GDSync.expose_func(_sync_received)
 		GDSync.expose_func(_pause_interpolation_remote)
 		GDSync.host_changed.connect(_host_changed)
 		GDSync.client_joined.connect(_client_joined)
 		GDSync.connect_gdsync_owner_changed(self, _owner_changed)
+		
 		_refresh_property_lookup()
 		_clean_property_lookup()
 		_update_sync_mode()
@@ -182,6 +187,7 @@ func _set_broadcast(mode : int) -> void:
 	_update_sync_mode()
 
 func _owner_changed(owner) -> void:
+	last_owner = owner
 	_update_sync_mode()
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
@@ -198,6 +204,9 @@ func _update_sync_mode() -> void:
 			_should_broadcast = !is_host
 		BROADCAST_MODE.WHEN_OWNER:
 			_should_broadcast = is_owner
+		BROADCAST_MODE.WHEN_LAST_VALID_OWNER:
+			var valid_owner : bool = GDSync.get_all_clients().has(last_owner)
+			_should_broadcast = (is_host and !valid_owner) || (valid_owner and is_owner)
 		BROADCAST_MODE.WHEN_HOST_AND_NO_OWNER_OR_OWNER:
 			_should_broadcast = (is_host and GDSync.get_gdsync_owner(self) < 0) || is_owner
 		BROADCAST_MODE.ALWAYS:
