@@ -51,7 +51,7 @@ enum BROADCAST_MODE {
 	WHEN_HOST,
 	WHEN_CLIENT,
 	WHEN_OWNER,
-	WHEN_LAST_VALID_OWNER,
+	WHEN_HOST_OR_LAST_VALID_OWNER,
 	WHEN_HOST_AND_NO_OWNER_OR_OWNER,
 	ALWAYS,
 	NEVER,
@@ -71,6 +71,9 @@ enum PROCESS_MODE {
 ##- Broadcast when you are the not host of this lobby
 ##[br][br][enum WHEN_OWNER] 
 ##- Broadcast when you are the owner of this Node or any parent Node.
+##[br][br][enum WHEN_HOST_OR_LAST_VALID_OWNER] 
+##- Broadcast on the last valid owner this Node had. If the last valid owner leaves 
+##or if no owner was ever assigned, it broadcasts on the host.
 ##[br][br][enum WHEN_HOST_AND_NO_OWNER_OR_OWNER] 
 ##- Broadcast when you are the host of this lobby and this Node has no owner. 
 ##If it does have an owner, only the owner broadcasts. 
@@ -205,7 +208,7 @@ func _update_sync_mode() -> void:
 			_should_broadcast = !is_host
 		BROADCAST_MODE.WHEN_OWNER:
 			_should_broadcast = is_owner
-		BROADCAST_MODE.WHEN_LAST_VALID_OWNER:
+		BROADCAST_MODE.WHEN_HOST_OR_LAST_VALID_OWNER:
 			var valid_owner : bool = GDSync.get_all_clients().has(last_owner)
 			_should_broadcast = (is_host and !valid_owner) || (valid_owner and last_owner == GDSync.get_client_id())
 		BROADCAST_MODE.WHEN_HOST_AND_NO_OWNER_OR_OWNER:
@@ -263,10 +266,18 @@ func _interpolate(delta : float) -> void:
 		if property_data["Type"] == TYPE_BASIS:
 			current_value = current_value.orthonormalized()
 			target_value = target_value.orthonormalized()
-		
-		var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
-		node.set(property_name, lerped_value)
-		value_changed.emit(property_name, lerped_value)
+			
+			var scale : Vector3 = node.scale
+			
+			var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
+			node.set(property_name, lerped_value)
+			value_changed.emit(property_name, lerped_value)
+			
+			node.scale = scale
+		else:
+			var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
+			node.set(property_name, lerped_value)
+			value_changed.emit(property_name, lerped_value)
 
 func _refresh_property_lookup() -> void:
 	if node == null: return
