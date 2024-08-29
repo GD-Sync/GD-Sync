@@ -271,9 +271,9 @@ func _interpolate(delta : float) -> void:
 			
 			var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
 			node.set(property_name, lerped_value)
-			value_changed.emit(property_name, lerped_value)
 			
 			node.scale = scale
+			value_changed.emit(property_name, lerped_value)
 		else:
 			var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
 			node.set(property_name, lerped_value)

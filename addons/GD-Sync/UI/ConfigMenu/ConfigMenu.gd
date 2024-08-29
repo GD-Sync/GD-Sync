@@ -52,9 +52,9 @@ func open():
 	menu_open = true
 	$AnimationPlayer.play("Open")
 	
-	var scale : float = get_viewport_rect().size.y/1080.0
-	$CenterContainer/LogoControl.scale = Vector2.ONE*scale
-	$CenterContainer/UI.scale = Vector2.ONE*scale
+	var scale : float = size.y/1080.0
+	$CenterContainer/LogoAnchor/Logo.scale = Vector2.ONE*scale
+	$CenterContainer/UIAnchor/UI.scale = Vector2.ONE*scale
 
 func close():
 	menu_open = false
@@ -91,5 +91,3 @@ func _on_sender_id_toggled(button_pressed):
 
 func _on_description_meta_clicked(meta):
 	OS.shell_open(meta)
-
-
