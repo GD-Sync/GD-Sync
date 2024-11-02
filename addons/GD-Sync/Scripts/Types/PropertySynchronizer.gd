@@ -283,8 +283,13 @@ func _refresh_property_lookup() -> void:
 	if node == null: return
 	property_lookup.clear()
 	
-	var propertyList : Array = node.get_property_list()
-	if node.get_script() != null: propertyList.append_array(node.get_script().get_script_property_list())
+	var property_list : Array = node.get_property_list()
+	if node.get_script() != null:
+		var script : Script = node.get_script()
+		if script.get_class() != "CSharpScript":
+			property_list.append_array(script.get_script_property_list())
+		else:
+			property_list.append_array(parse_csharp_properties(script))
 	
 	for property_name in properties:
 		var property_data : Dictionary = {
@@ -294,7 +299,7 @@ func _refresh_property_lookup() -> void:
 			"Exists" : false
 		}
 		property_lookup[property_name] = property_data
-		for node_property in propertyList:
+		for node_property in property_list:
 			if node_property["name"] == property_name:
 				var property_type : int = node_property["type"]
 				property_data["Exists"] = true
@@ -310,6 +315,48 @@ func _refresh_property_lookup() -> void:
 					|| property_type == TYPE_BASIS)
 				
 				break
+
+func parse_csharp_properties(script : Script) -> Array[Dictionary]:
+	var csharp_code : String = FileAccess.get_file_as_string(script.resource_path)
+	var lines : PackedStringArray = csharp_code.split("\n")
+	
+	var variables : Array[Dictionary] = []
+	var inside_method : bool = false
+	var brace_level : int = 0
+	var method_regex : RegEx = RegEx.new()
+	var var_regex : RegEx = RegEx.new()
+	method_regex.compile(r"^(?:public|private|protected|internal|static|virtual|override|sealed|async|new|\s)*\s*\w+\s+\w+\s*\(.*\)\s*\{?$")
+	var_regex.compile(r"^(?:public|private|protected|internal|static|const|readonly|\s)*\s*(\w+)\s+(\w+)\s*(=.*)?;")
+	
+	var type_mapping : Dictionary = {
+		"float": TYPE_FLOAT,
+		"Vector2": TYPE_VECTOR2,
+		"Vector3": TYPE_VECTOR3,
+		"Vector4": TYPE_VECTOR4,
+		"Color": TYPE_COLOR,
+		"Quaternion": TYPE_QUATERNION,
+		"Basis": TYPE_BASIS,
+	}
+	
+	for line in lines:
+		line = line.strip_edges()
+		if line == "" or line.begins_with("//"):
+			continue
+		brace_level += line.count("{") - line.count("}")
+		if not inside_method:
+			if method_regex.search(line):
+				inside_method = true
+				continue
+			var var_match : RegExMatch = var_regex.search(line)
+			if var_match:
+				var type_name : String = var_match.get_string(1)
+				var var_name : String = var_match.get_string(2)
+				if type_name in type_mapping:
+					variables.append({"name" : var_name, "type" : type_mapping[type_name]})
+		else:
+			if brace_level == 0:
+				inside_method = false
+	return variables
 
 func _clean_property_lookup() -> void:
 	for property_name in property_lookup:
