@@ -27,6 +27,7 @@ extends Node
 var GDSync
 var request_processor
 var https_controller
+var local_server
 
 const API_VERSION : int = 1
 
@@ -65,6 +66,7 @@ func _ready() -> void:
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
 	https_controller = GDSync._https_controller
+	local_server = GDSync._local_server
 	lb_request = HTTPRequest.new()
 	add_child(lb_request)
 	lb_request.timeout = 4.0
@@ -90,6 +92,15 @@ func _ready() -> void:
 func is_active() -> bool:
 	return status >= ENUMS.CONNECTION_STATUS.CONNECTING
 
+func is_local() -> bool:
+	return status == ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION
+
+func is_local_check() -> bool:
+	if status == ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION:
+		push_error("Some features are not available when using GD-Sync in local mode.")
+		return true
+	return false
+
 func valid_connection() -> bool:
 	var own_id : int = GDSync.get_client_id()
 	if own_id < 0:
@@ -101,6 +112,8 @@ func reset_multiplayer() -> void:
 	var emit_disconnect : bool = status > ENUMS.CONNECTION_STATUS.CONNECTED
 	
 	client.close()
+	local_server.reset_multiplayer()
+	
 	encryptor.finish()
 	decryptor.finish()
 	
@@ -135,6 +148,22 @@ func start_multiplayer() -> void:
 	if status == ENUMS.CONNECTION_STATUS.FINDING_LB:
 		reset_multiplayer()
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
+
+func start_local_multiplayer() -> void:
+	if status != ENUMS.CONNECTION_STATUS.DISABLED: return
+	reset_multiplayer()
+	status = ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION
+	
+	var rng : RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+	client_id = abs(rng.randi())
+	
+	if local_server.start_local_peer():
+		GDSync.client_id_changed.emit.call_deferred(client_id)
+		GDSync.connected.emit.call_deferred()
+	else:
+		reset_multiplayer()
+		GDSync.connection_failed.emit.call_deferred(ENUMS.CONNECTION_FAILED.LOCAL_PORT_ERROR)
 
 func stop_multiplayer() -> void:
 	reset_multiplayer()
@@ -222,6 +251,10 @@ func connect_to_server(server : String) -> void:
 		status = ENUMS.CONNECTION_STATUS.CONNECTING
 		connect_to_server(server_ip)
 
+func connect_to_local_server(server : String) -> int:
+	client.close()
+	return client.create_client(server, 8080)
+
 func external_lobby_switch(server : String) -> void:
 	status = ENUMS.CONNECTION_STATUS.LOBBY_SWITCH
 	reset_multiplayer()
@@ -236,7 +269,10 @@ func _process(delta) -> void:
 	
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
-			if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
+			if is_local():
+				pass
+			else:
+				if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
 		MultiplayerPeer.CONNECTION_CONNECTING:
 			client.poll()
 		MultiplayerPeer.CONNECTION_CONNECTED:
@@ -248,18 +284,20 @@ func _process(delta) -> void:
 			
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SETUP):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.SETUP))
+				client.transfer_channel = 0
+				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SETUP))
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SERVER):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.SERVER))
+				client.transfer_channel = 0
+				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SERVER))
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.RELIABLE):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
 				client.transfer_channel = 0
-				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.RELIABLE))
+				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.RELIABLE))
 			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
 				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
 				client.transfer_channel = 1
-				client.put_packet(request_processor.package_requests(client_id, ENUMS.PACKET_CHANNEL.UNRELIABLE))
+				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
 
 func set_client_id(client_id : int) -> void:
 	self.client_id = client_id

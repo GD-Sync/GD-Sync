@@ -149,6 +149,7 @@ var _session_controller
 var _https_controller
 var _data_controller
 var _node_tracker
+var _local_server
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
@@ -157,6 +158,7 @@ func _init():
 	_https_controller = preload("res://addons/GD-Sync/Scripts/HTTPSController.gd").new()
 	_data_controller = preload("res://addons/GD-Sync/Scripts/DataController.gd").new()
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
+	_local_server = preload("res://addons/GD-Sync/Scripts/LocalServer.gd").new()
 
 func _ready():
 	add_child(_request_processor)
@@ -165,6 +167,7 @@ func _ready():
 	add_child(_https_controller)
 	add_child(_data_controller)
 	add_child(_node_tracker)
+	add_child(_local_server)
 
 
 
@@ -184,6 +187,16 @@ func _ready():
 func start_multiplayer() -> void:
 	_connection_controller.start_multiplayer()
 
+##Starts the GD-Sync plugin locally. This will allow for local peer-to-peer connections but will disable features 
+##such as database access and automatic host switching. Local mode also disables some optimization features 
+##related to networking.
+##Using local multiplayer does not require an account or API keys and does not use any data transfer.
+##[br][br]If succesful, [signal connected] will be emitted. 
+##If not, [signal connection_failed] will be emitted.
+func start_local_multiplayer() -> void:
+	_connection_controller.start_local_multiplayer()
+
+##Stops the GD-Sync plugin. This will break any existing connections and disable the multiplayer.
 func stop_multiplayer() -> void:
 	_connection_controller.stop_multiplayer()
 
@@ -466,7 +479,10 @@ func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 ##Will emit the signal [signal lobbies_received] once the server has collected all lobbies
 func get_public_lobbies() -> void:
 	if !_connection_controller.valid_connection(): return
-	_request_processor.get_public_lobbies()
+	if _connection_controller.is_local():
+		_local_server.get_public_lobbies()
+	else:
+		_request_processor.get_public_lobbies()
 
 ##Attempts to create a lobby on the server. If succesful [signal lobby_created] is emitted.
 ##If it fails [signal lobby_creation_failed] is emitted. Creating a lobby has a cooldown of 3 seconds.
@@ -481,7 +497,10 @@ func get_public_lobbies() -> void:
 ##[br][b]data -[/b] Any starting data you would like to add to the lobby.
 func create_lobby(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
 	if !_connection_controller.valid_connection(): return
-	_request_processor.create_new_lobby_request(name, password, public, player_limit, tags, data)
+	if _connection_controller.is_local():
+		_local_server.create_local_lobby(name, password, public, player_limit, tags, data)
+	else:
+		_request_processor.create_new_lobby_request(name, password, public, player_limit, tags, data)
 
 ##Attempts to join an existing lobby. If succesful [signal lobby_joined] is emitted. 
 ##If it fails [signal lobby_join_failed] is emitted. 
@@ -493,7 +512,10 @@ func create_lobby(name : String, password : String = "", public : bool = true, p
 func join_lobby(name : String, password : String = "") -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_lobby_data(name, password)
-	_request_processor.create_join_lobby_request(name, password)
+	if _connection_controller.is_local():
+		_local_server.join_lobby(name, password)
+	else:
+		_request_processor.create_join_lobby_request(name, password)
 
 ##Closes the lobby you are currently in, blocking any new players from joining. The lobby will still be visible when using [method get_public_lobbies].
 func close_lobby() -> void:
@@ -695,6 +717,7 @@ func set_player_username(name : String) -> void:
 ##[br][b]password -[/b] The password of the account. 
 ##The password has to be between 3 and 20 characters long.
 func create_account(email : String, username : String, password : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.create_account(email, username, password)
 
 ##Deletes an existing account in the database linked to the API key. 
@@ -703,6 +726,7 @@ func create_account(email : String, username : String, password : String) -> int
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]password -[/b] The password of the account.
 func delete_account(email : String, password : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_account(email, password)
 
 ##Can be used to verify the email of an account. Requires email verification to be enabled in the User Accounts 
@@ -714,6 +738,7 @@ func delete_account(email : String, password : String) -> int:
 ##[br][b]code -[/b] The verification code that was sent to the email address.
 ##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
 func verify_account(email : String, code : String, valid_time : float = 86400) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.verify_account(email, code, valid_time)
 
 ##Sends a new verification code to the email address. A new code can only be sent once the most recent 
@@ -723,6 +748,7 @@ func verify_account(email : String, code : String, valid_time : float = 86400) -
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]password -[/b] The password of the account.
 func resend_verification_code(email : String, password : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.resend_verification_code(email, password)
 
 ##Returns if the specified account has a verified email. 
@@ -736,6 +762,7 @@ func resend_verification_code(email : String, password : String) -> int:
 ##   "Result" : true
 ##}[/codeblock]
 func is_verified(username : String = "") -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.is_verified(username)
 
 ##Attempt to login into an existing account. 
@@ -755,6 +782,7 @@ func is_verified(username : String = "") -> Dictionary:
 ##   "BanTime" : 1719973379
 ##}[/codeblock]
 func login(email : String, password : String, valid_time : float = 86400) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.login(email, password, valid_time)
 
 ##Attempt to login with a previous session. If that session has not yet expired it will login using 
@@ -763,11 +791,13 @@ func login(email : String, password : String, valid_time : float = 86400) -> Dic
 ##[br]
 ##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
 func login_from_session(valid_time : float = 86400) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.login_from_session(valid_time)
 
 ##Invalidates the current login session. 
 ##[br][br]Returns the result of the request as [constant ENUMS.LOGOUT_RESPONSE_CODE].
 func logout() -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.logout()
 
 ##Changes the username of the currently logged in account.
@@ -775,6 +805,7 @@ func logout() -> int:
 ##[br]
 ##[br][b]new_username -[/b] The new username. The username has to be unique and between 3 and 20 characters long.
 func change_account_username(new_username : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.change_username(new_username)
 
 ##Changes the password of an existing account.
@@ -784,6 +815,7 @@ func change_account_username(new_username : String) -> int:
 ##[br][b]password -[/b] The current password of the account.
 ##[br][b]new_password -[/b] The new password of the account.
 func change_account_password(email : String, password : String, new_password : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.change_password(email, password, new_password)
 
 ##Requests a password reset code for the specified account. The reset code will be sent to the email address.
@@ -791,6 +823,7 @@ func change_account_password(email : String, password : String, new_password : S
 ##[br]
 ##[br][b]email -[/b] The email of the account.
 func request_account_password_reset(email : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.request_password_reset(email)
 
 ##Attempt to use a password reset code. If the code is valid the password of the account will be changed. 
@@ -799,6 +832,7 @@ func request_account_password_reset(email : String) -> int:
 ##[br]
 ##[br][b]email -[/b] The email of the account.
 func reset_password(email : String, reset_code : String, new_password : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.reset_password(email, reset_code, new_password)
 
 ##Files a report against the specified account.
@@ -807,6 +841,7 @@ func reset_password(email : String, reset_code : String, new_password : String) 
 ##[br][b]username_to_report -[/b] The username of the account you want to report.
 ##[br][b]report -[/b] The report message. Has a maximum limit of 3000 characters.
 func report_account(username_to_report : String, report : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.report_user(username_to_report, report)
 
 ##Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document 
@@ -822,6 +857,7 @@ func report_account(username_to_report : String, report : String) -> int:
 ##[br][b]document -[/b] The data that you want to store in the cloud.
 ##[br][b]externally_visible -[/b] Decides if the document is public or private.
 func set_player_document(path : String, document : Dictionary, externally_visible : bool = false) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_player_document(path, document, externally_visible)
 
 ##Documents can be private or public. If externally visible, other players may retrieve and read 
@@ -833,6 +869,7 @@ func set_player_document(path : String, document : Dictionary, externally_visibl
 ##[br][b]path -[/b] The path of the document or collection.
 ##[br][b]externally_visible -[/b] Decides if the document is public or private.
 func set_external_visible(path : String, externally_visible : bool = false) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_external_visible(path, externally_visible)
 
 ##Retrieve a dictionary/document of data from the currently logged-in account using GD-Sync cloud storage. 
@@ -846,6 +883,7 @@ func set_external_visible(path : String, externally_visible : bool = false) -> i
 ##   "Result" : {<document>}
 ##}[/codeblock]
 func get_player_document(path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, "")
 
 ##Check if a dictionary/document or collection exists on the currently logged-in account using GD-Sync cloud storage. 
@@ -859,6 +897,7 @@ func get_player_document(path : String) -> Dictionary:
 ##   "Result" : true
 ##}[/codeblock]
 func has_player_document(path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, "")
 
 ##Browse through a collection from the currently logged-in account using GD-Sync cloud storage. 
@@ -878,6 +917,7 @@ func has_player_document(path : String) -> Dictionary:
 ##      ]
 ##}[/codeblock]
 func browse_player_collection(path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, "")
 
 ##Delete a dictionary/document or collection from the currently logged-in account using GD-Sync cloud storage. 
@@ -885,6 +925,7 @@ func browse_player_collection(path : String) -> Dictionary:
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
 func delete_player_document(path : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_player_document(path)
 
 ##Retrieve a dictionary/document of data from another account using GD-Sync cloud storage. 
@@ -899,6 +940,7 @@ func delete_player_document(path : String) -> int:
 ##   "Result" : {<document>}
 ##}[/codeblock]
 func get_external_player_document(external_username : String, path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, external_username)
 
 ##Check if a dictionary/document or collection exists on another account using GD-Sync cloud storage. 
@@ -913,6 +955,7 @@ func get_external_player_document(external_username : String, path : String) -> 
 ##   "Result" : true
 ##}[/codeblock]
 func has_external_player_document(external_username : String, path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, external_username)
 
 ##Browse through a collection from another account using GD-Sync cloud storage. 
@@ -933,6 +976,7 @@ func has_external_player_document(external_username : String, path : String) -> 
 ##      ]
 ##}[/codeblock]
 func browse_external_player_collection(external_username : String, path : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, external_username)
 
 ##Check if a leaderboard exists using GD-Sync cloud storage. 
@@ -946,6 +990,7 @@ func browse_external_player_collection(external_username : String, path : String
 ##   "Result" : true
 ##}[/codeblock]
 func has_leaderboard(leaderboard : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_leaderboard(leaderboard)
 
 ##Retrieve a list of all leaderboards using GD-Sync cloud storage. 
@@ -963,6 +1008,7 @@ func has_leaderboard(leaderboard : String) -> Dictionary:
 ##      ]
 ##}[/codeblock]
 func get_leaderboards() -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_leaderboards()
 
 
@@ -985,6 +1031,7 @@ func get_leaderboards() -> Dictionary:
 ##      ]
 ##}[/codeblock]
 func browse_leaderboard(leaderboard : String, page_size : int, page : int) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_leaderboard(leaderboard, page_size, page)
 
 ##Get the score and rank of an account for a specific leaderboard using GD-Sync cloud storage. 
@@ -1004,6 +1051,7 @@ func browse_leaderboard(leaderboard : String, page_size : int, page : int) -> Di
 ##      }
 ##}[/codeblock]
 func get_leaderboard_score(leaderboard : String, username : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_leaderboard_score(leaderboard, username)
 
 ##Submits a score to a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
@@ -1013,6 +1061,7 @@ func get_leaderboard_score(leaderboard : String, username : String) -> Dictionar
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[br][b]score -[/b] The score you want to submit.
 func submit_score(leaderboard : String, score : int) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.submit_score(leaderboard, score)
 
 ##Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
@@ -1020,4 +1069,5 @@ func submit_score(leaderboard : String, score : int) -> int:
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 func delete_score(leaderboard : String) -> int:
+	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_score(leaderboard)

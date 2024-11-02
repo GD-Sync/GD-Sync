@@ -48,17 +48,17 @@ func has_packets(type : int) -> bool:
 		ENUMS.PACKET_CHANNEL.SETUP:
 			return requestsSETUP.size() > 0
 		ENUMS.PACKET_CHANNEL.SERVER:
-			if connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
+			if !connection_controller.is_local() and connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
 			return requestsSERV.size() > 0
 		ENUMS.PACKET_CHANNEL.RELIABLE:
-			if connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
+			if !connection_controller.is_local() and connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
 			return requestsRUDP.size() > 0
 		ENUMS.PACKET_CHANNEL.UNRELIABLE:
-			if connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
+			if !connection_controller.is_local() and connection_controller.status != ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return false
 			return requestsUDP.size() > 0
 	return false
 
-func package_requests(client_id : int, type : int) -> PackedByteArray:
+func package_requests(type : int) -> PackedByteArray:
 	var message : Dictionary = {}
 	
 	var requests : Array
@@ -86,7 +86,7 @@ func package_requests(client_id : int, type : int) -> PackedByteArray:
 	for request in safe_requests:
 		requests.erase(request)
 	
-	var padding = bytes.size()
+	var padding : int = bytes.size()
 	if connection_controller.status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
 		while padding > 16: padding -= 16
 		padding = 16-padding
@@ -94,9 +94,12 @@ func package_requests(client_id : int, type : int) -> PackedByteArray:
 		connection_controller.refresh_encryptor()
 		bytes = connection_controller.encryptor.update(bytes)
 	
-	var packet : Array = [padding, bytes.compress(2)]
-	emit_signal("packets_processed")
-	return var_to_bytes(packet)
+	packets_processed.emit()
+	if connection_controller.is_local():
+		return bytes
+	else:
+		var packet : Array = [padding, bytes.compress(2)]
+		return var_to_bytes(packet)
 
 func check_request_size_safety(requests : Array) -> Array:
 	var size : int = var_to_bytes(requests).size()
@@ -107,8 +110,13 @@ func check_request_size_safety(requests : Array) -> Array:
 
 func unpack_packet(bytes : PackedByteArray) -> void:
 	var packet : Array = bytes_to_var(bytes)
-	var encryptedBytes : PackedByteArray = packet[2].decompress(packet[0], 2)
+	var encryptedBytes : PackedByteArray
 	var message : Dictionary
+	
+	if connection_controller.is_local():
+		encryptedBytes = packet
+	else:
+		encryptedBytes = packet[2].decompress(packet[0], 2)
 	
 	if connection_controller.status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
 		connection_controller.refresh_decryptor()
@@ -117,9 +125,9 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 		requestBytes.resize(requestBytes.size()-packet[1])
 		message = bytes_to_var(requestBytes)
 	else:
-		message = bytes_to_var(encryptedBytes)
+		if !connection_controller.is_local(): message = bytes_to_var(encryptedBytes)
 	
-	var requests : Array = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
+	var requests : Array = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS] if !connection_controller.is_local() else packet
 	
 	for r in requests:
 		var request : Array = r
@@ -181,8 +189,12 @@ func process_message(request : Array) -> void:
 		ENUMS.MESSAGE_TYPE.LOBBY_TAGS_CHANGED:
 			session_controller.lobby_tags_changed(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.PLAYER_DATA_RECEIVED:
+			print("HUH")
+			print(request)
 			session_controller.override_player_data(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.PLAYER_DATA_CHANGED:
+			print("HA")
+			print(request)
 			session_controller.player_data_changed(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
 		ENUMS.MESSAGE_TYPE.SWITCH_SERVER:
 			switch_server(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
@@ -291,6 +303,14 @@ func validate_public_key() -> void:
 	
 	requestsSETUP.append(request)
 
+func send_client_id() -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.SET_CLIENT_ID,
+		GDSync.get_client_id()
+	]
+	
+	requestsSERV.append(request)
+
 func apply_settings() -> void:
 	var api_version_request : Array = [
 		ENUMS.REQUEST_TYPE.SET_SETTING,
@@ -336,7 +356,7 @@ func create_set_var_request(node : Node, variable_name : String, client_id : int
 	if variable_name in node:
 		value = node.get(variable_name)
 	
-	if session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(variable_name):
+	if !connection_controller.is_local() and session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(variable_name):
 		request = [
 			ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED,
 			session_controller.get_nodepath_index(node_path),
@@ -367,7 +387,7 @@ func create_function_call_request(function : Callable, parameters, client_id : i
 	var request : Array = []
 	var node_path : String = String(node.get_path())
 	
-	if session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(functionName):
+	if !connection_controller.is_local() and session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(functionName):
 		request = [
 			ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED,
 			session_controller.get_nodepath_index(node_path),
@@ -576,87 +596,6 @@ func set_connect_time(connect_time : float) -> void:
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.SET_CONNECT_TIME,
 		connect_time
-	]
-	
-	requestsSERV.append(request)
-
-func create_account_creation_request(id : int, email : String, password : String) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.CREATE_ACCOUNT,
-		id,
-		email,
-		password
-	]
-	
-	requestsSERV.append(request)
-
-func create_account_deletion_request(id : int, email : String, password : String) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.DELETE_ACCOUNT,
-		id,
-		email,
-		password
-	]
-	
-	requestsSERV.append(request)
-
-func create_account_verification_request(id : int, email : String, code : String, valid_time : float) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.VERIFY_ACCOUNT,
-		id,
-		email,
-		code,
-		valid_time
-	]
-	
-	requestsSERV.append(request)
-
-func create_login_request(id : int, email : String, password : String, valid_time : float) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.LOGIN,
-		id,
-		email,
-		password,
-		valid_time
-	]
-	
-	requestsSERV.append(request)
-
-func create_login_from_session_request(id : int, email : String, token : String) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.LOGIN_FROM_SESSION,
-		id,
-		email,
-		token
-	]
-	
-	requestsSERV.append(request)
-
-func create_logout_request(id : int, email : String, token : String) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.LOGOUT,
-		id,
-		email,
-		token
-	]
-	
-	requestsSERV.append(request)
-
-func create_set_player_document_request(id : int, path : String, data : Dictionary) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.SET_PLAYER_DOCUMENT,
-		id,
-		path,
-		data
-	]
-	
-	requestsSERV.append(request)
-
-func create_get_player_document_request(id : int, path : String) -> void:
-	var request : Array = [
-		ENUMS.REQUEST_TYPE.GET_PLAYER_DOCUMENT,
-		id,
-		path
 	]
 	
 	requestsSERV.append(request)

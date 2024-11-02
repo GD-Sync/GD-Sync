@@ -84,7 +84,7 @@ func handle_events(delta : float) -> void:
 	
 	synced_time_cooldown -= delta
 	if synced_time_cooldown <= 0.0:
-		synced_time_cooldown = 1.0
+		synced_time_cooldown = 5.0
 		GDSync.call_func(sync_timer, [synced_time])
 
 func sync_timer(time : float) -> void:

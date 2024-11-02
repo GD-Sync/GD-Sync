@@ -29,7 +29,7 @@ const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCS
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
 
-var version : String = "0.6"
+var version : String = "0.7"
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")
@@ -59,7 +59,7 @@ func _enter_tree() -> void:
 	
 	if FileAccess.file_exists(CSHARP_PATH):
 		if !Engine.has_singleton("GDSyncSharp"): add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
-		print_rich("[color=#408EAB]	- GD-Sync C# API detected and enabled[/color]")
+		print_rich("[color=#408EAB]	- GD-Sync C# API detected and enabled.[/color]")
 	
 	add_custom_type("PropertySynchronizer",
 			"Node",
