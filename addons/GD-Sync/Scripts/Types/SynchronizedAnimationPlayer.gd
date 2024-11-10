@@ -85,7 +85,7 @@ func stop(keep_state : bool = false) -> void:
 func queue(name : StringName) -> void:
 	super.queue(name)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_queue_remote)
+	GDSync.call_func(_queue_remote, [name])
 
 func seek(seconds : float, update : bool = false, update_only : bool = false) -> void:
 	super.seek(seconds, update, update_only)
@@ -166,13 +166,13 @@ func _play_remote(start_time : float = 0.0, name : StringName = "", custom_blend
 		var time_passed : float = Time.get_unix_time_from_system() - start_time
 		if time_passed <= 0.5: super.advance(time_passed)
 
-func _pause_remote():
+func _pause_remote() -> void:
 	super.pause()
 
 func _remote_stop(keep_state : bool = false) -> void:
 	super.stop(keep_state)
 
-func _queue_remote(name : StringName):
+func _queue_remote(name : StringName) -> void:
 	super.queue(name)
 
 func _stop_remote(keep_state : bool = false) -> void:
