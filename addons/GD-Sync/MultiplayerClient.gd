@@ -37,6 +37,7 @@ class_name MultiplayerClient
 # Signals ---------------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Signals
 
 ##Emitted when the plugin successfully completes the connection and encryption handshake. 
 ##This signal is emitted after using [method start_multiplayer].
@@ -112,6 +113,9 @@ signal client_left(client_id : int)
 ##[br][b]client_id -[/b] is the id of the client that left.
 signal player_data_changed(client_id : int, key : String, value)
 
+##Emitted if you get kicked from the current lobby.
+signal kicked()
+
 ##Emitted as a result of [method get_public_lobbies].
 ##[br]
 ##[br][b]lobbies -[/b] An array of all public lobbies and their publicly available data.
@@ -133,15 +137,20 @@ signal host_changed(is_host : bool, new_host_id : int)
 ##[br][b]parameters -[/b] Any parameters binded to the event.
 signal synced_event_triggered(event_name : String, parameters : Array)
 
+##Emitted when the player tries to join a friend on Steam.
+##[br]
+##[br][b]lobby_name -[/b] The name of lobby the player is trying to join.
+##[br][b]has_password -[/b] If the lobby has a password or not.
+signal steam_join_request(lobby_name : String, has_password : bool)
 
 
 
 
-
-
+#endregion
 # Initialization --------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Initialization
 
 var _request_processor
 var _connection_controller
@@ -150,6 +159,7 @@ var _https_controller
 var _data_controller
 var _node_tracker
 var _local_server
+var _steam
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
@@ -159,6 +169,7 @@ func _init():
 	_data_controller = preload("res://addons/GD-Sync/Scripts/DataController.gd").new()
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
 	_local_server = preload("res://addons/GD-Sync/Scripts/LocalServer.gd").new()
+	_steam = preload("res://addons/GD-Sync/Scripts/Steam.gd").new()
 
 func _ready():
 	add_child(_request_processor)
@@ -168,6 +179,7 @@ func _ready():
 	add_child(_data_controller)
 	add_child(_node_tracker)
 	add_child(_local_server)
+	add_child(_steam)
 
 
 
@@ -177,15 +189,22 @@ func _ready():
 
 
 
-
+#endregion
 # General functions -----------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region General Functions
 
 ##Starts the GD-Sync plugin by connecting to a server. If succesful, [signal connected] will be emitted. 
 ##If not, [signal connection_failed] will be emitted.
 func start_multiplayer() -> void:
 	_connection_controller.start_multiplayer()
+
+##An alternative for get_tree().quit(). Only used if you log into a GD-Sync account using [method login]. 
+##When quiting while logged in the plugin makes some callbacks to the server to update information like 
+##your friend status.
+func quit() -> void:
+	_data_controller.quit()
 
 ##Starts the GD-Sync plugin locally. This will allow for local peer-to-peer connections but will disable features 
 ##such as database access and automatic host switching. Local mode also disables some optimization features 
@@ -329,10 +348,11 @@ func create_synced_event(event_name : String, delay : float = 1.0, parameters : 
 
 
 
-
+#endregion
 # Security & safety functions -------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Security & safety functions
 
 ##If set to true, all remote function calls and variable synchronization requests will be blocked by default. 
 ##Only functions, variables and Nodes that are exposed using [method expose_func], [method expose_var] and [expose_node] 
@@ -405,10 +425,11 @@ func hide_var(node : Node, variable_name : String) -> void:
 
 
 
-
-# Node ownership --------------------------------------------------------------
+#endregion
+# Node Ownership --------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Node Ownership
 
 ##Sets the owner of a Node. Node ownership is recursive and will apply to all children. 
 ##Being the owner of a Node does not do anything by itself, but is useful when writing certain scripts. 
@@ -470,10 +491,11 @@ func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 
 
 
-
-# Lobby functions -------------------------------------------------------------
+#endregion
+# Lobby Functions -------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Lobby Functions
 
 ##Attempts to retrieve all publicly visible lobbies from the server. 
 ##Will emit the signal [signal lobbies_received] once the server has collected all lobbies
@@ -538,8 +560,17 @@ func set_lobby_visibility(public : bool) -> void:
 func leave_lobby() -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_leave_lobby_request()
+	_data_controller.set_friend_status()
 	_session_controller.lobby_left()
 	_node_tracker.lobby_left()
+	_steam.leave_steam_lobby()
+
+##Kicks a player from the current lobby. Only works for the host.
+##[br]
+##[br][b]client_id -[/b] The client ID of the player you want to kick.
+func kick_player(client_id : int) -> void:
+	if !_connection_controller.valid_connection(): return
+	_request_processor.kick_player(client_id)
 
 ##Returns the amount of players in the current lobby.
 func get_lobby_player_count() -> int:
@@ -642,10 +673,11 @@ func get_all_lobby_data() -> Dictionary:
 
 
 
-
-# Player functions ------------------------------------------------------------
+#endregion
+# Player Functions ------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Player Functions
 
 ##Sets data for your client. Player data has a maximum size of 2048 bytes, if this limit is exceeded 
 ##a critical error is printed. 
@@ -703,10 +735,11 @@ func set_player_username(name : String) -> void:
 
 
 
-
+#endregion
 # Accounts & Persistent Data Storage ------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
+#region Accounts & Persistent Data Storage
 
 ##Creates an account in the database linked to the API key. 
 ##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CREATION_RESPONSE_CODE].
@@ -800,6 +833,14 @@ func logout() -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.logout()
 
+##Bans the current logged-in account. 
+##[br][br]Returns the result of the request as [constant ENUMS.BAN_ACCOUNT_RESPONSE_CODE].
+##[br]
+##[br][b]ban_duration -[/b] The ban duration in days. Any amount above 1000 days results in a permanent ban.
+func ban_account(ban_duration : float) -> int:
+	if _connection_controller.is_local_check(): return 1
+	return await _data_controller.ban_account(ban_duration)
+
 ##Changes the username of the currently logged in account.
 ##[br][br]Returns the result of the request as [constant ENUMS.CHANGE_USERNAME_RESPONSE_CODE].
 ##[br]
@@ -843,6 +884,89 @@ func reset_password(email : String, reset_code : String, new_password : String) 
 func report_account(username_to_report : String, report : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.report_user(username_to_report, report)
+
+##Sends a friend request to another account.
+##[br][br]Returns the result of the request as [constant ENUMS.SEND_FRIEND_REQUEST_RESPONSE_CODE].
+##[br]
+##[br][b]friend -[/b] The username of the account you want to send the friend request to.
+func send_friend_request(friend : String) -> int:
+	if _connection_controller.is_local_check(): return 1
+	return await _data_controller.send_friend_request(friend)
+
+##Accepts a friend request from another account
+##[br][br]Returns the result of the request as [constant ENUMS.ACCEPT_FRIEND_REQUEST_RESPONSE_CODE].
+##[br]
+##[br][b]friend -[/b] The username of the account you want to accept the friend request from.
+func accept_friend_request(friend : String) -> int:
+	if _connection_controller.is_local_check(): return 1
+	return await _data_controller.accept_friend_request(friend)
+
+##Removes a friend. Also used to deny incoming friend requests.
+##[br][br]Returns the result of the request as [constant ENUMS.REMOVE_FRIEND_RESPONSE_CODE].
+##[br]
+##[br][b]friend -[/b] The username of the friend you want to remove.
+func remove_friend(friend : String) -> int:
+	if _connection_controller.is_local_check(): return 1
+	return await _data_controller.remove_friend(friend)
+
+##Gets the friend status between you and another account. Information besides the FriendStatus is only 
+##available if the friend request is accepted. 
+##If the lobby name is not empty, the player is in a lobby.
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_FRIEND_STATUS_RESPONSE_CODE] response code. 
+##[br]
+##[br][b]friend -[/b] The username of the account you want the friend status of.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : {
+##      "FriendStatus" : 2,
+##      "Lobby" : {
+##         "Name" : "Epic Lobby",
+##         "HasPassword" : false
+##       }
+##   }
+##}[/codeblock]
+func get_friend_status(friend : String) -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
+	return await _data_controller.get_friend_status(friend)
+
+##Returns an array of all friends with their status. Information besides the FriendStatus is only 
+##available if the friend request is accepted. 
+##If the lobby name is not empty, the player is in a lobby.
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.GET_FRIENDS_RESPONSE_CODE] response code.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "Result" : {
+##      [
+##         {
+##            "Username" : "Epic Username",
+##            "FriendStatus" : 2,
+##            "Lobby" : {
+##               "Name" : "Epic Lobby",
+##               "HasPassword" : true
+##            }
+##         },
+##         {
+##            "Username" : "Cool Username",
+##            "FriendStatus" : 2,
+##            "Lobby" : {
+##               "Name" : "",
+##               "HasPassword" : false
+##            }
+##         },
+##         {
+##            "Username" : "Awesome Username",
+##            "FriendStatus" : 1
+##         }
+##      ]
+##   }
+##}[/codeblock]
+func get_friends() -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
+	return await _data_controller.get_friends()
 
 ##Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document 
 ##will be stored on the specified location. If the collections specified in the path don't already 
@@ -1071,3 +1195,52 @@ func submit_score(leaderboard : String, score : int) -> int:
 func delete_score(leaderboard : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_score(leaderboard)
+
+
+
+
+
+
+
+
+
+#endregion
+# Steam Integration -----------------------------------------------------------
+# *****************************************************************************
+# -----------------------------------------------------------------------------
+#region Steam Integration
+
+##Returns true if the GodotSteam plugin is installed.
+func steam_integration_enabled() -> bool:
+	return _steam.steam_integration_enabled
+
+##Links your GD-Sync account with your Steam account. Thiw will allow you to log into your GD-Sync account 
+##using your active Steam session. 
+##[br][br]Returns the result of the request as [constant ENUMS.LINK_STEAM_ACCOUNT_RESPONSE_CODE].
+func link_steam_account() -> int:
+	return await _steam.link_steam_account()
+
+##Unlinks your GD-Sync account from Steam.
+##[br][br]Returns the result of the request as [constant ENUMS.UNLINK_STEAM_ACCOUNT_RESPONSE_CODE].
+func unlink_steam_account() -> int:
+	return await _steam.unlink_steam_account()
+
+##Logs into your GD-Sync account using the active Steam session. 
+##Only works if a Steam account has been linked.
+##[br][br]Returns a [Dictionary] with the format seen below 
+##and the [constant ENUMS.STEAM_LOGIN_RESPONSE_CODE] response code. 
+##[br]
+##[br]
+##If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will 
+##expire. If the ban is permanent, the value will be -1. 
+##[br]
+##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
+##[codeblock]
+##{
+##   "Code" : 0,
+##   "BanTime" : 1719973379
+##}[/codeblock]
+func steam_login(valid_time : float = 86400) -> Dictionary:
+	return await _steam.steam_login(valid_time)
+
+#endregion

@@ -169,10 +169,12 @@ func process_message(request : Array) -> void:
 		ENUMS.MESSAGE_TYPE.HOST_CHANGED:
 			connection_controller.set_host(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_CREATED:
+			session_controller.lobby_created()
 			GDSync.lobby_created.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_CREATION_FAILED:
 			GDSync.lobby_creation_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOINED:
+			data_controller.set_friend_status()
 			GDSync.lobby_joined.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED:
 			GDSync.lobby_join_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
@@ -189,17 +191,16 @@ func process_message(request : Array) -> void:
 		ENUMS.MESSAGE_TYPE.LOBBY_TAGS_CHANGED:
 			session_controller.lobby_tags_changed(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.PLAYER_DATA_RECEIVED:
-			print("HUH")
-			print(request)
 			session_controller.override_player_data(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.PLAYER_DATA_CHANGED:
-			print("HA")
-			print(request)
 			session_controller.player_data_changed(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
 		ENUMS.MESSAGE_TYPE.SWITCH_SERVER:
 			switch_server(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
 		ENUMS.MESSAGE_TYPE.SET_SENDER_ID:
 			session_controller.set_sender_id(request[ENUMS.MESSAGE_DATA.VALUE])
+		ENUMS.MESSAGE_TYPE.KICKED:
+			GDSync.kicked.emit()
+			GDSync.leave_lobby()
 
 func handle_critical_error(error : int) -> void:
 	match error:
@@ -596,6 +597,14 @@ func set_connect_time(connect_time : float) -> void:
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.SET_CONNECT_TIME,
 		connect_time
+	]
+	
+	requestsSERV.append(request)
+
+func kick_player(client_id : int) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.KICK_PLAYER,
+		client_id
 	]
 	
 	requestsSERV.append(request)

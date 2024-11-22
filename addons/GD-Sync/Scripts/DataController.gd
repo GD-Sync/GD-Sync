@@ -1,42 +1,122 @@
 extends Node
 
+#Copyright (c) 2024 GD-Sync.
+#All rights reserved.
+#
+#Redistribution and use in source form, with or without modification,
+#are permitted provided that the following conditions are met:
+#
+#1. Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#2. Neither the name of GD-Sync nor the names of its contributors may be used
+#   to endorse or promote products derived from this software without specific
+#   prior written permission.
+#
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+#EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+#SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+#TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+#BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#SUCH DAMAGE.
+
 var https_controller
 var connection_controller
+var session_controller
 var GDSync
 
 var login_email : String
 var login_token : String
 var previous_token : String
+var logged_in : bool = false
+var safe_quit : bool = false
+
+var status_ping_timer : float = 0.0
 
 func _ready() -> void:
-	name = "SessionController"
+	name = "DataController"
 	GDSync = get_node("/root/GDSync")
 	https_controller = GDSync._https_controller
 	connection_controller = GDSync._connection_controller
+	session_controller = GDSync._session_controller
 	
 	if !DirAccess.dir_exists_absolute("user://GD-Sync"):
 		DirAccess.make_dir_absolute("user://GD-Sync")
 	
 	load_config()
 
+func _process(delta: float) -> void:
+	if logged_in:
+		status_ping_timer -= delta
+		
+		if status_ping_timer <= 0.0:
+			status_ping_timer = 300
+			set_friend_status()
+
+func _notification(what : int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST:
+		quit()
+
+func quit() -> void:
+	if logged_in:
+		GDSync.leave_lobby()
+		await set_friend_status()
+	
+	safe_quit = true
+	save_config()
+	get_tree().quit()
+
+func log_in() -> void:
+	logged_in = true
+	safe_quit = false
+	get_tree().set_auto_accept_quit(false)
+
 func load_config() -> void:
 	var dir = DirAccess.open("user://")
 	if !dir.file_exists("user://GD-Sync/DataController.conf"): return
 	
 	var file = FileAccess.open_encrypted_with_pass("user://GD-Sync/DataController.conf", FileAccess.READ, connection_controller._PRIVATE_KEY)
+	if file == null: return
 	var data : Dictionary = bytes_to_var(file.get_buffer(file.get_length()))
 	file.close()
 	
 	if data.has("LoginEmail"): login_email = data["LoginEmail"]
 	if data.has("LoginToken"): previous_token = data["LoginToken"]
+	
+	safe_quit = true
+	if data.has("SafeQuit"):
+		if !data["SafeQuit"]:
+			push_error("GD-Sync did not close correctly. Please use GD-Sync.quit() instead of get_tree().quit().")
+	
+	save_config()
 
 func save_config() -> void:
 	var file = FileAccess.open_encrypted_with_pass("user://GD-Sync/DataController.conf", FileAccess.WRITE, connection_controller._PRIVATE_KEY)
 	file.store_buffer(var_to_bytes({
 		"LoginEmail" : login_email,
-		"LoginToken" : login_token
+		"LoginToken" : login_token,
+		"SafeQuit" : safe_quit
 	}))
 	file.close()
+
+func set_friend_status() -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"setfriendstatus",
+		{
+			"Token" : login_token,
+			"Data" : 
+				{
+					"LobbyName" : session_controller.lobby_name,
+					"HasPassword" : session_controller.lobby_password != ""
+				}
+		}
+	)
+	
+	return result["Code"]
 
 func create_account(email : String, username : String, password : String) -> int:
 	var result : Dictionary = await https_controller.perform_https_request(
@@ -97,6 +177,7 @@ func login(email : String, password : String, valid_time : float) -> Dictionary:
 	
 	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
+		log_in()
 		save_config()
 		GDSync.set_player_username(result["Username"])
 	elif result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.BANNED:
@@ -119,6 +200,7 @@ func login_from_session(valid_time : int) -> int:
 	
 	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
+		log_in()
 		GDSync.set_player_username(result["Username"])
 	else:
 		login_token = ""
@@ -163,6 +245,7 @@ func logout() -> int:
 	
 	login_token = ""
 	login_email = ""
+	logged_in = false
 	save_config()
 	
 	return result["Code"]
@@ -389,6 +472,128 @@ func delete_score(leaderboard : String) -> int:
 		{
 			"Token" : login_token,
 			"Leaderboard" : leaderboard
+		}
+	)
+	
+	return result["Code"]
+
+func send_friend_request(friend : String) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"sendfriendrequest",
+		{
+			"Token" : login_token,
+			"Friend" : friend
+		}
+	)
+	
+	return result["Code"]
+
+func get_friend_status(friend : String) -> Dictionary:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"getfriendstatus",
+		{
+			"Token" : login_token,
+			"Friend" : friend
+		}
+	)
+	
+	var data : Dictionary = {
+		"Code" : result["Code"],
+		"Result" : result["Result"] if result.size() > 1 else {}
+	}
+	return data
+
+func get_friends() -> Dictionary:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"getfriends",
+		{
+			"Token" : login_token
+		}
+	)
+	
+	var data : Dictionary = {
+		"Code" : result["Code"],
+		"Result" : result["Result"] if result.size() > 1 else 0
+	}
+	return data
+
+func accept_friend_request(friend : String) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"acceptfriendrequest",
+		{
+			"Token" : login_token,
+			"Friend" : friend
+		}
+	)
+	
+	return result["Code"]
+
+func remove_friend(friend : String) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"removefriend",
+		{
+			"Token" : login_token,
+			"Friend" : friend
+		}
+	)
+	
+	return result["Code"]
+
+func link_steam_account(auth_ticket : PackedByteArray, app_id : int) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"linksteamaccount",
+		{
+			"Token" : login_token,
+			"AuthTicket" : auth_ticket,
+			"AppID" : app_id
+		}
+	)
+	
+	return result["Code"]
+
+func unlink_steam_account() -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"unlinksteamaccount",
+		{
+			"Token" : login_token
+		}
+	)
+	
+	return result["Code"]
+
+func steam_login(auth_ticket : PackedByteArray, app_id : int, valid_time : float) -> Dictionary:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"steamlogin",
+		{
+			"AuthTicket" : auth_ticket,
+			"AppID" : app_id,
+			"ValidTime" : valid_time
+		}
+	)
+	
+	var data : Dictionary = {
+		"Code" : result["Code"]
+	}
+	
+	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
+		login_token = result["Result"]
+		log_in()
+		save_config()
+		GDSync.set_player_username(result["Username"])
+	elif result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.BANNED:
+		var ban_time : float = result["BanTime"]
+		if ban_time-Time.get_unix_time_from_system() >= 86400000:
+			ban_time = -1
+		data["BanTime"] = ban_time
+	
+	return data
+
+func ban_account(ban_time : float) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"banaccount",
+		{
+			"Token" : login_token,
+			"BanTime" : ban_time
 		}
 	)
 	

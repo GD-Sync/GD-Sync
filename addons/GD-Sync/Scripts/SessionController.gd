@@ -41,6 +41,7 @@ var owner_cache : Dictionary = {}
 
 var lobby_name : String = ""
 var lobby_password : String = ""
+var own_lobby : bool = false
 var connect_time : float = 0
 var lobby_switch_pending : bool = false
 
@@ -143,6 +144,9 @@ func set_lobby_data(name : String, password : String) -> void:
 	lobby_name = name
 	lobby_password = password
 
+func lobby_created() -> void:
+	own_lobby = true
+
 func lobby_left() -> void:
 	var own_id = GDSync.get_client_id()
 	
@@ -154,6 +158,8 @@ func lobby_left() -> void:
 	sender_id = -1
 	
 	lobby_name = ""
+	lobby_password = ""
+	own_lobby = false
 	
 	for id in player_data.keys():
 		if id != own_id:

@@ -43,7 +43,7 @@ func _disable_plugin() -> void:
 	remove_custom_type("NodeInstantiator")
 	remove_custom_type("SynchronizedAnimationPlayer")
 	remove_autoload_singleton("GDSync")
-	if Engine.has_singleton("GDSyncSharp"): remove_autoload_singleton("GDSyncSharp")
+	if FileAccess.file_exists(CSHARP_PATH): remove_autoload_singleton("GDSyncSharp")
 
 var config_menu : Control
 func _enter_tree() -> void:
@@ -58,8 +58,10 @@ func _enter_tree() -> void:
 	print_rich("[color=#408EAB][b]GD-Sync version "+version+" enabled.[/b][/color]")
 	
 	if FileAccess.file_exists(CSHARP_PATH):
-		if !Engine.has_singleton("GDSyncSharp"): add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
 		print_rich("[color=#408EAB]	- GD-Sync C# API detected and enabled.[/color]")
+	
+	if Engine.has_singleton("Steam"):
+		print_rich("[color=#408EAB]	- Steam integration detected and enabled.[/color]")
 	
 	add_custom_type("PropertySynchronizer",
 			"Node",
@@ -91,15 +93,18 @@ func enable_csharp_api() -> void:
 	var result = await request.request_completed
 	
 	if result[1] == 200:
+		add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
 		print_rich("[color=#408EAB][b]GD-Sync C# API installed. Please restart and build your project.[/b][/color]")
 	else:
 		print_rich("[color=indianred][b]GD-Sync C# API failed to download. Please disable and enable C# support to try again.[/b][/color]")
+	
+	request.queue_free()
 
 func disable_csharp_api() -> void:
 	if !FileAccess.file_exists(CSHARP_PATH): return
-	
-	if Engine.has_singleton("GDSyncSharp"): remove_autoload_singleton("GDSyncSharp")
 	print_rich("[color=#408EAB][b]GD-Sync C# API removed.[/b][/color]")
 	
 	var dir : DirAccess = DirAccess.open(PLUGIN_PATH)
 	dir.remove("GDSync.cs")
+	
+	remove_autoload_singleton("GDSyncSharp")

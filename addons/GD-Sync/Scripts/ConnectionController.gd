@@ -133,7 +133,7 @@ func start_multiplayer() -> void:
 	var load_balancers : Array = self.load_balancers.duplicate()
 	load_balancers.shuffle()
 	while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
-		var address = load_balancers[randi() % load_balancers.size()]
+		var address : String = load_balancers[randi() % load_balancers.size()]
 		var complete_url : String = "https://"+address
 		https_controller.active_lb = complete_url
 		load_balancers.erase(address)
