@@ -53,7 +53,8 @@ func steam_initialized() -> bool:
 	return steam_integration_enabled and steam.loggedOn()
 
 func _process(delta: float) -> void:
-	steam.run_callbacks()
+	if steam_integration_enabled:
+		steam.run_callbacks()
 
 func link_steam_account() -> int:
 	if !steam_initialized():
