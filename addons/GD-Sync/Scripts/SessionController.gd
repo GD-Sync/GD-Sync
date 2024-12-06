@@ -24,6 +24,8 @@ extends Node
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
+signal scene_ready
+
 var request_processor
 var GDSync
 
@@ -52,6 +54,9 @@ var remote_time_latency : float = 0.0
 var synced_time_cooldown : float = 0.0
 var events : Array[Dictionary] = []
 
+var active_scene_change : String = ""
+var scene_ready_list : Array[int] = []
+
 func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
@@ -61,6 +66,10 @@ func _ready() -> void:
 	GDSync.expose_func(get_timer_latency)
 	GDSync.expose_func(timer_latency_callback)
 	GDSync.expose_func(register_event)
+	GDSync.expose_func(load_scene)
+	GDSync.expose_func(mark_scene_ready)
+	GDSync.expose_func(switch_scene_success)
+	GDSync.expose_func(switch_scene_failed)
 	
 	GDSync.client_joined.connect(client_joined)
 	GDSync.client_left.connect(client_left)
@@ -175,6 +184,9 @@ func client_joined(client_id : int) -> void:
 				event["Time"],
 				event["Parameters"]
 			])
+		
+		if active_scene_change != "":
+			GDSync.call_func(load_scene, [active_scene_change])
 
 func client_left(id : int) -> void:
 	if player_data.has(id): player_data.erase(id)
@@ -443,3 +455,95 @@ func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 
 func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	node.disconnect("mc_owner_changed", callable)
+
+func change_scene(scene_path : String) -> void:
+	GDSync.call_func(load_scene, [scene_path])
+	load_scene(scene_path)
+
+func load_scene(scene_path : String) -> void:
+	if active_scene_change != "":
+		push_error("Another scene change is already in progress.")
+		return
+	
+	scene_ready_list.clear()
+	active_scene_change = scene_path
+	GDSync.change_scene_called.emit(scene_path)
+	
+	var tree : SceneTree = get_tree()
+	var packed_scene : PackedScene = await load_resource_threaded(tree, scene_path)
+	var new_scene : Node = await instantiate_threaded(tree, packed_scene)
+	var old_scene : Node = tree.current_scene
+	
+	if new_scene == null:
+		GDSync.call_func(switch_scene_failed)
+		switch_scene_failed()
+		return
+	
+	var own_id : int = GDSync.get_client_id()
+	GDSync.call_func(mark_scene_ready, [own_id])
+	mark_scene_ready(own_id)
+	
+	await scene_ready
+	
+	new_scene.tree_entered.connect(
+		func set_current_scene() -> void:
+			tree.current_scene = new_scene
+	)
+	
+	tree.root.add_child(new_scene)
+	tree.root.remove_child(old_scene)
+	old_scene.free()
+	
+	tree.current_scene = new_scene
+	
+	active_scene_change = ""
+
+func mark_scene_ready(client_id : int) -> void:
+	scene_ready_list.append(client_id)
+	
+	if GDSync.is_host():
+		var clients : Array = get_all_clients()
+		
+		for client in scene_ready_list:
+			if clients.has(client): clients.erase(client)
+		
+		if clients.size() == 0:
+			GDSync.call_func(switch_scene_success)
+			switch_scene_success()
+
+func switch_scene_success() -> void:
+	scene_ready_list.clear()
+	GDSync.change_scene_success.emit(active_scene_change)
+	scene_ready.emit.call_deferred()
+
+func switch_scene_failed() -> void:
+	scene_ready_list.clear()
+	GDSync.change_scene_failed.emit(active_scene_change)
+	active_scene_change = ""
+
+func load_resource_threaded(tree : SceneTree, path : String) -> Resource:
+	if ResourceLoader.load_threaded_request(path) == OK:
+		while ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_IN_PROGRESS:
+			await tree.create_timer(0.05).timeout
+		
+		if ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_LOADED:
+			return ResourceLoader.load_threaded_get(path)
+	
+	return null
+
+func instantiate_threaded(tree : SceneTree, packed_scene : PackedScene) -> Node:
+	if packed_scene == null: return null
+	
+	var thread : Thread = Thread.new()
+	
+	var callable : Callable = func instantiate(packed_scene : PackedScene):
+		return packed_scene.instantiate()
+	
+	thread.start(
+		callable.bind(packed_scene)
+	)
+	
+	while thread.is_alive():
+		await tree.create_timer(0.02).timeout
+	
+	return thread.wait_to_finish()

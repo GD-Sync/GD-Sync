@@ -59,7 +59,7 @@ signal disconnected()
 ##using methods such as [method set_gdsync_owner], [method call_func_on], etc.
 signal client_id_changed(own_id : int)
 
-##Emitted if [method create_lobby] was succesful.
+##Emitted if [method create_lobby] was successful.
 ##[br]
 ##[br][b]lobby_name -[/b] The name of the lobby that was created.
 signal lobby_created(lobby_name : String)
@@ -71,7 +71,7 @@ signal lobby_created(lobby_name : String)
 ##Check [constant ENUMS.LOBBY_CREATION_ERROR] for possible errors.
 signal lobby_creation_failed(lobby_name : String, error : int)
 
-##Emitted when [method join_lobby] was succesful.
+##Emitted when [method join_lobby] was successful.
 ##[br]
 ##[br][b]lobby_name -[/b] The name of the lobby that the player joined.
 signal lobby_joined(lobby_name : String)
@@ -137,6 +137,22 @@ signal host_changed(is_host : bool, new_host_id : int)
 ##[br][b]parameters -[/b] Any parameters binded to the event.
 signal synced_event_triggered(event_name : String, parameters : Array)
 
+##Emitted when [method change_scene] is called.
+##[br]
+##[br][b]scene_path -[/b] The path of the scene.
+signal change_scene_called(scene_path : String)
+
+##Emitted right before the scene is switched when using [method change_scene]
+##[br]
+##[br][b]scene_path -[/b] The path of the scene.
+signal change_scene_success(scene_path : String)
+
+##Emitted when a scene change failed for any of the clients in the lobby. 
+##This can be because of an invalid path, failing to load the resource, etc.
+##[br]
+##[br][b]scene_path -[/b] The path of the scene.
+signal change_scene_failed(scene_path : String)
+
 ##Emitted when the player tries to join a friend on Steam.
 ##[br]
 ##[br][b]lobby_name -[/b] The name of lobby the player is trying to join.
@@ -195,12 +211,12 @@ func _ready():
 # -----------------------------------------------------------------------------
 #region General Functions
 
-##Starts the GD-Sync plugin by connecting to a server. If succesful, [signal connected] will be emitted. 
+##Starts the GD-Sync plugin by connecting to a server. If successful, [signal connected] will be emitted. 
 ##If not, [signal connection_failed] will be emitted.
 func start_multiplayer() -> void:
 	_connection_controller.start_multiplayer()
 
-##An alternative for get_tree().quit(). Only used if you log into a GD-Sync account using [method login]. 
+##An alternative for get_tree().quit(). Only use if you log into a GD-Sync account using [method login]. 
 ##When quiting while logged in the plugin makes some callbacks to the server to update information like 
 ##your friend status.
 func quit() -> void:
@@ -210,7 +226,7 @@ func quit() -> void:
 ##such as database access and automatic host switching. Local mode also disables some optimization features 
 ##related to networking.
 ##Using local multiplayer does not require an account or API keys and does not use any data transfer.
-##[br][br]If succesful, [signal connected] will be emitted. 
+##[br][br]If successful, [signal connected] will be emitted. 
 ##If not, [signal connection_failed] will be emitted.
 func start_local_multiplayer() -> void:
 	_connection_controller.start_local_multiplayer()
@@ -257,7 +273,7 @@ func get_host() -> int:
 ##[br]
 ##[br][b]node -[/b] The Node you want to synchronize a variable on.
 ##[br][b]variable_name -[/b] The name of the variable you want to synchronize.
-##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until succesful. 
+##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ##This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
 func sync_var(node : Node, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(node, variable_name, -1, reliable)
@@ -270,7 +286,7 @@ func sync_var(node : Node, variable_name : String, reliable : bool = true) -> vo
 ##[br][b]client_id -[/b] The Client ID of the client you want to synchronize to.
 ##[br][b]node -[/b] The Node you want to synchronize a variable on.
 ##[br][b]variable_name -[/b] The name of the variable you want to synchronize.
-##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until succesful. 
+##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ##This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
 func sync_var_on(client_id : int, node : Node, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(node, variable_name, client_id, reliable)
@@ -282,7 +298,7 @@ func sync_var_on(client_id : int, node : Node, variable_name : String, reliable 
 ##[br]
 ##[br][b]callable -[/b] The function that you want to call.
 ##[br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until succesful. 
+##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ##This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func(callable : Callable, parameters = null, reliable = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
@@ -295,7 +311,7 @@ func call_func(callable : Callable, parameters = null, reliable = true) -> void:
 ##[br][b]client_id -[/b] The Client ID of the client you want to call the function on.
 ##[br][b]callable -[/b] The function that you want to call.
 ##[br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until succesful. 
+##[br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ##This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func_on(client_id : int, callable : Callable, parameters = null, reliable = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
@@ -340,7 +356,8 @@ func get_multiplayer_time() -> float:
 func create_synced_event(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
 	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
-
+func change_scene(scene_path : String) -> void:
+	_session_controller.change_scene(scene_path)
 
 
 
@@ -506,7 +523,7 @@ func get_public_lobbies() -> void:
 	else:
 		_request_processor.get_public_lobbies()
 
-##Attempts to create a lobby on the server. If succesful [signal lobby_created] is emitted.
+##Attempts to create a lobby on the server. If successful [signal lobby_created] is emitted.
 ##If it fails [signal lobby_creation_failed] is emitted. Creating a lobby has a cooldown of 3 seconds.
 ##[br]
 ##[br][b]name -[/b] The name of the lobby you want to create. Has a maximum of 32 characters.
@@ -524,7 +541,7 @@ func create_lobby(name : String, password : String = "", public : bool = true, p
 	else:
 		_request_processor.create_new_lobby_request(name, password, public, player_limit, tags, data)
 
-##Attempts to join an existing lobby. If succesful [signal lobby_joined] is emitted. 
+##Attempts to join an existing lobby. If successful [signal lobby_joined] is emitted. 
 ##If it fails [signal lobby_join_failed] is emitted. 
 ##Using this function might cause your Client ID to change when joining a lobby that is not on your current server.
 ##[br]
@@ -589,7 +606,7 @@ func get_lobby_player_limit() -> int:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
-##a response from the server is returned. If the operation was succesful [signal lobby_tag_changed] is emitted.
+##a response from the server is returned. If the operation was successful [signal lobby_tag_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 ##[br][b]value -[/b] The value of the tag that should be stored.
@@ -601,7 +618,7 @@ func set_lobby_tag(key : String, value) -> void:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
-##a response from the server is returned. If the operation was succesful [signal lobby_tag_changed] is emitted.
+##a response from the server is returned. If the operation was successful [signal lobby_tag_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 func erase_lobby_tag(key : String) -> void:
@@ -629,7 +646,7 @@ func get_all_lobby_tags() -> Dictionary:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_data] and [method get_lobby_data] until 
-##a response from the server is returned. If operation was succesful [signal lobby_data_changed] is emitted.
+##a response from the server is returned. If operation was successful [signal lobby_data_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the data.
 ##[br][b]value -[/b] The value of the data that should be stored.
@@ -641,7 +658,7 @@ func set_lobby_data(key : String, value) -> void:
 ##[br]
 ##[br]
 ##This does not instantly update, so it won't have an affect on [method has_lobby_data] and [method get_lobby_data] until 
-##a response from the server is returned. If operation was succesful [signal lobby_data_changed] is emitted.
+##a response from the server is returned. If operation was successful [signal lobby_data_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 func erase_lobby_data(key : String) -> void:
