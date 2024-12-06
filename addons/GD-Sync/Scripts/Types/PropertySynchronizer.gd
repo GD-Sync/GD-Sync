@@ -261,7 +261,7 @@ func _interpolate(delta : float) -> void:
 		if !property_data["Interpolated"]: continue
 		
 		var current_value = node.get(property_name)
-		var target_value = property_data["LastValue"]
+		var target_value = property_data.get("LastValue", current_value)
 		
 		if property_data["Type"] == TYPE_BASIS:
 			current_value = current_value.orthonormalized()
