@@ -49,13 +49,26 @@ func _ready() -> void:
 	GDSync.client_joined.connect(client_joined)
 
 func lobby_left() -> void:
+	instantiator_lib.clear()
 	replication_cache.clear()
 	replication_settings.clear()
 
 func client_joined(client_id : int) -> void:
 	if client_id == GDSync.get_client_id(): return
 	if !GDSync.is_host(): return
+	create_instantiators(client_id)
 	broadcast_replication(client_id)
+
+func create_instantiators(client_id : int) -> void:
+	for settings_key in instantiator_lib:
+		var instantiator = instantiator_lib[settings_key]
+		GDSync.call_func_on(client_id, create_instantiator_remote, [
+			instantiator.scene.resource_path,
+			str(instantiator.target.get_path()),
+			instantiator.sync_starting_changes,
+			instantiator.excluded_properties,
+			instantiator.replicate_on_join
+		])
 
 func broadcast_replication(client_id : int) -> void:
 	for instantiator_path in replication_cache:

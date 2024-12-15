@@ -324,7 +324,7 @@ func join_lobby_request(from : Client, request : Array) -> void:
 	if !local_lobby_open:
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED, from, local_lobby_name, ENUMS.LOBBY_JOIN_ERROR.LOBBY_IS_CLOSED)
 		return
-	if local_lobby_player_limit >0 and lobby_client_table.size() >= local_lobby_player_limit:
+	if local_lobby_player_limit > 0 and lobby_client_table.size() >= local_lobby_player_limit:
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED, from, local_lobby_name, ENUMS.LOBBY_JOIN_ERROR.LOBBY_IS_FULL)
 		return
 	

@@ -484,6 +484,7 @@ func load_scene(scene_path : String) -> void:
 	mark_scene_ready(own_id)
 	
 	await scene_ready
+	if scene_path != active_scene_change: return
 	
 	new_scene.tree_entered.connect(
 		func set_current_scene() -> void:
