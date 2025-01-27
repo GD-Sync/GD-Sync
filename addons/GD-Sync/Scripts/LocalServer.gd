@@ -121,8 +121,8 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 		local_lobby_password = password
 		local_lobby_public = public
 		local_lobby_player_limit = player_limit
-		local_lobby_tags = local_lobby_tags
-		local_lobby_data = local_lobby_data
+		local_lobby_tags = tags
+		local_lobby_data = data
 		
 		var lobby_dict : Dictionary = get_lobby_dictionary()
 		lobby_dict["IP"] = "127.0.0.1"
@@ -164,7 +164,6 @@ func perform_local_scan() -> void:
 		
 		if server_ip != '' and port > 0:
 			var lobby_data : Dictionary = bytes_to_var(bytes)
-			if !lobby_data.has("Name"): continue
 			lobby_data["IP"] = server_ip
 			found_lobbies[lobby_data["Name"]] = lobby_data
 	
@@ -454,7 +453,7 @@ func erase_player_data_request(from : Client, request : Array) -> void:
 func get_lobby_dictionary(with_data : bool = false) -> Dictionary:
 	var dict : Dictionary = {
 		"Name" : local_lobby_name,
-		"PlayerCount" : 0,
+		"PlayerCount" : GDSync.get_all_clients().size(),
 		"PlayerLimit" : local_lobby_player_limit,
 		"Public" : local_lobby_public,
 		"Open" : local_lobby_open,

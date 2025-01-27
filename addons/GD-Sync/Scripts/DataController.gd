@@ -104,6 +104,8 @@ func save_config() -> void:
 	file.close()
 
 func set_friend_status() -> int:
+	if !logged_in: return 0
+	
 	var result : Dictionary = await https_controller.perform_https_request(
 		"setfriendstatus",
 		{
