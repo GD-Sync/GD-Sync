@@ -573,6 +573,13 @@ func set_lobby_visibility(public : bool) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_lobby_visiblity_request(public)
 
+##Changes the password of the lobby. Only works for the host of the lobby.
+##[br]
+##[br][b]password -[/b] The new password of the lobby.
+func change_lobby_password(password : String) -> void:
+	if !_connection_controller.valid_connection(): return
+	_request_processor.create_change_lobby_password_request(password)
+
 ##Leaves the lobby you are currently in. This does not emit any signals.
 func leave_lobby() -> void:
 	if !_connection_controller.valid_connection(): return
@@ -582,7 +589,7 @@ func leave_lobby() -> void:
 	_node_tracker.lobby_left()
 	_steam.leave_steam_lobby()
 
-##Kicks a player from the current lobby. Only works for the host.
+##Kicks a player from the current lobby. Only works for the host of the lobby.
 ##[br]
 ##[br][b]client_id -[/b] The client ID of the player you want to kick.
 func kick_player(client_id : int) -> void:

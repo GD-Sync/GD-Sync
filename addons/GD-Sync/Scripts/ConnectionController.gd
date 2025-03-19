@@ -29,7 +29,7 @@ var request_processor
 var https_controller
 var local_server
 
-const API_VERSION : int = 1
+const API_VERSION : int = 2
 
 var _PUBLIC_KEY : String = ""
 var _PRIVATE_KEY : String = ""

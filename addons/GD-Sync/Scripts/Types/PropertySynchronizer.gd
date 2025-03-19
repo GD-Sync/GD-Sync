@@ -64,7 +64,7 @@ enum PROCESS_MODE {
 	PHYSICS_PROCESS,
 }
 
-##Decides when to broadcast the property to other clients.
+##Decides when to broadcast the properties to other clients.
 ##[br][br][enum WHEN_HOST] 
 ##- Broadcast when you are the host of this lobby
 ##[br][br][enum WHEN_CLIENT] 
@@ -85,11 +85,11 @@ enum PROCESS_MODE {
 ##[br][br][enum NEVER] 
 ##- Never broadcast.
 @export var broadcast: BROADCAST_MODE : set = _set_broadcast
-##Whether the property should synchronize during [method _process] or [method _physics_process].
+##Whether the properties should synchronize during [method _process] or [method _physics_process].
 @export var process : PROCESS_MODE
-##How many times per second the property should be synchronized.
+##How many times per second the properties should be synchronized.
 @export var refresh_rate : int = 30
-##The Node on which you want to synchronize a property.
+##The Node on which you want to synchronize properties.
 @export var node_path : NodePath :
 	set(value):
 		node_path = value
@@ -262,6 +262,8 @@ func _interpolate(delta : float) -> void:
 		
 		var current_value = node.get(property_name)
 		var target_value = property_data.get("LastValue", current_value)
+		
+		if current_value == null || target_value == null: continue
 		
 		if property_data["Type"] == TYPE_BASIS:
 			current_value = current_value.orthonormalized()

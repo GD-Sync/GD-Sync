@@ -79,6 +79,7 @@ func _ready() -> void:
 	synced_time = randf_range(0, 1000)
 
 func _process(delta):
+	if !GDSync.is_active(): return
 	handle_events(delta)
 
 func handle_events(delta : float) -> void:
@@ -164,11 +165,15 @@ func lobby_left() -> void:
 	node_path_index_cache.clear()
 	name_cache.clear()
 	name_index_cache.clear()
+	owner_cache.clear()
+	events.clear()
 	sender_id = -1
 	
 	lobby_name = ""
 	lobby_password = ""
 	own_lobby = false
+	
+	synced_time = 0.0
 	
 	for id in player_data.keys():
 		if id != own_id:
@@ -178,6 +183,8 @@ func client_joined(client_id : int) -> void:
 	if client_id == GDSync.get_client_id(): return
 	
 	if GDSync.is_host():
+		synced_time_cooldown = 0.0
+		
 		for event in events:
 			GDSync.call_func_on(client_id, register_event, [
 				event["Name"],
