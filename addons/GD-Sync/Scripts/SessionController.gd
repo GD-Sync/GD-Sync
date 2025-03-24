@@ -102,6 +102,9 @@ func sync_timer(time : float) -> void:
 	remote_time = time
 	remote_time_counter = 0
 	remote_time_latency = 0.0
+	
+	if(abs(time - synced_time) > 0.5): synced_time = remote_time
+	
 	for i in range(5):
 		await get_tree().process_frame
 		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, [GDSync.get_client_id(), Time.get_unix_time_from_system()])
@@ -144,10 +147,10 @@ func broadcast_player_data() -> void:
 	var own_id : int = GDSync.get_client_id()
 	GDSync.set_player_username(get_player_data(own_id, "Username", ""))
 	
-	var own_data : Dictionary = GDSync.get_all_player_data(own_id)
+	var own_data : Dictionary = GDSync.player_get_all_data(own_id)
 	for key in own_data:
 		if key != "Username":
-			GDSync.set_player_data(key, own_data[key])
+			GDSync.player_set_data(key, own_data[key])
 
 func set_lobby_data(name : String, password : String) -> void:
 	synced_time = 0.0
@@ -313,6 +316,11 @@ func override_lobby_data(data : Dictionary) -> void:
 func get_player_limit() -> int:
 	if !lobby_data.has("PlayerLimit"): return 0
 	return lobby_data["PlayerLimit"]
+
+func lobby_has_password() -> bool:
+	if lobby_data.has("HasPassword"):
+		return lobby_data["HasPassword"]
+	return false
 
 func lobby_data_changed(key : String) -> void:
 	if !lobby_data.has("Data"): return

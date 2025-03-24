@@ -177,12 +177,12 @@ func login(email : String, password : String, valid_time : float) -> Dictionary:
 		"Code" : result["Code"]
 	}
 	
-	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
+	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
 		log_in()
 		save_config()
-		GDSync.set_player_username(result["Username"])
-	elif result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.BANNED:
+		GDSync.player_set_username(result["Username"])
+	elif result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.BANNED:
 		var ban_time : float = result["BanTime"]
 		if ban_time-Time.get_unix_time_from_system() >= 86400000:
 			ban_time = -1
@@ -200,10 +200,10 @@ func login_from_session(valid_time : int) -> int:
 		}
 	)
 	
-	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
+	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
 		log_in()
-		GDSync.set_player_username(result["Username"])
+		GDSync.player_set_username(result["Username"])
 	else:
 		login_token = ""
 	save_config()
@@ -577,12 +577,12 @@ func steam_login(auth_ticket : PackedByteArray, app_id : int, valid_time : float
 		"Code" : result["Code"]
 	}
 	
-	if result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
+	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
 		log_in()
 		save_config()
-		GDSync.set_player_username(result["Username"])
-	elif result["Code"] == ENUMS.LOGIN_RESPONSE_CODE.BANNED:
+		GDSync.player_set_username(result["Username"])
+	elif result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.BANNED:
 		var ban_time : float = result["BanTime"]
 		if ban_time-Time.get_unix_time_from_system() >= 86400000:
 			ban_time = -1

@@ -254,10 +254,6 @@ func get_client_id() -> int:
 func get_sender_id() -> int:
 	return _session_controller.get_sender_id()
 
-##Returns the client IDs of all clients in the current lobby.
-func get_all_clients() -> Array:
-	return _session_controller.get_all_clients()
-
 ##Returns whether you are the host of the lobby you are in.
 func is_host() -> bool:
 	return _connection_controller.host == get_client_id()
@@ -353,9 +349,12 @@ func get_multiplayer_time() -> float:
 ##[br][b]event_name -[/b] The name of the event. Queued events can share the same name.
 ##[br][b]delay -[/b] The delay in seconds after which the event should be triggered.
 ##[br][b]parameters -[/b] Any parameters which should be binded to the event.
-func create_synced_event(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
+func synced_event_create(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
 	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
+##Changes the current scene for all clients. Waits with changing until the scene has fully loaded on all clients. 
+##[br]
+##[br][b]scene_path -[/b] The resource path of the scene.
 func change_scene(scene_path : String) -> void:
 	_session_controller.change_scene(scene_path)
 
@@ -534,7 +533,7 @@ func get_public_lobbies() -> void:
 ##This is also the case if the limit entered exceeds your plan limit.
 ##[br][b]tags -[/b] Any starting tags you would like to add to the lobby.
 ##[br][b]data -[/b] Any starting data you would like to add to the lobby.
-func create_lobby(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
+func lobby_create(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
 	if !_connection_controller.valid_connection(): return
 	if _connection_controller.is_local():
 		_local_server.create_local_lobby(name, password, public, player_limit, tags, data)
@@ -548,7 +547,7 @@ func create_lobby(name : String, password : String = "", public : bool = true, p
 ##[br][b]name -[/b] The name of the lobby you are trying to join.
 ##[br][b]password -[/b] The password of the lobby you are trying to join.
 ##If the lobby has no password this can have any value.
-func join_lobby(name : String, password : String = "") -> void:
+func lobby_join(name : String, password : String = "") -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_lobby_data(name, password)
 	if _connection_controller.is_local():
@@ -557,31 +556,31 @@ func join_lobby(name : String, password : String = "") -> void:
 		_request_processor.create_join_lobby_request(name, password)
 
 ##Closes the lobby you are currently in, blocking any new players from joining. The lobby will still be visible when using [method get_public_lobbies].
-func close_lobby() -> void:
+func lobby_close() -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_close_lobby_request()
 
 ##Opens the lobby you are currently in, allowing new players to join.
-func open_lobby() -> void:
+func lobby_open() -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_open_lobby_request()
 
 ##Sets the visibility of the lobby you are currently in. Decides whether the lobby shows up when using [method get_public_lobbies]
 ##[br]
 ##[br][b]public -[/b] If the lobby should be visible or not.
-func set_lobby_visibility(public : bool) -> void:
+func lobby_set_visibility(public : bool) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_lobby_visiblity_request(public)
 
 ##Changes the password of the lobby. Only works for the host of the lobby.
 ##[br]
 ##[br][b]password -[/b] The new password of the lobby.
-func change_lobby_password(password : String) -> void:
+func lobby_change_password(password : String) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_change_lobby_password_request(password)
 
 ##Leaves the lobby you are currently in. This does not emit any signals.
-func leave_lobby() -> void:
+func lobby_leave() -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_leave_lobby_request()
 	_data_controller.set_friend_status()
@@ -589,24 +588,32 @@ func leave_lobby() -> void:
 	_node_tracker.lobby_left()
 	_steam.leave_steam_lobby()
 
-##Kicks a player from the current lobby. Only works for the host of the lobby.
+##Kicks a client from the current lobby. Only works for the host of the lobby.
 ##[br]
-##[br][b]client_id -[/b] The client ID of the player you want to kick.
-func kick_player(client_id : int) -> void:
+##[br][b]client_id -[/b] The ID of the client you want to kick.
+func lobby_kick_client(client_id : int) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.kick_player(client_id)
 
+##Returns the client IDs of all clients in the current lobby.
+func lobby_get_all_clients() -> Array:
+	return _session_controller.get_all_clients()
+
 ##Returns the amount of players in the current lobby.
-func get_lobby_player_count() -> int:
+func lobby_get_player_count() -> int:
 	return _session_controller.get_all_clients().size()
 
 ##Get the current lobby name
-func get_lobby_name() -> String:
+func lobby_get_name() -> String:
 	return GDSync._session_controller.lobby_name
 
 ##Returns the player limit of the current lobby.
-func get_lobby_player_limit() -> int:
+func lobby_get_player_limit() -> int:
 	return _session_controller.get_player_limit()
+
+##Returns true if the current lobby has a password.
+func lobby_has_password() -> bool:
+	return _session_controller.lobby_has_password()
 
 ##Adds a new or updates the value of a tag. Tags are publicly visible data that is returned with [method get_public_lobbies]. 
 ##Especially useful when display information like the gamemode or map.
@@ -617,7 +624,7 @@ func get_lobby_player_limit() -> int:
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 ##[br][b]value -[/b] The value of the tag that should be stored.
-func set_lobby_tag(key : String, value) -> void:
+func lobby_set_tag(key : String, value) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_set_lobby_tag_request(key, value)
 
@@ -628,25 +635,25 @@ func set_lobby_tag(key : String, value) -> void:
 ##a response from the server is returned. If the operation was successful [signal lobby_tag_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
-func erase_lobby_tag(key : String) -> void:
+func lobby_erase_tag(key : String) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_erase_lobby_tag_request(key)
 
 ##Returns true if a tag with the given key exists.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
-func has_lobby_tag(key : String) -> bool:
+func lobby_has_tag(key : String) -> bool:
 	return _session_controller.has_lobby_tag(key)
 
 ##Gets the value of a lobby tag.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
 ##[br][b]default -[/b] The default value that is returned if the given key does not exist.
-func get_lobby_tag(key : String, default = null):
+func lobby_get_tag(key : String, default = null):
 	return _session_controller.get_lobby_tag(key, default)
 
 ##Returns a dictionary with all lobby tags and their values.
-func get_all_lobby_tags() -> Dictionary:
+func lobby_get_all_tags() -> Dictionary:
 	return _session_controller.get_all_lobby_tags()
 
 ##Adds new or updates existing lobby data. Data is private data that can only be viewed from inside the lobby. 
@@ -657,7 +664,7 @@ func get_all_lobby_tags() -> Dictionary:
 ##[br]
 ##[br][b]key -[/b] The key of the data.
 ##[br][b]value -[/b] The value of the data that should be stored.
-func set_lobby_data(key : String, value) -> void:
+func lobby_set_data(key : String, value) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_set_lobby_data_request(key, value)
 
@@ -668,28 +675,26 @@ func set_lobby_data(key : String, value) -> void:
 ##a response from the server is returned. If operation was successful [signal lobby_data_changed] is emitted.
 ##[br]
 ##[br][b]key -[/b] The key of the tag.
-func erase_lobby_data(key : String) -> void:
+func lobby_erase_data(key : String) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_erase_lobby_data_request(key)
 
 ##Returns true if data with the given key exists.
 ##[br]
 ##[br][b]key -[/b] The key of the data.
-func has_lobby_data(key : String) -> bool:
+func lobby_has_data(key : String) -> bool:
 	return _session_controller.has_lobby_data(key)
 
 ##Gets the value of lobby data.
 ##[br]
 ##[br][b]key -[/b] The key of the data.
 ##[br][b]default -[/b] The default value that is returned if the given key does not exist.
-func get_lobby_data(key : String, default = null):
+func lobby_get_data(key : String, default = null):
 	return _session_controller.get_lobby_data(key, default)
 
 ##Returns a dictionary with all lobby data and their values.
-func get_all_lobby_data() -> Dictionary:
+func lobby_get_all_data() -> Dictionary:
 	return _session_controller.get_all_lobby_data()
-
-
 
 
 
@@ -710,7 +715,7 @@ func get_all_lobby_data() -> Dictionary:
 ##[br]
 ##[br][b]key -[/b] The key of the player data.
 ##[br][b]value -[/b] The value of the player data.
-func set_player_data(key : String, value) -> void:
+func player_set_data(key : String, value) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_player_data(key, value)
 	_request_processor.create_set_player_data_request(key, value)
@@ -719,7 +724,7 @@ func set_player_data(key : String, value) -> void:
 ##Emits [signal player_data_changed] with null as the value.
 ##[br]
 ##[br][b]key -[/b] The key of the player data.
-func erase_player_data(key : String) -> void:
+func player_erase_data(key : String) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.erase_player_data(key)
 	_request_processor.create_erase_player_data_request(key)
@@ -730,7 +735,7 @@ func erase_player_data(key : String) -> void:
 ##[br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
 ##[br][b]key -[/b] The key of the player data.
 ##[br][b]default -[/b] The default value that is returned if the given key does not exist.
-func get_player_data(client_id : int, key : String, default = null):
+func player_get_data(client_id : int, key : String, default = null):
 	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, key, default)
 
@@ -738,7 +743,7 @@ func get_player_data(client_id : int, key : String, default = null):
 ##You can get your own id using [method get_client_id].
 ##[br]
 ##[br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
-func get_all_player_data(client_id : int) -> Dictionary:
+func player_get_all_data(client_id : int) -> Dictionary:
 	if !_connection_controller.valid_connection(): return {}
 	return _session_controller.get_all_player_data(client_id)
 
@@ -747,12 +752,9 @@ func get_all_player_data(client_id : int) -> Dictionary:
 ##Emits [signal player_data_changed] with the key "Username".
 ##[br]
 ##[br][b]name -[/b] The username of this client.
-func set_player_username(name : String) -> void:
+func player_set_username(name : String) -> void:
 	_request_processor.create_set_username_request(name)
 	_session_controller.set_player_data("Username", name)
-
-
-
 
 
 
@@ -773,7 +775,7 @@ func set_player_username(name : String) -> void:
 ##The username has to be between 3 and 20 characters long.
 ##[br][b]password -[/b] The password of the account. 
 ##The password has to be between 3 and 20 characters long.
-func create_account(email : String, username : String, password : String) -> int:
+func account_create(email : String, username : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.create_account(email, username, password)
 
@@ -782,7 +784,7 @@ func create_account(email : String, username : String, password : String) -> int
 ##[br]
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]password -[/b] The password of the account.
-func delete_account(email : String, password : String) -> int:
+func account_delete(email : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_account(email, password)
 
@@ -794,23 +796,23 @@ func delete_account(email : String, password : String) -> int:
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]code -[/b] The verification code that was sent to the email address.
 ##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
-func verify_account(email : String, code : String, valid_time : float = 86400) -> int:
+func account_verify(email : String, code : String, valid_time : float = 86400) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.verify_account(email, code, valid_time)
 
 ##Sends a new verification code to the email address. A new code can only be sent once the most recent 
 ##code has expired. Requires email verification to be enabled in the User Account settings.
-##[br][br]Returns the result of the request as [constant ENUMS.RESEND_VERIFICATION_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_RESEND_VERIFICATION_RESPONSE_CODE].
 ##[br]
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]password -[/b] The password of the account.
-func resend_verification_code(email : String, password : String) -> int:
+func account_resend_verification_code(email : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.resend_verification_code(email, password)
 
 ##Returns if the specified account has a verified email. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.IS_VERIFIED_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_IS_VERIFIED_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]username -[/b] The username of the account.
 ##[codeblock]
@@ -818,13 +820,13 @@ func resend_verification_code(email : String, password : String) -> int:
 ##   "Code" : 0,
 ##   "Result" : true
 ##}[/codeblock]
-func is_verified(username : String = "") -> Dictionary:
+func account_is_verified(username : String = "") -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.is_verified(username)
 
 ##Attempt to login into an existing account. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.LOGIN_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE] response code. 
 ##[br]
 ##[br]
 ##If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will 
@@ -838,98 +840,98 @@ func is_verified(username : String = "") -> Dictionary:
 ##   "Code" : 0,
 ##   "BanTime" : 1719973379
 ##}[/codeblock]
-func login(email : String, password : String, valid_time : float = 86400) -> Dictionary:
+func account_login(email : String, password : String, valid_time : float = 86400) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.login(email, password, valid_time)
 
 ##Attempt to login with a previous session. If that session has not yet expired it will login using 
 ##and refresh the session time. 
-##[br][br]Returns the result of the request as [constant ENUMS.LOGIN_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE].
 ##[br]
 ##[br][b]valid_time -[/b] The time in seconds how long the login session is valid.
-func login_from_session(valid_time : float = 86400) -> int:
+func account_login_from_session(valid_time : float = 86400) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.login_from_session(valid_time)
 
 ##Invalidates the current login session. 
-##[br][br]Returns the result of the request as [constant ENUMS.LOGOUT_RESPONSE_CODE].
-func logout() -> int:
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_LOGOUT_RESPONSE_CODE].
+func account_logout() -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.logout()
 
 ##Bans the current logged-in account. 
-##[br][br]Returns the result of the request as [constant ENUMS.BAN_ACCOUNT_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_BAN_RESPONSE_CODE].
 ##[br]
 ##[br][b]ban_duration -[/b] The ban duration in days. Any amount above 1000 days results in a permanent ban.
-func ban_account(ban_duration : float) -> int:
+func account_ban(ban_duration : float) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.ban_account(ban_duration)
 
 ##Changes the username of the currently logged in account.
-##[br][br]Returns the result of the request as [constant ENUMS.CHANGE_USERNAME_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CHANGE_USERNAME_RESPONSE_CODE].
 ##[br]
 ##[br][b]new_username -[/b] The new username. The username has to be unique and between 3 and 20 characters long.
-func change_account_username(new_username : String) -> int:
+func account_change_username(new_username : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.change_username(new_username)
 
 ##Changes the password of an existing account.
-##[br][br]Returns the result of the request as [constant ENUMS.CHANGE_PASSWORD_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CHANGE_PASSWORD_RESPONSE_CODE].
 ##[br]
 ##[br][b]email -[/b] The email of the account.
 ##[br][b]password -[/b] The current password of the account.
 ##[br][b]new_password -[/b] The new password of the account.
-func change_account_password(email : String, password : String, new_password : String) -> int:
+func account_change_password(email : String, password : String, new_password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.change_password(email, password, new_password)
 
 ##Requests a password reset code for the specified account. The reset code will be sent to the email address.
-##[br][br]Returns the result of the request as [constant ENUMS.REQUEST_PASSWORD_RESET_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_REQUEST_PASSWORD_RESET_RESPONSE_CODE].
 ##[br]
 ##[br][b]email -[/b] The email of the account.
-func request_account_password_reset(email : String) -> int:
+func account_request_password_reset(email : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.request_password_reset(email)
 
 ##Attempt to use a password reset code. If the code is valid the password of the account will be changed. 
 ##See [method request_account_password_reset] for sending the password reset code. 
-##[br][br]Returns the result of the request as [constant ENUMS.RESET_PASSWORD_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_RESET_PASSWORD_RESPONSE_CODE].
 ##[br]
 ##[br][b]email -[/b] The email of the account.
-func reset_password(email : String, reset_code : String, new_password : String) -> int:
+func account_reset_password(email : String, reset_code : String, new_password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.reset_password(email, reset_code, new_password)
 
 ##Files a report against the specified account.
-##[br][br]Returns the result of the request as [constant ENUMS.REPORT_USER_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CREATE_REPORT_RESPONSE_CODE].
 ##[br]
 ##[br][b]username_to_report -[/b] The username of the account you want to report.
 ##[br][b]report -[/b] The report message. Has a maximum limit of 3000 characters.
-func report_account(username_to_report : String, report : String) -> int:
+func account_create_report(username_to_report : String, report : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.report_user(username_to_report, report)
 
 ##Sends a friend request to another account.
-##[br][br]Returns the result of the request as [constant ENUMS.SEND_FRIEND_REQUEST_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_SEND_FRIEND_REQUEST_RESPONSE_CODE].
 ##[br]
 ##[br][b]friend -[/b] The username of the account you want to send the friend request to.
-func send_friend_request(friend : String) -> int:
+func account_send_friend_request(friend : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.send_friend_request(friend)
 
 ##Accepts a friend request from another account
-##[br][br]Returns the result of the request as [constant ENUMS.ACCEPT_FRIEND_REQUEST_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_ACCEPT_FRIEND_REQUEST_RESPONSE_CODE].
 ##[br]
 ##[br][b]friend -[/b] The username of the account you want to accept the friend request from.
-func accept_friend_request(friend : String) -> int:
+func account_accept_friend_request(friend : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.accept_friend_request(friend)
 
 ##Removes a friend. Also used to deny incoming friend requests.
-##[br][br]Returns the result of the request as [constant ENUMS.REMOVE_FRIEND_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_REMOVE_FRIEND_RESPONSE_CODE].
 ##[br]
 ##[br][b]friend -[/b] The username of the friend you want to remove.
-func remove_friend(friend : String) -> int:
+func account_remove_friend(friend : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.remove_friend(friend)
 
@@ -937,7 +939,7 @@ func remove_friend(friend : String) -> int:
 ##available if the friend request is accepted. 
 ##If the lobby name is not empty, the player is in a lobby.
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_FRIEND_STATUS_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_GET_FRIEND_STATUS_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]friend -[/b] The username of the account you want the friend status of.
 ##[codeblock]
@@ -951,15 +953,15 @@ func remove_friend(friend : String) -> int:
 ##       }
 ##   }
 ##}[/codeblock]
-func get_friend_status(friend : String) -> Dictionary:
+func account_get_friend_status(friend : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
-	return await _data_controller.get_friend_status(friend)
+	return await _data_controller.account_get_friend_status(friend)
 
 ##Returns an array of all friends with their status. Information besides the FriendStatus is only 
 ##available if the friend request is accepted. 
 ##If the lobby name is not empty, the player is in a lobby.
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_FRIENDS_RESPONSE_CODE] response code.
+##and the [constant ENUMS.ACCOUNT_GET_FRIENDS_RESPONSE_CODE] response code.
 ##[codeblock]
 ##{
 ##   "Code" : 0,
@@ -988,7 +990,7 @@ func get_friend_status(friend : String) -> Dictionary:
 ##      ]
 ##   }
 ##}[/codeblock]
-func get_friends() -> Dictionary:
+func account_get_friends() -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_friends()
 
@@ -999,12 +1001,12 @@ func get_friends() -> Dictionary:
 ##the document contents. Setting [param externally_visible] to true will automatically make all parent 
 ##collections/documents visible as well. Setting [param externally_visible] to false will automatically 
 ##hide all nested collections and documents.
-##[br][br]Returns the result of the request as [constant ENUMS.SET_PLAYER_DOCUMENT_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DOCUMENT_SET_RESPONSE_CODE].
 ##[br]
 ##[br][b]path -[/b] The path where the document should be stored. An example path could be "saves/save1".
 ##[br][b]document -[/b] The data that you want to store in the cloud.
 ##[br][b]externally_visible -[/b] Decides if the document is public or private.
-func set_player_document(path : String, document : Dictionary, externally_visible : bool = false) -> int:
+func account_document_set(path : String, document : Dictionary, externally_visible : bool = false) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_player_document(path, document, externally_visible)
 
@@ -1012,17 +1014,17 @@ func set_player_document(path : String, document : Dictionary, externally_visibl
 ##the document contents. Setting [param externally_visible] to true will automatically make all parent 
 ##collections/documents visible as well. Setting [param externally_visible] to false will automatically 
 ##hide all nested collections and documents.
-##[br][br]Returns the result of the request as [constant ENUMS.SET_EXTERNAL_VISIBLE_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DOCUMENT_SET_EXTERNAL_VISIBLE_RESPONSE_CODE].
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
 ##[br][b]externally_visible -[/b] Decides if the document is public or private.
-func set_external_visible(path : String, externally_visible : bool = false) -> int:
+func account_document_set_external_visible(path : String, externally_visible : bool = false) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_external_visible(path, externally_visible)
 
 ##Retrieve a dictionary/document of data from the currently logged-in account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
 ##[codeblock]
@@ -1030,13 +1032,13 @@ func set_external_visible(path : String, externally_visible : bool = false) -> i
 ##   "Code" : 0,
 ##   "Result" : {<document>}
 ##}[/codeblock]
-func get_player_document(path : String) -> Dictionary:
+func account_get_document(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, "")
 
 ##Check if a dictionary/document or collection exists on the currently logged-in account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.HAS_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
 ##[codeblock]
@@ -1044,13 +1046,13 @@ func get_player_document(path : String) -> Dictionary:
 ##   "Code" : 0,
 ##   "Result" : true
 ##}[/codeblock]
-func has_player_document(path : String) -> Dictionary:
+func account_has_document(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, "")
 
 ##Browse through a collection from the currently logged-in account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.BROWSE_PLAYER_COLLECTION_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
 ##[codeblock]
@@ -1064,21 +1066,21 @@ func has_player_document(path : String) -> Dictionary:
 ##         {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
 ##      ]
 ##}[/codeblock]
-func browse_player_collection(path : String) -> Dictionary:
+func account_browse_collection(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, "")
 
 ##Delete a dictionary/document or collection from the currently logged-in account using GD-Sync cloud storage. 
-##[br][br]Returns the result of the request as [constant ENUMS.DELETE_PLAYER_DOCUMENT_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DELETE_DOCUMENT_RESPONSE_CODE].
 ##[br]
 ##[br][b]path -[/b] The path of the document or collection.
-func delete_player_document(path : String) -> int:
+func account_delete_document(path : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_player_document(path)
 
 ##Retrieve a dictionary/document of data from another account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]external_username -[/b] The username of the account you want to perform the action on.
 ##[br][b]path -[/b] The path of the document or collection.
@@ -1087,13 +1089,13 @@ func delete_player_document(path : String) -> int:
 ##   "Code" : 0,
 ##   "Result" : {<document>}
 ##}[/codeblock]
-func get_external_player_document(external_username : String, path : String) -> Dictionary:
+func account_get_external_document(external_username : String, path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, external_username)
 
 ##Check if a dictionary/document or collection exists on another account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.HAS_PLAYER_DOCUMENT_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]external_username -[/b] The username of the account you want to perform the action on.
 ##[br][b]path -[/b] The path of the document or collection.
@@ -1102,13 +1104,13 @@ func get_external_player_document(external_username : String, path : String) -> 
 ##   "Code" : 0,
 ##   "Result" : true
 ##}[/codeblock]
-func has_external_player_document(external_username : String, path : String) -> Dictionary:
+func account_has_external_document(external_username : String, path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, external_username)
 
 ##Browse through a collection from another account using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.BROWSE_PLAYER_COLLECTION_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]external_username -[/b] The username of the account you want to perform the action on.
 ##[br][b]path -[/b] The path of the document or collection.
@@ -1123,13 +1125,13 @@ func has_external_player_document(external_username : String, path : String) -> 
 ##         {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
 ##      ]
 ##}[/codeblock]
-func browse_external_player_collection(external_username : String, path : String) -> Dictionary:
+func account_browse_external_collection(external_username : String, path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, external_username)
 
 ##Check if a leaderboard exists using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.HAS_LEADERBOARD_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.LEADERBOARD_EXISTS_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[codeblock]
@@ -1137,13 +1139,13 @@ func browse_external_player_collection(external_username : String, path : String
 ##   "Code" : 0,
 ##   "Result" : true
 ##}[/codeblock]
-func has_leaderboard(leaderboard : String) -> Dictionary:
+func leaderboard_exists(leaderboard : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_leaderboard(leaderboard)
 
 ##Retrieve a list of all leaderboards using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_LEADERBOARDS_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.LEADERBOARD_GET_ALL_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[codeblock]
@@ -1155,14 +1157,14 @@ func has_leaderboard(leaderboard : String) -> Dictionary:
 ##         "Leaderboard2"
 ##      ]
 ##}[/codeblock]
-func get_leaderboards() -> Dictionary:
+func leaderboard_get_all() -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_leaderboards()
 
 
 ##Browse a leaderboard and all submitted scores using GD-Sync cloud storage. 
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.BROWSE_LEADERBOARD_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.LEADERBOARD_BROWSE_SCORES_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
@@ -1178,14 +1180,14 @@ func get_leaderboards() -> Dictionary:
 ##         {"Rank": 3, "Score": 10, "Username": "User3"}
 ##      ]
 ##}[/codeblock]
-func browse_leaderboard(leaderboard : String, page_size : int, page : int) -> Dictionary:
+func leaderboard_browse_scores(leaderboard : String, page_size : int, page : int) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_leaderboard(leaderboard, page_size, page)
 
 ##Get the score and rank of an account for a specific leaderboard using GD-Sync cloud storage. 
 ##If the user has no score submission on the leaderboard, Score will be 0 and Rank -1.
 ##[br][br]Returns a [Dictionary] with the format seen below 
-##and the [constant ENUMS.GET_LEADERBOARD_SCORE_RESPONSE_CODE] response code. 
+##and the [constant ENUMS.LEADERBOARD_GET_SCORE_RESPONSE_CODE] response code. 
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
@@ -1198,25 +1200,25 @@ func browse_leaderboard(leaderboard : String, page_size : int, page : int) -> Di
 ##         "Rank" : 1
 ##      }
 ##}[/codeblock]
-func get_leaderboard_score(leaderboard : String, username : String) -> Dictionary:
+func leaderboard_get_score(leaderboard : String, username : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_leaderboard_score(leaderboard, username)
 
 ##Submits a score to a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
 ##If the user already has a score submission, it will be overwritten.
-##[br][br]Returns the result of the request as [constant ENUMS.SUBMIT_SCORE_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.LEADERBOARD_SUBMIT_SCORE_RESPONSE_CODE].
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
 ##[br][b]score -[/b] The score you want to submit.
-func submit_score(leaderboard : String, score : int) -> int:
+func leaderboard_submit_score(leaderboard : String, score : int) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.submit_score(leaderboard, score)
 
 ##Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
-##[br][br]Returns the result of the request as [constant ENUMS.DELETE_SCORE_RESPONSE_CODE].
+##[br][br]Returns the result of the request as [constant ENUMS.LEADERBOARD_DELETE_SCORE_RESPONSE_CODE].
 ##[br]
 ##[br][b]leaderboard -[/b] The name of the leaderboard.
-func delete_score(leaderboard : String) -> int:
+func leaderboard_delete_score(leaderboard : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_score(leaderboard)
 
@@ -1241,12 +1243,12 @@ func steam_integration_enabled() -> bool:
 ##Links your GD-Sync account with your Steam account. Thiw will allow you to log into your GD-Sync account 
 ##using your active Steam session. 
 ##[br][br]Returns the result of the request as [constant ENUMS.LINK_STEAM_ACCOUNT_RESPONSE_CODE].
-func link_steam_account() -> int:
+func steam_link_account() -> int:
 	return await _steam.link_steam_account()
 
 ##Unlinks your GD-Sync account from Steam.
 ##[br][br]Returns the result of the request as [constant ENUMS.UNLINK_STEAM_ACCOUNT_RESPONSE_CODE].
-func unlink_steam_account() -> int:
+func steam_unlink_account() -> int:
 	return await _steam.unlink_steam_account()
 
 ##Logs into your GD-Sync account using the active Steam session. 

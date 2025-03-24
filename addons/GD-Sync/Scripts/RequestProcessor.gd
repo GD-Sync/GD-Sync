@@ -184,6 +184,7 @@ func process_message(request : Array) -> void:
 			GDSync.lobby_creation_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOINED:
 			data_controller.set_friend_status()
+			await get_tree().process_frame
 			GDSync.lobby_joined.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED:
 			GDSync.lobby_join_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
@@ -209,7 +210,7 @@ func process_message(request : Array) -> void:
 			session_controller.set_sender_id(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.KICKED:
 			GDSync.kicked.emit()
-			GDSync.leave_lobby()
+			GDSync.lobby_leave()
 
 func handle_critical_error(error : int) -> void:
 	match error:
@@ -356,7 +357,7 @@ func secure_connection() -> void:
 			set_connect_time(session_controller.connect_time)
 			session_controller.connect_time = 0
 		
-		GDSync.join_lobby(session_controller.lobby_name, session_controller.lobby_password)
+		GDSync.lobby_join(session_controller.lobby_name, session_controller.lobby_password)
 	
 	GDSync.emit_signal("connected")
 

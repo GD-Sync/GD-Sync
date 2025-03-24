@@ -453,13 +453,13 @@ func erase_player_data_request(from : Client, request : Array) -> void:
 func get_lobby_dictionary(with_data : bool = false) -> Dictionary:
 	var dict : Dictionary = {
 		"Name" : local_lobby_name,
-		"PlayerCount" : GDSync.get_all_clients().size(),
+		"PlayerCount" : GDSync.lobby_get_all_clients().size(),
 		"PlayerLimit" : local_lobby_player_limit,
 		"Public" : local_lobby_public,
 		"Open" : local_lobby_open,
 		"Tags" : local_lobby_tags,
 		"HasPassword" : local_lobby_password != "",
-		"Host" : GDSync.get_player_data(GDSync.get_client_id(), "Username", "")
+		"Host" : GDSync.player_get_data(GDSync.get_client_id(), "Username", "")
 	}
 	
 	if with_data:

@@ -29,7 +29,13 @@ const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCS
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
 
-var version : String = "0.7.1"
+var load_balancers : PackedStringArray = [
+	"lb1.gd-sync.com",
+	"lb2.gd-sync.com",
+	"lb3.gd-sync.com",
+]
+
+var version : String = "0.8"
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")
@@ -62,6 +68,8 @@ func _enter_tree() -> void:
 	
 	if Engine.has_singleton("Steam"):
 		print_rich("[color=#408EAB]	- Steam integration detected and enabled.[/color]")
+	
+	check_for_updates()
 	
 	add_custom_type("PropertySynchronizer",
 			"Node",
@@ -108,3 +116,27 @@ func disable_csharp_api() -> void:
 	dir.remove("GDSync.cs")
 	
 	remove_autoload_singleton("GDSyncSharp")
+
+func check_for_updates() -> void:
+	var request : HTTPRequest = HTTPRequest.new()
+	request.timeout = 5
+	add_child(request)
+	
+	for lb in load_balancers:
+		var url : String = "https://"+lb+"/version"
+		request.request(
+			url,
+			[],
+			HTTPClient.METHOD_GET
+		)
+		
+		var result = await request.request_completed
+		
+		if result[1] == 200:
+			var new_version : String = result[3].get_string_from_ascii()
+			if version != new_version:
+				print("")
+				print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
+				print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" from the Godot asset library.[/color]")
+				print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
+			return
