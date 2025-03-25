@@ -230,7 +230,10 @@ func _instantiate_remote(id : int, changed_properties : Dictionary) -> void:
 func _get_properties_as_bytes(node : Node) -> Dictionary:
 	var property_values : Dictionary = {}
 	for property in node.get_property_list():
-		property_values[property["name"]] = var_to_bytes(node.get(property["name"]))
+		var property_name : String = property["name"]
+		if property_name.begins_with("global_"):
+			continue
+		property_values[property_name] = var_to_bytes(node.get(property_name))
 	
 	return property_values
 
