@@ -145,7 +145,7 @@ func client_id_changed(client_id : int) -> void:
 
 func broadcast_player_data() -> void:
 	var own_id : int = GDSync.get_client_id()
-	GDSync.set_player_username(get_player_data(own_id, "Username", ""))
+	GDSync.player_set_username(get_player_data(own_id, "Username", ""))
 	
 	var own_data : Dictionary = GDSync.player_get_all_data(own_id)
 	for key in own_data:
