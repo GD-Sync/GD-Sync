@@ -122,21 +122,46 @@ func check_for_updates() -> void:
 	request.timeout = 5
 	add_child(request)
 	
-	for lb in load_balancers:
-		var url : String = "https://"+lb+"/version"
-		request.request(
-			url,
-			[],
-			HTTPClient.METHOD_GET
-		)
-		
-		var result = await request.request_completed
-		
-		if result[1] == 200:
-			var new_version : String = result[3].get_string_from_ascii()
-			if version != new_version:
-				print("")
-				print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
-				print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" from the Godot asset library.[/color]")
-				print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
-			return
+	var url : String = "https://www.gd-sync.com/version"
+	request.request(
+		url,
+		[],
+		HTTPClient.METHOD_GET
+	)
+	
+	var result = await request.request_completed
+	
+	if result[1] == 200:
+		var html : String = result[3].get_string_from_ascii()
+		var data : Dictionary = extract_data_from_html(html)
+		var new_version : String = data.get("version", version)
+		if is_version_newer(version, new_version):
+			print("")
+			print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
+			print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" from the Godot asset library.[/color]")
+			print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
+
+func extract_data_from_html(html: String) -> Dictionary:
+	var re := RegEx.new()
+	re.compile("<p[^>]*class=['\\\"]paragraph['\\\"][^>]*>(.*?)</p>")
+	var m := re.search(html)
+	if m == null:
+		return {}
+	var txt := m.get_string(1).strip_edges().replace("&quot;", "\"")
+	var v := JSON.parse_string(txt)
+	if typeof(v) == TYPE_DICTIONARY:
+		return v
+	if typeof(v) == TYPE_ARRAY and v.size() > 0 and typeof(v[0]) == TYPE_DICTIONARY:
+		return v[0]
+	return {}
+
+func is_version_newer(current_version: String, new_version: String) -> bool:
+	var current_nums : PackedStringArray = current_version.split(".")
+	var new_nums : PackedStringArray = new_version.split(".")
+	for i in range(new_nums.size()):
+		var new : int = int(new_nums[i])
+		var current : int = 0 if i >= current_nums.size() else int(current_nums[i])
+		if new > current:
+			return true
+	
+	return false 

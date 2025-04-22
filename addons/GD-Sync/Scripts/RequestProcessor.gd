@@ -474,7 +474,7 @@ func get_public_lobbies() -> void:
 
 func get_public_lobby(lobby_name : String) -> void:
 	var request : Array = [
-		ENUMS.REQUEST_TYPE.GET_PUBLIC_LOBBIES,
+		ENUMS.REQUEST_TYPE.GET_PUBLIC_LOBBY,
 		lobby_name
 	]
 	

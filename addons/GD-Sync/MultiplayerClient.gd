@@ -529,6 +529,8 @@ func get_public_lobbies() -> void:
 
 ##Attempts to retrieve a publicly visible lobby from the server. 
 ##Will emit the signal [signal lobby_received] once the server has collected the lobby information
+##[br]
+##[br][b]lobby_name -[/b] The name of the lobby.
 func get_public_lobby(lobby_name : String) -> void:
 	if !_connection_controller.valid_connection(): return
 	if _connection_controller.is_local():
