@@ -211,6 +211,8 @@ func process_message(request : Array) -> void:
 		ENUMS.MESSAGE_TYPE.KICKED:
 			GDSync.kicked.emit()
 			GDSync.lobby_leave()
+		ENUMS.MESSAGE_TYPE.LOBBY_RECEIVED:
+			GDSync.lobby_received.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 
 func handle_critical_error(error : int) -> void:
 	match error:
@@ -466,6 +468,14 @@ func create_erase_name_cache_request(index : int) -> void:
 func get_public_lobbies() -> void:
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.GET_PUBLIC_LOBBIES
+	]
+	
+	requestsSERV.append(request)
+
+func get_public_lobby(lobby_name : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.GET_PUBLIC_LOBBIES,
+		lobby_name
 	]
 	
 	requestsSERV.append(request)

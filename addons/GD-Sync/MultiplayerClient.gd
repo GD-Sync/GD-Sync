@@ -121,6 +121,11 @@ signal kicked()
 ##[br][b]lobbies -[/b] An array of all public lobbies and their publicly available data.
 signal lobbies_received(lobbies : Array)
 
+##Emitted as a result of [method get_public_lobby].
+##[br]
+##[br][b]lobby -[/b] A dictionary containing public lobby data. If the lobby was not found the dictionary will be empty.
+signal lobby_received(lobby : Dictionary)
+
 ##Emitted when the host of the current lobby changes. This might happen if the current host leaves or disconnects.
 ##The server automatically decides which player is the host.
 ##[br]
@@ -521,6 +526,15 @@ func get_public_lobbies() -> void:
 		_local_server.get_public_lobbies()
 	else:
 		_request_processor.get_public_lobbies()
+
+##Attempts to retrieve a publicly visible lobby from the server. 
+##Will emit the signal [signal lobby_received] once the server has collected the lobby information
+func get_public_lobby(lobby_name : String) -> void:
+	if !_connection_controller.valid_connection(): return
+	if _connection_controller.is_local():
+		_local_server.get_public_lobby(lobby_name)
+	else:
+		_request_processor.get_public_lobby(lobby_name)
 
 ##Attempts to create a lobby on the server. If successful [signal lobby_created] is emitted.
 ##If it fails [signal lobby_creation_failed] is emitted. Creating a lobby has a cooldown of 3 seconds.

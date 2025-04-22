@@ -90,9 +90,28 @@ func _ready() -> void:
 
 func reset_multiplayer() -> void:
 	local_peer.close()
-	local_server.close()
 	local_lobby_timer.stop()
 	set_process(false)
+	
+	found_lobbies.clear()
+	
+	clear_lobby_data()
+
+func clear_lobby_data() -> void:
+	local_lobby_name = ""
+	local_lobby_password = ""
+	
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	
+	local_lobby_data.clear()
+	local_lobby_tags.clear()
+	local_owner_cache.clear()
+	peer_client_table.clear()
+	lobby_client_table.clear()
+	local_server.close()
 
 func start_local_peer() -> bool:
 	for port in range(min_port_range, max_port_range):
@@ -128,7 +147,6 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 		lobby_dict["IP"] = "127.0.0.1"
 		found_lobbies[local_lobby_name] = lobby_dict
 		
-		
 		set_process(true)
 		GDSync.lobby_created.emit.call_deferred(local_lobby_name)
 	else:
@@ -154,6 +172,14 @@ func get_public_lobbies() -> void:
 	
 	GDSync.lobbies_received.emit.call_deferred(lobbies)
 
+func get_public_lobby(lobby_name : String) -> void:
+	for lobby_data in found_lobbies.values():
+		if lobby_data["Public"] and lobby_data["Name"] == lobby_name:
+			GDSync.lobby_received.emit.call_deferred(lobby_data)
+			return
+	
+	GDSync.lobby_received.emit.call_deferred({})
+
 func perform_local_scan() -> void:
 	local_lobby_timer.start()
 	
@@ -165,7 +191,13 @@ func perform_local_scan() -> void:
 		if server_ip != '' and port > 0:
 			var lobby_data : Dictionary = bytes_to_var(bytes)
 			lobby_data["IP"] = server_ip
+			lobby_data["DetectionTime"] = Time.get_unix_time_from_system()
 			found_lobbies[lobby_data["Name"]] = lobby_data
+	
+	for lobby_data in found_lobbies.values():
+		if !lobby_data.has("DetectionTime"): continue
+		if Time.get_unix_time_from_system() - lobby_data["DetectionTime"] > 2.0:
+			found_lobbies.erase(lobby_data["Name"])
 	
 	if local_lobby_name != "":
 		for port in range(min_port_range, max_port_range):
@@ -184,7 +216,8 @@ func peer_connected(id : int) -> void:
 
 func peer_disconnected(id : int) -> void:
 	if peer_client_table.has(id):
-		peer_client_table.erase(id)
+		var client : Client = peer_client_table[id]
+		leave_lobby_request(client)
 
 func _process(delta: float) -> void:
 	match(local_server.get_connection_status()):
@@ -248,6 +281,8 @@ func _process(delta: float) -> void:
 								set_player_data_request(from, request)
 							ENUMS.REQUEST_TYPE.ERASE_PLAYER_DATA:
 								erase_player_data_request(from, request)
+							ENUMS.REQUEST_TYPE.KICK_PLAYER:
+								kick_player(from, request)
 				
 				if message.has(ENUMS.PACKET_VALUE.CLIENT_REQUESTS):
 					for request in message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]:
@@ -333,7 +368,7 @@ func join_lobby_request(from : Client, request : Array) -> void:
 		return
 	
 	if connection_controller.UNIQUE_USERNAMES:
-		for client in lobby_client_table:
+		for client in lobby_client_table.values():
 			if client.username == from.username:
 				send_message(ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED, from, local_lobby_name, ENUMS.LOBBY_JOIN_ERROR.DUPLICATE_USERNAME)
 				return
@@ -360,7 +395,28 @@ func join_lobby_request(from : Client, request : Array) -> void:
 		send_message(ENUMS.MESSAGE_TYPE.SET_MC_OWNER, from, node_path, local_owner_cache[node_path])
 
 func leave_lobby_request(from : Client) -> void:
-	pass
+	if lobby_client_table.has(from.client_id):
+		lobby_client_table.erase(from.client_id)
+		
+		if from.client_id != GDSync.get_client_id():
+			for client_id in lobby_client_table:
+				var other_client : Client = lobby_client_table[client_id]
+				other_client.construct_lobby_targets(lobby_client_table)
+				
+				if other_client != from:
+					send_message(ENUMS.MESSAGE_TYPE.CLIENT_LEFT, other_client, from.client_id)
+		else:
+			for client_id in lobby_client_table:
+				var other_client : Client = lobby_client_table[client_id]
+				if other_client != from:
+					send_message(ENUMS.MESSAGE_TYPE.KICKED, other_client)
+			clear_lobby_data()
+	
+	if peer_client_table.has(from.peer_id):
+		peer_client_table.erase(from.peer_id)
+	
+	if local_server.get_peer(from.peer_id) != null:
+		local_server.disconnect_peer(from.peer_id)
 
 func open_lobby_request(from : Client, request : Array) -> void:
 	if !from.valid: return
@@ -390,7 +446,7 @@ func set_lobby_tag_request(from : Client, request : Array) -> void:
 	
 	local_lobby_tags[key] = value
 	
-	for client in lobby_client_table:
+	for client in lobby_client_table.values():
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED, client, get_lobby_dictionary(true))
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_TAGS_CHANGED, client, key)
 
@@ -399,7 +455,7 @@ func erase_lobby_tag_request(from : Client, request : Array) -> void:
 	
 	if local_lobby_tags.has(key):
 		local_lobby_tags.erase(key)
-		for client in lobby_client_table:
+		for client in lobby_client_table.values():
 			send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED, client, get_lobby_dictionary(true))
 			send_message(ENUMS.MESSAGE_TYPE.LOBBY_TAGS_CHANGED, client, key)
 
@@ -409,7 +465,7 @@ func set_lobby_data_request(from : Client, request : Array) -> void:
 	
 	local_lobby_data[key] = value
 	
-	for client in lobby_client_table:
+	for client in lobby_client_table.values():
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED, client, get_lobby_dictionary(true))
 		send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_CHANGED, client, key)
 
@@ -418,7 +474,7 @@ func erase_lobby_data_request(from : Client, request : Array) -> void:
 	
 	if local_lobby_data.has(key):
 		local_lobby_data.erase(key)
-		for client in lobby_client_table:
+		for client in lobby_client_table.values():
 			send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED, client, get_lobby_dictionary(true))
 			send_message(ENUMS.MESSAGE_TYPE.LOBBY_DATA_CHANGED, client, key)
 
@@ -449,6 +505,16 @@ func erase_player_data_request(from : Client, request : Array) -> void:
 		for client in from.lobby_targets:
 			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_RECEIVED, from, from.collect_player_data())
 			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_CHANGED, from, from.client_id, key)
+
+func kick_player(from : Client, request : Array) -> void:
+	var client_id : int = request[ENUMS.DATA.NAME]
+	
+	if(from.client_id != GDSync.get_client_id()): return
+	
+	var kicked_client : Client = lobby_client_table.get(client_id, null)
+	if kicked_client == null: return
+	
+	
 
 func get_lobby_dictionary(with_data : bool = false) -> Dictionary:
 	var dict : Dictionary = {
