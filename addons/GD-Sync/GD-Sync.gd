@@ -48,6 +48,7 @@ func _disable_plugin() -> void:
 	remove_custom_type("PropertySynchronizer")
 	remove_custom_type("NodeInstantiator")
 	remove_custom_type("SynchronizedAnimationPlayer")
+	remove_custom_type("VoiceChat")
 	remove_autoload_singleton("GDSync")
 	if FileAccess.file_exists(CSHARP_PATH): remove_autoload_singleton("GDSyncSharp")
 
@@ -83,6 +84,10 @@ func _enter_tree() -> void:
 			"AnimationPlayer",
 			load("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationPlayer.gd"),
 			load("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png"))
+	add_custom_type("VoiceChat",
+			"Node",
+			load("res://addons/GD-Sync/Scripts/Types/VoiceChat.gd"),
+			load("res://addons/GD-Sync/UI/Icons/VoiceChatIcon.png"))
 
 func _exit_tree() -> void:
 	config_menu.free()
