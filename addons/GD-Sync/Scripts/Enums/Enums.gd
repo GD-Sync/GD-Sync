@@ -1,6 +1,6 @@
 class_name ENUMS
 
-#Copyright (c) 2024 GD-Sync.
+#Copyright (c) 2025 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,

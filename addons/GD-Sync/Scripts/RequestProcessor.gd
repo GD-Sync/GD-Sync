@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2024 GD-Sync.
+#Copyright (c) 2025 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -258,14 +258,13 @@ func set_variable(request : Array) -> void:
 	var propertyName : String = request[ENUMS.VAR_DATA.NAME]
 	var node : Node = get_node_or_null(node_path)
 	if node == null:
-#		push_error("MC attempted to set property \""+propertyName+"\" on nonexistent Node "+node_path)
 		return
 	if connection_controller.PROTECTED:
 		if !session_controller.node_is_exposed(node) and !session_controller.property_is_exposed(node, propertyName):
-			push_error("MC attempted to set a protected property \""+propertyName+"\" on Node "+node_path+", please expose it using GDSync.expose_property() or GDSync.expose_node()")
+			push_error("Attempted to set a protected property \""+propertyName+"\" on Node "+node_path+", please expose it using GDSync.expose_property() or GDSync.expose_node()")
 			return
 		if !propertyName in node:
-			push_error("MC attempted to set nonexistent property \""+propertyName+"\" on Node "+node_path)
+			push_error("Attempted to set nonexistent property \""+propertyName+"\" on Node "+node_path)
 			return
 	
 	node.set(propertyName, request[ENUMS.VAR_DATA.VALUE])
