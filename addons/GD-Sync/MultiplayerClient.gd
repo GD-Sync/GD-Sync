@@ -301,7 +301,7 @@ func sync_var_on(client_id : int, node : Node, variable_name : String, reliable 
 ## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
-func call_func(callable : Callable, parameters = null, reliable = true) -> void:
+func call_func(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
 
 ## Calls a function on a Node on a specific client in the current lobby.
@@ -314,7 +314,7 @@ func call_func(callable : Callable, parameters = null, reliable = true) -> void:
 ## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
-func call_func_on(client_id : int, callable : Callable, parameters = null, reliable = true) -> void:
+func call_func_on(client_id : int, callable : Callable, parameters : Array = [], reliable  : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
 
 ## Instantiates a Node on all clients in the current lobby.

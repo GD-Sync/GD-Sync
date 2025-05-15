@@ -395,7 +395,7 @@ func create_set_var_request(node : Node, variable_name : String, client_id : int
 	else:
 		requestsUDP.append(request)
 
-func create_function_call_request(function : Callable, parameters, client_id : int, reliable : bool) -> void:
+func create_function_call_request(function : Callable, parameters : Array, client_id : int, reliable : bool) -> void:
 	var node : Node = function.get_object()
 	var functionName : String = function.get_method()
 	var request : Array = []
@@ -419,13 +419,8 @@ func create_function_call_request(function : Callable, parameters, client_id : i
 		create_nodepath_cache(node_path)
 		create_name_cache(functionName)
 	
-	if parameters != null:
-		if parameters is Array:
-			if parameters.size() > 0:
-				request.append(parameters)
-		else:
-			push_error("Parameters must be put in an array due to an engine limitation.")
-			return
+	if parameters.size() > 0:
+		request.append(parameters)
 	
 	if reliable:
 		requestsRUDP.append(request)
