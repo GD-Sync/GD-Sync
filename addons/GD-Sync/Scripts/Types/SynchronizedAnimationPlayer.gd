@@ -24,9 +24,7 @@ extends AnimationPlayer
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
-##If enabled, GD-Sync will attempt to synchronize the playback of animations across clients. 
-##[br][br]This won't always work, as it relies on the unix time of the system. 
-##If the unix time of two machines are too far apart, it will not attempt synchronized playback.
+## If enabled, GD-Sync will attempt to synchronize the playback of animations across clients.
 @export var sync_playback : bool = true
 
 func play(name: StringName = "", custom_blend: float = -1, custom_speed: float = 1.0, from_end: bool = false) -> void:
@@ -61,7 +59,7 @@ func play(name: StringName = "", custom_blend: float = -1, custom_speed: float =
 		if include_all:
 			parameters.push_front(actual)
 	
-	parameters.push_front(Time.get_unix_time_from_system())
+	parameters.push_front(GDSync.get_multiplayer_time())
 	
 	if name_cached:
 		GDSync.call_func(_play_remote_cached, parameters)
@@ -107,7 +105,7 @@ func seek(seconds : float, update : bool = false, update_only : bool = false) ->
 			parameters.push_front(actual)
 	
 	parameters.push_front(seconds)
-	parameters.push_front(Time.get_unix_time_from_system())
+	parameters.push_front(GDSync.get_multiplayer_time())
 	GDSync.call_func(_seek_remote, parameters)
 
 func advance(delta : float) -> void:
@@ -146,7 +144,7 @@ func _client_joined(client_id : int) -> void:
 		GDSync.call_func_on(client_id, _stop_remote)
 		
 		GDSync.call_func_on(client_id, _play_remote, [
-			Time.get_unix_time_from_system(),
+			GDSync.get_multiplayer_time(),
 			current_animation,
 			-1,
 			_custom_speed,
@@ -163,7 +161,7 @@ func _play_remote(start_time : float = 0.0, name : StringName = "", custom_blend
 	super.play(name, custom_blend, custom_speed, from_end)
 	
 	if sync_playback:
-		var time_passed : float = Time.get_unix_time_from_system() - start_time
+		var time_passed : float = GDSync.get_multiplayer_time() - start_time
 		if time_passed <= 0.5: super.advance(time_passed)
 
 func _pause_remote() -> void:
@@ -182,7 +180,7 @@ func _seek_remote(start_time : float, seconds : float, update : bool = false, up
 	super.seek(seconds, update, update_only)
 	
 	if sync_playback:
-		var time_passed : float = Time.get_unix_time_from_system() - start_time
+		var time_passed : float = GDSync.get_multiplayer_time() - start_time
 		if time_passed < 0.5: super.advance(time_passed)
 
 func _advance_remote(delta : float) -> void:

@@ -26,12 +26,23 @@ extends AnimationTree
 #SUCH DAMAGE.
 
 enum BROADCAST_MODE {
+	## Broadcast when you are the host of this lobby.
 	WHEN_HOST,
+	## Broadcast when you are the not host of this lobby.
 	WHEN_CLIENT,
+	## Broadcast when you are the owner of this Node or any parent Node.
 	WHEN_OWNER,
+	## Broadcast on the last valid owner this Node had. If the last valid owner leaves or if no owner was ever assigned, it broadcasts on the host.
 	WHEN_HOST_OR_LAST_VALID_OWNER,
+	## Broadcast when you are the host of this lobby and this Node has no owner. 
+	## If it does have an owner, only the owner broadcasts. 
+	## [br]Useful for scenario's like picking up and holding objects, where you want the owner to broadcast 
+	## when the item is picked up. When it is dropped and the owner is removed, the lobby 
+	## host goes back to broadcasting it.
 	WHEN_HOST_AND_NO_OWNER_OR_OWNER,
+	## Always broadcast. Never recommended.
 	ALWAYS,
+	## Never broadcast.
 	NEVER,
 }
 
@@ -47,28 +58,9 @@ static var _INSTANT_INPUTS : PackedStringArray = [
 	"/scale"
 ]
 
-##Decides when to broadcast animation changes to other clients.
-##[br][br][enum WHEN_HOST] 
-##- Broadcast when you are the host of this lobby
-##[br][br][enum WHEN_CLIENT] 
-##- Broadcast when you are the not host of this lobby
-##[br][br][enum WHEN_OWNER] 
-##- Broadcast when you are the owner of this Node or any parent Node.
-##[br][br][enum WHEN_HOST_OR_LAST_VALID_OWNER] 
-##- Broadcast on the last valid owner this Node had. If the last valid owner leaves 
-##or if no owner was ever assigned, it broadcasts on the host.
-##[br][br][enum WHEN_HOST_AND_NO_OWNER_OR_OWNER] 
-##- Broadcast when you are the host of this lobby and this Node has no owner. 
-##If it does have an owner, only the owner broadcasts. 
-##[br]Useful for scenario's like picking up and holding objects, where you want the owner to broadcast 
-##when the item is picked up. When it is dropped and the owner is removed, the lobby 
-##host goes back to broadcasting it.
-##[br][br][enum ALWAYS] 
-##- Always broadcast. Never recommended.
-##[br][br][enum NEVER] 
-##- Never broadcast.
+## Decides when to broadcast animation changes to other clients.
 @export var broadcast: BROADCAST_MODE : set = _set_broadcast
-##How many times per second the animation tree should check for changes.
+## How many times per second the animation tree should check for changes.
 @export var refresh_rate : int = 15
 
 var _current_variable_inputs : Dictionary = {}

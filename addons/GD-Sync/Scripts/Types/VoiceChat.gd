@@ -1,16 +1,44 @@
 @tool
 extends Node
 
+#Copyright (c) 2025 GD-Sync.
+#All rights reserved.
+#
+#Redistribution and use in source form, with or without modification,
+#are permitted provided that the following conditions are met:
+#
+#1. Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#2. Neither the name of GD-Sync nor the names of its contributors may be used
+#   to endorse or promote products derived from this software without specific
+#   prior written permission.
+#
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+#EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+#SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+#TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+#BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#SUCH DAMAGE.
+
+## The minimum input volume at which the audio is broadcasted to other players.
 @export var input_volume_threshold : float = 0.01
+## The audio quality. Not recommended to go above Medium.
 @export_enum("Very High", "High", "Medium", "Low") var audio_quality : int = 2 : 
 	set(value):
 		audio_quality = value
 		update_configuration_warnings()
 
 @export_group("Audio Bus")
+## Any extra effects you would like to be added to the record bus.
 @export var record_effects : Array[AudioEffect] = []
 
 @export_group("Output")
+## Allows you to create 2D or 3D spatial audio, where players can only hear each other when close ingame.
 @export_enum("None", "2D", "3D") var spatial_mode : int : 
 	set(value):
 		spatial_mode = value
@@ -24,6 +52,7 @@ var _record_effect : AudioEffectCapture
 
 var _output_stream : AudioStreamGenerator
 var _output_stream_playback : AudioStreamGeneratorPlayback
+## The output player which will play received voice samples.
 var _output_player : Node
 
 var _input_configured : bool = false

@@ -48,39 +48,37 @@ func instantiate_node() -> Node:
 #Private functions ----------------------------------------------------------------------
 
 enum SPAWN_TYPE {
+	## Adds instantiated Nodes to the selected [member target_location].
 	NODE_PATH,
+	## Adds instantiated Nodes to the current scene.
 	SCENE_ROOT
 }
 
 signal node_instantiated(node : Node)
 
-##Decides where the instantiated Node is added.
-##[br][br][enum NODE_PATH] 
-##- Adds instantiated Nodes to the selected [member target_location].
-##[br][br][enum SCENE_ROOT] 
-##- Adds instantiated Nodes to the current scene.
+## Decides where the instantiated Node is added.
 @export var spawn_type : SPAWN_TYPE = SPAWN_TYPE.SCENE_ROOT : set = _set_spawn_type
-##The Node which instantiated Nodes are added to.
+## The Node which instantiated Nodes are added to.
 var target_location : NodePath
 var target : Node
 var target_path : String
-##The [PackedScene] which will be instantiated.
+## The [PackedScene] which will be instantiated.
 var scene : PackedScene
-##If enabled, when a new Client joins the lobby the NodeInstantiator will make sure 
-##to spawn in any Nodes that were spawned in before the Client joined.
+## If enabled, when a new Client joins the lobby the NodeInstantiator will make sure 
+## to spawn in any Nodes that were spawned in before the Client joined.
 var replicate_on_join : bool = true
-##If enabled, any changes made to the instantiated Node within the same frame will 
-##automatically be synchronized across all clients. Changes are only synchronized on the parent Node, 
-##not chilren. Also works in combination with [member replicate_on_join].
-##[br][br]As an example, this setting can be useful for when setting the position, direction and 
-##speed of a bullet, doing this will set those values on all clients. 
-##[br][br]This setting will only synchronize variants, not Objects like Nodes or Resources. 
-##If the plugin detects an [Array] or [Dictionary] with an Object in it, it will also not be synchronized.
+## If enabled, any changes made to the instantiated Node within the same frame will 
+## automatically be synchronized across all clients. Changes are only synchronized on the parent Node, 
+## not chilren. Also works in combination with [member replicate_on_join].
+## [br][br]As an example, this setting can be useful for when setting the position, direction and 
+## speed of a bullet, doing this will set those values on all clients. 
+## [br][br]This setting will only synchronize variants, not Objects like Nodes or Resources. 
+## If the plugin detects an [Array] or [Dictionary] with an Object in it, it will also not be synchronized.
 var sync_starting_changes : bool = true :
 	set(value):
 		sync_starting_changes = value
 		notify_property_list_changed()
-##Excludes properties from being synced with [member sync_starting_changes].
+## Excludes properties from being synced with [member sync_starting_changes].
 var excluded_properties : PackedStringArray = []
 
 const _PERMANENT_EXCLUDED_PROPERTIES : PackedStringArray = [

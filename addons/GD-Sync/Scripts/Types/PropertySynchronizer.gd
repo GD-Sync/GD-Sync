@@ -25,9 +25,9 @@ extends Node
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
-##Allows you to manually synchronize a property. This function will only synchronize if the 
-##property has actually changed.
-##[br][br]If [param forced] is true, it will synchronize regardless of if the property has changed.
+## Allows you to manually synchronize a property. This function will only synchronize if the 
+## property has actually changed.
+## [br][br]If [param forced] is true, it will synchronize regardless of if the property has changed.
 func synchronize(forced : bool = true, force_reliable : bool = false) -> void:
 	for property_name in property_lookup:
 		var property_data : Dictionary = property_lookup[property_name]
@@ -36,7 +36,7 @@ func synchronize(forced : bool = true, force_reliable : bool = false) -> void:
 		property_data["LastValue"] = new_property
 		GDSync.call_func(_sync_received, [property_name, new_property], reliable || force_reliable)
 
-##Temporarily pauses interpolation for [param seconds].
+## Temporarily pauses interpolation for [param seconds].
 func pause_interpolation(seconds : float) -> void:
 	_pause_interpolation_remote(seconds)
 	GDSync.call_func(_pause_interpolation_remote, [seconds])
@@ -48,48 +48,41 @@ func pause_interpolation(seconds : float) -> void:
 #Private functions ----------------------------------------------------------------------
 
 enum BROADCAST_MODE {
+	## Broadcast when you are the host of this lobby.
 	WHEN_HOST,
+	## Broadcast when you are the not host of this lobby.
 	WHEN_CLIENT,
+	## Broadcast when you are the owner of this Node or any parent Node.
 	WHEN_OWNER,
+	## Broadcast on the last valid owner this Node had. If the last valid owner leaves or if no owner was ever assigned, it broadcasts on the host.
 	WHEN_HOST_OR_LAST_VALID_OWNER,
+	## Broadcast when you are the host of this lobby and this Node has no owner. If it does have an owner, only the owner broadcasts.
+	## [br]Useful for scenario's like picking up and holding objects, where you want the owner to broadcast 
+	## when the item is picked up. When it is dropped and the owner is removed, the lobby 
+	## host goes back to broadcasting it.
 	WHEN_HOST_AND_NO_OWNER_OR_OWNER,
+	## Always broadcast. Never recommended.
 	ALWAYS,
+	## Never broadcast.
 	NEVER,
 }
 
 signal value_changed(property_name : String, new_value)
 
 enum PROCESS_MODE {
+	## Broadcast during _process().
 	PROCESS,
+	## Broadcast during _physics_process().
 	PHYSICS_PROCESS,
 }
 
-##Decides when to broadcast the properties to other clients.
-##[br][br][enum WHEN_HOST] 
-##- Broadcast when you are the host of this lobby
-##[br][br][enum WHEN_CLIENT] 
-##- Broadcast when you are the not host of this lobby
-##[br][br][enum WHEN_OWNER] 
-##- Broadcast when you are the owner of this Node or any parent Node.
-##[br][br][enum WHEN_HOST_OR_LAST_VALID_OWNER] 
-##- Broadcast on the last valid owner this Node had. If the last valid owner leaves 
-##or if no owner was ever assigned, it broadcasts on the host.
-##[br][br][enum WHEN_HOST_AND_NO_OWNER_OR_OWNER] 
-##- Broadcast when you are the host of this lobby and this Node has no owner. 
-##If it does have an owner, only the owner broadcasts. 
-##[br]Useful for scenario's like picking up and holding objects, where you want the owner to broadcast 
-##when the item is picked up. When it is dropped and the owner is removed, the lobby 
-##host goes back to broadcasting it.
-##[br][br][enum ALWAYS] 
-##- Always broadcast. Never recommended.
-##[br][br][enum NEVER] 
-##- Never broadcast.
+## Decides when to broadcast the properties to other clients.
 @export var broadcast: BROADCAST_MODE : set = _set_broadcast
-##Whether the properties should synchronize during [method _process] or [method _physics_process].
+## Whether the properties should synchronize during [method _process] or [method _physics_process].
 @export var process : PROCESS_MODE
-##How many times per second the properties should be synchronized.
+## How many times per second the properties should be synchronized.
 @export var refresh_rate : int = 30
-##The Node on which you want to synchronize properties.
+## The Node on which you want to synchronize properties.
 @export var node_path : NodePath :
 	set(value):
 		node_path = value
@@ -97,13 +90,13 @@ enum PROCESS_MODE {
 		_refresh_property_list()
 		update_configuration_warnings()
 
-##If reliable is enabled, packets that are lost will be 
-##resend. We do never recommend turning this on unless 
-##the synchronized properties are crucial. 
-##Enabling this can induce extra latency and data usage.
+## If reliable is enabled, packets that are lost will be 
+## resend. We never recommend turning this on unless 
+## the synchronized properties are crucial. 
+## Enabling this can induce extra latency and data usage.
 @export var reliable : bool = false
 
-##A list of properties you want to synchronize
+## A list of properties you want to synchronize.
 @export var properties : PackedStringArray = [] : set = _set_properties
 
 var property_name : String :
@@ -112,11 +105,11 @@ var property_name : String :
 		_refresh_property_list()
 		update_configuration_warnings()
 
-##If enabled, properties will be interpolated. This will smooth out the synchronization. 
-##Interpolation is only applied to types that support interpolation.
-##[br][br]
-##Interpolation may be temporarily paused with [method pause_interpolation]. 
-##Useful when teleporting a Node from one spot to another to prevent it from gliding there.
+## If enabled, properties will be interpolated. This will smooth out the synchronization. 
+## Interpolation is only applied to types that support interpolation.
+## [br][br]
+## Interpolation may be temporarily paused with [method pause_interpolation]. 
+## Useful when teleporting a Node from one spot to another to prevent it from gliding there.
 var interpolated : bool = false :
 	set(value):
 		interpolated = value
@@ -124,9 +117,9 @@ var interpolated : bool = false :
 
 var GDSync
 
-##How fast the chosen property is interpolated. 
-##[br][br]It is recommended to keep 
-##this number the same or slightly higher than the [member refresh_rate].
+## How fast the chosen property is interpolated. 
+## [br][br]It is recommended to keep 
+## this number the same or slightly higher than the [member refresh_rate].
 var interpolation_speed : float = 1.0
 
 var node : Node
