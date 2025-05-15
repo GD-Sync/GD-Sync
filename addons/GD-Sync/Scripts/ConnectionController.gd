@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2025 GD-Sync.
+#Copyright (c) 2024 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -37,7 +37,7 @@ var UNIQUE_USERNAMES : bool = false
 var PROTECTED : bool = true
 var USE_SENDER_ID : bool = true
 
-var client : ENetMultiplayerPeer = ENetMultiplayerPeer.new()
+var client : MultiplayerPeer = ENetMultiplayerPeer.new()
 var client_id : int = -1
 var status : int = ENUMS.CONNECTION_STATUS.DISABLED
 var host : int = -1
@@ -71,6 +71,9 @@ func _ready() -> void:
 	add_child(lb_request)
 	lb_request.timeout = 4.0
 	lb_request.request_completed.connect(lb_request_completed)
+	
+	if OS.has_feature("web"):
+		client = WebSocketMultiplayerPeer.new()
 	
 	if ProjectSettings.has_setting("GD-Sync/publicKey"):
 		_PUBLIC_KEY = ProjectSettings.get_setting("GD-Sync/publicKey")
@@ -230,7 +233,10 @@ func find_best_server(serverPings : Dictionary) -> void:
 	connect_to_server(serverPings[lowestPing])
 
 func connect_to_server(server : String) -> void:
-	client.create_client(server, 8080)
+	if OS.has_feature("web"):
+		client.create_client("ws://"+server+":8090")
+	else:
+		client.create_client(server, 8080)
 	last_poll = Time.get_unix_time_from_system()
 	
 	connection_i += 1
