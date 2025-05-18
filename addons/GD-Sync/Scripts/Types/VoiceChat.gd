@@ -1,5 +1,7 @@
 @tool
+@icon("res://addons/GD-Sync/Scripts/Types/VoiceChat.gd")
 extends Node
+class_name VoiceChat
 
 #Copyright (c) 2025 GD-Sync.
 #All rights reserved.

@@ -1,5 +1,7 @@
 @tool
+@icon("res://addons/GD-Sync/UI/Icons/NodeInstantiator.png")
 extends Node
+class_name NodeInstantiator
 
 #Copyright (c) 2025 GD-Sync.
 #All rights reserved.

@@ -45,11 +45,6 @@ func _enable_plugin() -> void:
 
 func _disable_plugin() -> void:
 	remove_tool_menu_item("GD-Sync")
-	remove_custom_type("PropertySynchronizer")
-	remove_custom_type("NodeInstantiator")
-	remove_custom_type("SynchronizedAnimationPlayer")
-	remove_custom_type("SynchronizedAnimationTree")
-	remove_custom_type("VoiceChat")
 	remove_autoload_singleton("GDSync")
 	if FileAccess.file_exists(CSHARP_PATH): remove_autoload_singleton("GDSyncSharp")
 
@@ -72,27 +67,6 @@ func _enter_tree() -> void:
 		print_rich("[color=#408EAB]	- Steam integration detected and enabled.[/color]")
 	
 	check_for_updates()
-	
-	add_custom_type("PropertySynchronizer",
-			"Node",
-			load("res://addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd"),
-			load("res://addons/GD-Sync/UI/Icons/SynchronizeIcon.png"))
-	add_custom_type("NodeInstantiator",
-			"Node",
-			load("res://addons/GD-Sync/Scripts/Types/NodeInstantiator.gd"),
-			load("res://addons/GD-Sync/UI/Icons/NodeInstantiator.png"))
-	add_custom_type("SynchronizedAnimationPlayer",
-			"AnimationPlayer",
-			load("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationPlayer.gd"),
-			load("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png"))
-	add_custom_type("SynchronizedAnimationTree",
-			"AnimationTree",
-			load("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationTree.gd"),
-			load("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationTree.png"))
-	add_custom_type("VoiceChat",
-			"Node",
-			load("res://addons/GD-Sync/Scripts/Types/VoiceChat.gd"),
-			load("res://addons/GD-Sync/UI/Icons/VoiceChatIcon.png"))
 
 func _exit_tree() -> void:
 	config_menu.free()

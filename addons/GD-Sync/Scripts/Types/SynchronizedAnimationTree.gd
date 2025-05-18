@@ -1,5 +1,7 @@
 @tool
+@icon("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationTree.gd")
 extends AnimationTree
+class_name SynchronizedAnimationTree
 
 #Copyright (c) 2025 GD-Sync.
 #All rights reserved.

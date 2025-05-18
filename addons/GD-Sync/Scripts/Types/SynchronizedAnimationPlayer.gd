@@ -1,4 +1,6 @@
+@icon("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationPlayer.png")
 extends AnimationPlayer
+class_name SynchronizedAnimationPlayer
 
 #Copyright (c) 2025 GD-Sync.
 #All rights reserved.
