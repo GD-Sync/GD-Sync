@@ -267,35 +267,35 @@ func is_host() -> bool:
 func get_host() -> int:
 	return _connection_controller.host
 
-## Synchronizes a variable on a Node across all other clients in the current lobby.
-## Make sure the NodePath on all clients matches up and that the variable is exposed using [method expose_var] or [method expose_node].
+## Synchronizes a variable on a Object across all other clients in the current lobby.
+## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
-## [br][b]node -[/b] The Node you want to synchronize a variable on.
+## [br][b]object -[/b] The Object you want to synchronize a variable on.
 ## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ## This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
-func sync_var(node : Node, variable_name : String, reliable : bool = true) -> void:
-	_request_processor.create_set_var_request(node, variable_name, -1, reliable)
+func sync_var(object : Object, variable_name : String, reliable : bool = true) -> void:
+	_request_processor.create_set_var_request(object, variable_name, -1, reliable)
 
-## Synchronizes a variable on a Node to a specific client in the current lobby.
-## Make sure the NodePath on all clients matches up and that the variable is exposed using [method expose_var] or [method expose_node].
+## Synchronizes a variable on a Object to a specific client in the current lobby.
+## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of the client you want to synchronize to.
-## [br][b]node -[/b] The Node you want to synchronize a variable on.
+## [br][b]object -[/b] The Object you want to synchronize a variable on.
 ## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
 ## This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
-func sync_var_on(client_id : int, node : Node, variable_name : String, reliable : bool = true) -> void:
-	_request_processor.create_set_var_request(node, variable_name, client_id, reliable)
+func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
+	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
 
 ## Calls a function on a Node on all other clients in the current lobby.
-## Make sure the NodePath on all clients matches up and that the function is exposed using [method expose_func] or [method expose_node].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function that you want to call.
 ## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
@@ -305,9 +305,9 @@ func call_func(callable : Callable, parameters : Array = [], reliable : bool = t
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
 
 ## Calls a function on a Node on a specific client in the current lobby.
-## Make sure the NodePath on all clients matches up and that the function is exposed using [method expose_func] or [method expose_node].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
 ## [br][b]callable -[/b] The function that you want to call.
@@ -386,6 +386,19 @@ func change_scene(scene_path : String) -> void:
 func set_protection_mode(protected : bool) -> void:
 	_request_processor.set_protection_mode(protected)
 
+## Allows you to register a resource with a unique ID so that GD-Sync may access it remotely.
+## [br]
+## [br][b]resource -[/b] The resource you want to register.
+## [br][b]id -[/b] The ID you want to assign to it.
+func register_resource(resource : Resource, id : String) -> void:
+	_session_controller.create_resource_reference(resource, id)
+
+## Allows you to deregister a previously registered resource.
+## [br]
+## [br][b]resource -[/b] The resource you want to deregister.
+func deregister_resource(resource : Resource) -> void:
+	_session_controller.erase_resource_reference(resource)
+
 ## Exposes a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed. 
 ## Only use if the Node and its script contain non-destructive functions. 
 ## [br]
@@ -393,7 +406,7 @@ func set_protection_mode(protected : bool) -> void:
 ## [br]
 ## [br][b]node -[/b] The Node you want to expose.
 func expose_node(node : Node) -> void:
-	_session_controller.expose_node(node)
+	_session_controller.expose_object(node)
 
 ## Hides a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail. 
 ## This will not revert [method expose_func] and [method expose_var]. 
@@ -402,11 +415,29 @@ func expose_node(node : Node) -> void:
 ## [br]
 ## [br][b]node -[/b] The Node you want to hide.
 func hide_node(node : Node) -> void:
-	_session_controller.expose_node(node)
+	_session_controller.hide_object(node)
+
+## Exposes a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed. 
+## Only use if the Resource and its script contain non-destructive functions. 
+## [br]
+## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
+## [br]
+## [br][b]resource -[/b] The Resource you want to expose.
+func expose_resource(resource : Resource) -> void:
+	_session_controller.expose_object(resource)
+
+## Hides a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail. 
+## This will not revert [method expose_func] and [method expose_var]. 
+## [br]
+## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
+## [br]
+## [br][b]resource -[/b] The Resource you want to hide.
+func hide_resource(resource : Resource) -> void:
+	_session_controller.hide_object(resource)
 
 ## Exposes a function so that [method call_func] and [method call_func_on] will succeed. 
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function you want to expose.
 func expose_func(callable : Callable) -> void:
@@ -414,7 +445,7 @@ func expose_func(callable : Callable) -> void:
 
 ## Hides a function so that [method call_func] and [method call_func_on] will fail. 
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function you want to hide.
 func hide_function(callable : Callable) -> void:
@@ -422,21 +453,21 @@ func hide_function(callable : Callable) -> void:
 
 ## Exposes a variable so that [method sync_var] and [method sync_var_on] will succeed. 
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
-## [br][b]node -[/b] The Node on which you want to expose the variable.
+## [br][b]object -[/b] The Object on which you want to expose the variable.
 ## [br][b]variable_name -[/b] The name of the variable you want to expose.
-func expose_var(node : Node, variable_name : String) -> void:
-	_session_controller.expose_property(node, variable_name)
+func expose_var(object : Object, variable_name : String) -> void:
+	_session_controller.expose_property(object, variable_name)
 
 ## Hides a variable so that [method sync_var] and [method sync_var_on] will fail. 
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
-## [br][b]node -[/b] The Node on which you want to hide the variable.
+## [br][b]object -[/b] The Object on which you want to hide the variable.
 ## [br][b]variable_name -[/b] The name of the variable you want to hide.
-func hide_var(node : Node, variable_name : String) -> void:
-	_session_controller.hide_property(node, variable_name)
+func hide_var(object : Object, variable_name : String) -> void:
+	_session_controller.hide_property(object, variable_name)
 
 
 

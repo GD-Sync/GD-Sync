@@ -254,20 +254,26 @@ func set_variable_cached(request : Array) -> void:
 	set_variable(request)
 
 func set_variable(request : Array) -> void:
-	var node_path : String = request[ENUMS.VAR_DATA.NODE_PATH]
+	var id : String = request[ENUMS.VAR_DATA.NODE_PATH]
 	var propertyName : String = request[ENUMS.VAR_DATA.NAME]
-	var node : Node = get_node_or_null(node_path)
-	if node == null:
+	
+	var object : Object
+	if session_controller.has_resource_by_reference(id):
+		object = session_controller.get_resource_by_reference(id)
+	else:
+		object = get_node_or_null(id)
+	
+	if object == null:
 		return
 	if connection_controller.PROTECTED:
-		if !session_controller.node_is_exposed(node) and !session_controller.property_is_exposed(node, propertyName):
-			push_error("Attempted to set a protected property \""+propertyName+"\" on Node "+node_path+", please expose it using GDSync.expose_property() or GDSync.expose_node()")
+		if !session_controller.object_is_exposed(object) and !session_controller.property_is_exposed(object, propertyName):
+			push_error("Attempted to set a protected property \""+propertyName+"\" on "+id+", please expose it using GDSync.expose_property() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !propertyName in node:
-			push_error("Attempted to set nonexistent property \""+propertyName+"\" on Node "+node_path)
+		if !propertyName in object:
+			push_error("Attempted to set nonexistent property \""+propertyName+"\" on "+id)
 			return
 	
-	node.set(propertyName, request[ENUMS.VAR_DATA.VALUE])
+	object.set(propertyName, request[ENUMS.VAR_DATA.VALUE])
 
 func call_function_cached(request : Array) -> void:
 	if !session_controller.has_nodepath_from_index(request[ENUMS.FUNCTION_DATA.NODE_PATH]): return
@@ -277,25 +283,29 @@ func call_function_cached(request : Array) -> void:
 	call_function(request)
 
 func call_function(request : Array) -> void:
-	var node_path : String = request[ENUMS.FUNCTION_DATA.NODE_PATH]
+	var id : String = request[ENUMS.FUNCTION_DATA.NODE_PATH]
 	var functionName : String = request[ENUMS.FUNCTION_DATA.NAME]
-	var node : Node = get_node_or_null(node_path)
 	
-	if node == null:
-#		push_error("MC attempted to call function \""+functionName+"\" on nonexistent Node "+node_path)
+	var object : Object
+	if session_controller.has_resource_by_reference(id):
+		object = session_controller.get_resource_by_reference(id)
+	else:
+		object = get_node_or_null(id)
+	
+	if object == null:
 		return
 	if connection_controller.PROTECTED:
-		if !session_controller.node_is_exposed(node) and !session_controller.function_is_exposed(node, functionName):
-			push_error("MC attempted to call a protected function \""+functionName+"\" on Node "+node_path+", please expose it using GDSync.expose_func() or GDSync.expose_node()")
+		if !session_controller.object_is_exposed(object) and !session_controller.function_is_exposed(object, functionName):
+			push_error("Attempted to call a protected function \""+functionName+"\" on "+id+", please expose it using GDSync.expose_func() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !node.has_method(functionName):
-			push_error("MC attempted to call nonexistent function \""+functionName+"\" on Node "+node_path)
+		if !object.has_method(functionName):
+			push_error("Attempted to call nonexistent function \""+functionName+"\" on "+id)
 			return
 	
 	if request.size()-1 >= ENUMS.FUNCTION_DATA.PARAMETERS:
-		node.callv(functionName, request[ENUMS.FUNCTION_DATA.PARAMETERS])
+		object.callv(functionName, request[ENUMS.FUNCTION_DATA.PARAMETERS])
 	else:
-		node.call(functionName)
+		object.call(functionName)
 
 func set_mc_owner_remote(node_path : String, owner) -> void:
 	if get_tree().current_scene != null:
@@ -362,18 +372,29 @@ func secure_connection() -> void:
 	
 	GDSync.emit_signal("connected")
 
-func create_set_var_request(node : Node, variable_name : String, client_id : int, reliable : bool) -> void:
+func create_set_var_request(object : Object, variable_name : String, client_id : int, reliable : bool) -> void:
 	var request : Array = []
-	var node_path : String = String(node.get_path())
+	var id : String
+	
+	if object is Node:
+		id = String(object.get_path())
+	elif object is RefCounted:
+		if !session_controller.has_resource_reference(object):
+			push_error("Resource must be registered using GDSync.register_resource()")
+			return
+		
+		id = session_controller.get_resource_reference(object)
+	else:
+		return
 	
 	var value = null
-	if variable_name in node:
-		value = node.get(variable_name)
+	if variable_name in object:
+		value = object.get(variable_name)
 	
-	if !connection_controller.is_local() and session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(variable_name):
+	if !connection_controller.is_local() and session_controller.nodepath_is_cached(id) and session_controller.name_is_cached(variable_name):
 		request = [
 			ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED,
-			session_controller.get_nodepath_index(node_path),
+			session_controller.get_nodepath_index(id),
 			session_controller.get_name_index(variable_name),
 			client_id,
 			value,
@@ -381,13 +402,13 @@ func create_set_var_request(node : Node, variable_name : String, client_id : int
 	else:
 		request = [
 			ENUMS.REQUEST_TYPE.SET_VARIABLE,
-			node_path,
+			id,
 			variable_name,
 			client_id,
 			value,
 		]
 		
-		create_nodepath_cache(node_path)
+		create_nodepath_cache(id)
 		create_name_cache(variable_name)
 	
 	if reliable:
@@ -396,27 +417,38 @@ func create_set_var_request(node : Node, variable_name : String, client_id : int
 		requestsUDP.append(request)
 
 func create_function_call_request(function : Callable, parameters : Array, client_id : int, reliable : bool) -> void:
-	var node : Node = function.get_object()
+	var object : Object = function.get_object()
 	var functionName : String = function.get_method()
 	var request : Array = []
-	var node_path : String = String(node.get_path())
+	var id : String
 	
-	if !connection_controller.is_local() and session_controller.nodepath_is_cached(node_path) and session_controller.name_is_cached(functionName):
+	if object is Node:
+		id = String(object.get_path())
+	elif object is RefCounted:
+		if !session_controller.has_resource_reference(object):
+			push_error("Resource must be registered using GDSync.register_resource()")
+			return
+		
+		id = session_controller.get_resource_reference(object)
+	else:
+		return
+	
+	if !connection_controller.is_local() and session_controller.nodepath_is_cached(id) and session_controller.name_is_cached(functionName):
 		request = [
 			ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED,
-			session_controller.get_nodepath_index(node_path),
+			session_controller.get_nodepath_index(id),
 			session_controller.get_name_index(functionName),
 			client_id
 		]
 	else:
 		request = [
 			ENUMS.REQUEST_TYPE.CALL_FUNCTION,
-			node_path,
+			id,
 			functionName,
 			client_id
 		]
 		
-		create_nodepath_cache(node_path)
+		create_nodepath_cache(id)
 		create_name_cache(functionName)
 	
 	if parameters.size() > 0:

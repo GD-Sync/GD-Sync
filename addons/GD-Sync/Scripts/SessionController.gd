@@ -38,6 +38,8 @@ var node_path_cache : Dictionary = {}
 var node_path_index_cache : Dictionary = {}
 var name_cache : Dictionary = {}
 var name_index_cache : Dictionary = {}
+var resource_reference_cache : Dictionary = {}
+var reference_resource_cache : Dictionary = {}
 
 var owner_cache : Dictionary = {}
 
@@ -269,6 +271,30 @@ func erase_name_cache(index : int) -> void:
 		name_cache.erase(name)
 		name_index_cache.erase(index)
 
+func create_resource_reference(resource : Resource, id : String) -> void:
+	reference_resource_cache[id] = resource
+	resource_reference_cache[resource] = id
+
+func erase_resource_reference(resource : Resource) -> void:
+	if resource_reference_cache.has(resource):
+		var id : String = resource_reference_cache[resource]
+		resource_reference_cache.erase(resource)
+		reference_resource_cache.erase(id)
+
+func has_resource_reference(resource : Resource) -> bool:
+	print(resource_reference_cache)
+	print(reference_resource_cache)
+	return resource_reference_cache.has(resource)
+
+func get_resource_reference(resource : Resource) -> String:
+	return resource_reference_cache[resource]
+
+func has_resource_by_reference(id : String) -> bool:
+	return reference_resource_cache.has(id)
+
+func get_resource_by_reference(id : String) -> Resource:
+	return reference_resource_cache[id]
+
 func set_player_data(key : String, value) -> void:
 	player_data[GDSync.get_client_id()][key] = value
 	player_data_changed(GDSync.get_client_id(), key)
@@ -376,43 +402,43 @@ func get_all_lobby_tags() -> Dictionary:
 	else:
 		return {}
 
-func expose_node(node : Node) -> void:
-	node.set_meta("Exposed", true)
+func expose_object(object : Object) -> void:
+	object.set_meta("Exposed", true)
 
-func hide_node(node : Node) -> void:
-	node.set_meta("Exposed", false)
+func hide_object(object : Object) -> void:
+	object.set_meta("Exposed", false)
 
-func node_is_exposed(node : Node) -> bool:
-	return node.get_meta("Exposed", false)
+func object_is_exposed(object : Object) -> bool:
+	return object.get_meta("Exposed", false)
 
 func expose_func(function : Callable) -> void:
-	var node : Node = function.get_object()
+	var object : Object = function.get_object()
 	var functionName : String = function.get_method()
-	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
+	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	exposedArray.append(functionName)
-	node.set_meta("ExposedFunctions", exposedArray)
+	object.set_meta("ExposedFunctions", exposedArray)
 
 func hide_function(function : Callable) -> void:
-	var node : Node = function.get_object()
+	var object : Object = function.get_object()
 	var functionName : String = function.get_method()
-	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
+	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	if exposedArray.has(functionName): exposedArray.erase(functionName)
 
-func function_is_exposed(node : Node, function_name : String) -> bool:
-	var exposedArray : Array = node.get_meta("ExposedFunctions", [])
+func function_is_exposed(object : Object, function_name : String) -> bool:
+	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	return exposedArray.has(function_name)
 
-func expose_property(node : Node, property_name : String) -> void:
-	var exposedArray : Array = node.get_meta("ExposedProperties", [])
+func expose_property(object : Object, property_name : String) -> void:
+	var exposedArray : Array = object.get_meta("ExposedProperties", [])
 	exposedArray.append(property_name)
-	node.set_meta("ExposedProperties", exposedArray)
+	object.set_meta("ExposedProperties", exposedArray)
 
-func hide_property(node : Node, propertyName : String) -> void:
-	var exposedArray : Array = node.get_meta("ExposedProperties", [])
+func hide_property(object : Object, propertyName : String) -> void:
+	var exposedArray : Array = object.get_meta("ExposedProperties", [])
 	if exposedArray.has(propertyName): exposedArray.erase(propertyName)
 
-func property_is_exposed(node : Node, propertyName : String) -> bool:
-	var exposedArray : Array = node.get_meta("ExposedProperties", [])
+func property_is_exposed(object : Object, propertyName : String) -> bool:
+	var exposedArray : Array = object.get_meta("ExposedProperties", [])
 	return exposedArray.has(propertyName)
 
 func set_gdsync_owner(node : Node, owner) -> void:
