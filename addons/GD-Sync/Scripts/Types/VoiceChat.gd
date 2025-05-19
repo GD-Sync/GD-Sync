@@ -1,5 +1,5 @@
 @tool
-@icon("res://addons/GD-Sync/Scripts/Types/VoiceChat.gd")
+@icon("res://addons/GD-Sync/UI/Icons/VoiceChatIcon.png")
 extends Node
 class_name VoiceChat
 
@@ -248,6 +248,8 @@ func _get_property_list() -> Array:
 
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings : PackedStringArray = []
+	
+	warnings.append("The VoiceChat Node is experimental. Please report any issues in GitHub.")
 	
 	if _output_player == null:
 		warnings.append("No output AudioStreamPlayer assigned.")
