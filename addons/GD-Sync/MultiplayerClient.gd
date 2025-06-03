@@ -39,7 +39,7 @@ class_name MultiplayerClient
 # -----------------------------------------------------------------------------
 #region Signals
 
-## Emitted when the plugin successfully completes the connection and encryption handshake. 
+## Emitted when the plugin successfully completes the connection and encryption handshake.
 ## This signal is emitted after using [method start_multiplayer].
 ## If this is emitted it means you can use all other multiplayer functions.
 signal connected()
@@ -54,36 +54,36 @@ signal connection_failed(error : int)
 ## [br][b]IMPORTANT: The plugin does not automatically try to reconnect when a disconnect occurs.[/b]
 signal disconnected()
 
-## Emitted when the Client ID changes. This happens when using [method start_mutliplayer] and might happen 
-## when using [method join_lobby]. This will NEVER happen while inside a lobby, so don't worry when 
+## Emitted when the Client ID changes. This happens when using [method start_mutliplayer] and might happen
+## when using [method lobby_join]. This will NEVER happen while inside a lobby, so don't worry when
 ## using methods such as [method set_gdsync_owner], [method call_func_on], etc.
 signal client_id_changed(own_id : int)
 
-## Emitted if [method create_lobby] was successful.
+## Emitted if [method lobby_create] was successful.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that was created.
 signal lobby_created(lobby_name : String)
 
-## Emitted if [method create_lobby] failes.
+## Emitted if [method lobby_create] failes.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that failed to create.
-## [br][b]error -[/b] The reason why the creation failed. 
+## [br][b]error -[/b] The reason why the creation failed.
 ## Check [constant ENUMS.LOBBY_CREATION_ERROR] for possible errors.
 signal lobby_creation_failed(lobby_name : String, error : int)
 
-## Emitted when [method join_lobby] was successful.
+## Emitted when [method lobby_join] was successful.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that the player joined.
 signal lobby_joined(lobby_name : String)
 
-## Emitted when [method join_lobby] failed.
+## Emitted when [method lobby_join] failed.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that the player was unable to join.
-## [br][b]error -[/b] The reason why the joining failed. 
+## [br][b]error -[/b] The reason why the joining failed.
 ## Check [constant ENUMS.LOBBY_JOIN_ERROR] for possible errors.
 signal lobby_join_failed(lobby_name : String, error : int)
 
-## Emitted when any lobby data value is changed. Emitted after [method set_lobby_data] and [method erase_lobby_data].
+## Emitted when any lobby data value is changed. Emitted after [method lobby_set_data].
 ## [br]
 ## [br][b]key -[/b] The key of the data that changed.
 ## [br][b]value -[/b] The new value. This will be null is the data was erased.
@@ -107,7 +107,7 @@ signal client_joined(client_id : int)
 ## [br][b]client_id -[/b] is the id of the client that left.
 signal client_left(client_id : int)
 
-## Emitted when a player uses [method set_player_data], [method erase_player_data] or [method set_player_username]. 
+## Emitted when a player uses [method player_set_data], [method player_erase_data] or [method player_set_username].
 ## Player data is synchronized every second if it is altered.
 ## [br]
 ## [br][b]client_id -[/b] is the id of the client that left.
@@ -136,7 +136,7 @@ signal lobby_received(lobby : Dictionary)
 ## [br][b]new_host_id -[/b] The Client ID of the new host.
 signal host_changed(is_host : bool, new_host_id : int)
 
-## Emitted when a time synchronized event is triggered. See [method create_synced_event] for more information.
+## Emitted when a time synchronized event is triggered. See [method synced_event_create] for more information.
 ## [br]
 ## [br][b]event_name -[/b] The name of the event that has been triggered.
 ## [br][b]parameters -[/b] Any parameters binded to the event.
@@ -152,7 +152,7 @@ signal change_scene_called(scene_path : String)
 ## [br][b]scene_path -[/b] The path of the scene.
 signal change_scene_success(scene_path : String)
 
-## Emitted when a scene change failed for any of the clients in the lobby. 
+## Emitted when a scene change failed for any of the clients in the lobby.
 ## This can be because of an invalid path, failing to load the resource, etc.
 ## [br]
 ## [br][b]scene_path -[/b] The path of the scene.
@@ -216,22 +216,22 @@ func _ready():
 # -----------------------------------------------------------------------------
 #region General Functions
 
-## Starts the GD-Sync plugin by connecting to a server. If successful, [signal connected] will be emitted. 
+## Starts the GD-Sync plugin by connecting to a server. If successful, [signal connected] will be emitted.
 ## If not, [signal connection_failed] will be emitted.
 func start_multiplayer() -> void:
 	_connection_controller.start_multiplayer()
 
-## An alternative for get_tree().quit(). Only use if you log into a GD-Sync account using [method login]. 
-## When quiting while logged in the plugin makes some callbacks to the server to update information like 
+## An alternative for get_tree().quit(). Only use if you log into a GD-Sync account using [method account_login].
+## When quiting while logged in the plugin makes some callbacks to the server to update information like
 ## your friend status.
 func quit() -> void:
 	_data_controller.quit()
 
-## Starts the GD-Sync plugin locally. This will allow for local peer-to-peer connections but will disable features 
-## such as database access and automatic host switching. Local mode also disables some optimization features 
+## Starts the GD-Sync plugin locally. This will allow for local peer-to-peer connections but will disable features
+## such as database access and automatic host switching. Local mode also disables some optimization features
 ## related to networking.
 ## Using local multiplayer does not require an account or API keys and does not use any data transfer.
-## [br][br]If successful, [signal connected] will be emitted. 
+## [br][br]If successful, [signal connected] will be emitted.
 ## If not, [signal connection_failed] will be emitted.
 func start_local_multiplayer() -> void:
 	_connection_controller.start_local_multiplayer()
@@ -251,8 +251,8 @@ func _manual_connect(address : String) -> void:
 func get_client_id() -> int:
 	return _connection_controller.client_id
 
-## Returns the Client ID of the last client to perform a remote function call on this client. 
-## Useful for knowing where a remote function call came from. 
+## Returns the Client ID of the last client to perform a remote function call on this client.
+## Useful for knowing where a remote function call came from.
 ## Returns -1 if nobody performed a remote function call yet.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For this function to work, make sure to enable it in the GD-Sync configuration menu.
@@ -274,7 +274,7 @@ func get_host() -> int:
 ## [br]
 ## [br][b]object -[/b] The Object you want to synchronize a variable on.
 ## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
+## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
 func sync_var(object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, -1, reliable)
@@ -287,7 +287,7 @@ func sync_var(object : Object, variable_name : String, reliable : bool = true) -
 ## [br][b]client_id -[/b] The Client ID of the client you want to synchronize to.
 ## [br][b]object -[/b] The Object you want to synchronize a variable on.
 ## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
+## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
 func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
@@ -299,7 +299,7 @@ func sync_var_on(client_id : int, object : Object, variable_name : String, relia
 ## [br]
 ## [br][b]callable -[/b] The function that you want to call.
 ## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
+## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
@@ -312,21 +312,21 @@ func call_func(callable : Callable, parameters : Array = [], reliable : bool = t
 ## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
 ## [br][b]callable -[/b] The function that you want to call.
 ## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful. 
+## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func_on(client_id : int, callable : Callable, parameters : Array = [], reliable  : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
 
 ## Instantiates a Node on all clients in the current lobby.
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the parent matches up on all clients. 
+## [br][b]IMPORTANT:[/b] Make sure the NodePath of the parent matches up on all clients.
 ## [br]
 ## [br][b]scene -[/b] The [PackedScene] you want to instantiate.
 ## [br][b]parent -[/b] The parent/location of where you want to instantiate the Node.
-## [br][b]sync_starting_changes -[/b] If enabled, any changes made to the root Node of the instantiated scene 
+## [br][b]sync_starting_changes -[/b] If enabled, any changes made to the root Node of the instantiated scene
 ## within the same frame will automatically be synchronized.
-## [br][b]excluded_properties -[/b] Names of properties you want to exclude from sync_starting_changes. 
-## [br][b]replicate_on_join -[/b] If enabled, the instantiated Node will be replicated on clients that 
+## [br][b]excluded_properties -[/b] Names of properties you want to exclude from sync_starting_changes.
+## [br][b]replicate_on_join -[/b] If enabled, the instantiated Node will be replicated on clients that
 ## join the lobby later on.
 func multiplayer_instantiate(
 		scene : PackedScene,
@@ -336,19 +336,19 @@ func multiplayer_instantiate(
 		replicate_on_join : bool = true) -> Node:
 	return _node_tracker.multiplayer_instantiate(scene, parent, sync_starting_changes, excluded_properties, replicate_on_join)
 
-## Returns a float which contains the current multiplayer time. This time is synchronized across clients in 
-## the same lobby. Can be used for time-based events. See [method create_synced_event] for creating 
+## Returns a float which contains the current multiplayer time. This time is synchronized across clients in
+## the same lobby. Can be used for time-based events. See [method synced_event_create] for creating
 ## time-based triggers.
 ## [br]
 ## [br][b]IMPORTANT:[/b] It may take up to a second for the time to synchronize after just joining a lobby.
 func get_multiplayer_time() -> float:
 	return _session_controller.synced_time
 
-## Create a time-based event that triggers after a delay. GD-Sync will attempt to trigger this event 
-## on all clients at the same time, regardless of the latency between clients. Useful for creating 
-## time-critical events or mechanics. After the delay, [signal synced_event_triggered] is emitted. 
+## Create a time-based event that triggers after a delay. GD-Sync will attempt to trigger this event
+## on all clients at the same time, regardless of the latency between clients. Useful for creating
+## time-critical events or mechanics. After the delay, [signal synced_event_triggered] is emitted.
 ## [br]
-## [br][b]IMPORTANT:[/b] If the given delay is shorter than the latency between two clients, the 
+## [br][b]IMPORTANT:[/b] If the given delay is shorter than the latency between two clients, the
 ## event trigger might be delayed. It is recommended to always use a delay >= 1 second.
 ## [br]
 ## [br][b]event_name -[/b] The name of the event. Queued events can share the same name.
@@ -357,7 +357,7 @@ func get_multiplayer_time() -> float:
 func synced_event_create(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
 	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
-## Changes the current scene for all clients. Waits with changing until the scene has fully loaded on all clients. 
+## Changes the current scene for all clients. Waits with changing until the scene has fully loaded on all clients.
 ## [br]
 ## [br][b]scene_path -[/b] The resource path of the scene.
 func change_scene(scene_path : String) -> void:
@@ -375,8 +375,8 @@ func change_scene(scene_path : String) -> void:
 # -----------------------------------------------------------------------------
 #region Security & safety functions
 
-## If set to true, all remote function calls and variable synchronization requests will be blocked by default. 
-## Only functions, variables and Nodes that are exposed using [method expose_func], [method expose_var] and [expose_node] 
+## If set to true, all remote function calls and variable synchronization requests will be blocked by default.
+## Only functions, variables and Nodes that are exposed using [method expose_func], [method expose_var] and [expose_node]
 ## may be accessed remotely. This setting can also be found in the configuration menu.
 ## [br]
 ## [br]
@@ -399,26 +399,26 @@ func register_resource(resource : Resource, id : String) -> void:
 func deregister_resource(resource : Resource) -> void:
 	_session_controller.erase_resource_reference(resource)
 
-## Exposes a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed. 
-## Only use if the Node and its script contain non-destructive functions. 
+## Exposes a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed.
+## Only use if the Node and its script contain non-destructive functions.
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients.
 ## [br]
 ## [br][b]node -[/b] The Node you want to expose.
 func expose_node(node : Node) -> void:
 	_session_controller.expose_object(node)
 
-## Hides a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail. 
-## This will not revert [method expose_func] and [method expose_var]. 
+## Hides a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail.
+## This will not revert [method expose_func] and [method expose_var].
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients.
 ## [br]
 ## [br][b]node -[/b] The Node you want to hide.
 func hide_node(node : Node) -> void:
 	_session_controller.hide_object(node)
 
-## Exposes a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed. 
-## Only use if the Resource and its script contain non-destructive functions. 
+## Exposes a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed.
+## Only use if the Resource and its script contain non-destructive functions.
 ## [br]
 ## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
 ## [br]
@@ -426,8 +426,8 @@ func hide_node(node : Node) -> void:
 func expose_resource(resource : Resource) -> void:
 	_session_controller.expose_object(resource)
 
-## Hides a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail. 
-## This will not revert [method expose_func] and [method expose_var]. 
+## Hides a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail.
+## This will not revert [method expose_func] and [method expose_var].
 ## [br]
 ## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
 ## [br]
@@ -435,7 +435,7 @@ func expose_resource(resource : Resource) -> void:
 func hide_resource(resource : Resource) -> void:
 	_session_controller.hide_object(resource)
 
-## Exposes a function so that [method call_func] and [method call_func_on] will succeed. 
+## Exposes a function so that [method call_func] and [method call_func_on] will succeed.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -443,7 +443,7 @@ func hide_resource(resource : Resource) -> void:
 func expose_func(callable : Callable) -> void:
 	_session_controller.expose_func(callable)
 
-## Hides a function so that [method call_func] and [method call_func_on] will fail. 
+## Hides a function so that [method call_func] and [method call_func_on] will fail.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -451,7 +451,7 @@ func expose_func(callable : Callable) -> void:
 func hide_function(callable : Callable) -> void:
 	_session_controller.hide_function(callable)
 
-## Exposes a variable so that [method sync_var] and [method sync_var_on] will succeed. 
+## Exposes a variable so that [method sync_var] and [method sync_var_on] will succeed.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -460,7 +460,7 @@ func hide_function(callable : Callable) -> void:
 func expose_var(object : Object, variable_name : String) -> void:
 	_session_controller.expose_property(object, variable_name)
 
-## Hides a variable so that [method sync_var] and [method sync_var_on] will fail. 
+## Hides a variable so that [method sync_var] and [method sync_var_on] will fail.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -483,13 +483,13 @@ func hide_var(object : Object, variable_name : String) -> void:
 # -----------------------------------------------------------------------------
 #region Node Ownership
 
-## Sets the owner of a Node. Node ownership is recursive and will apply to all children. 
-## Being the owner of a Node does not do anything by itself, but is useful when writing certain scripts. 
-## For example, when you are re-using your player scene for all players, you can only execute the keyboard inputs on 
-## the player of which you are the owner. 
+## Sets the owner of a Node. Node ownership is recursive and will apply to all children.
+## Being the owner of a Node does not do anything by itself, but is useful when writing certain scripts.
+## For example, when you are re-using your player scene for all players, you can only execute the keyboard inputs on
+## the player of which you are the owner.
 ## [br]The [PropertySynchronizer] class will also make use of this if told to do so in the inspector.
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients.
 ## [br]
 ## [br][b]node -[/b] The Node on which you want to assign ownership to.
 ## [br][b]owner -[/b] The client ID of the new owner.
@@ -497,9 +497,9 @@ func set_gdsync_owner(node : Node, owner : int) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_gdsync_owner(node, owner)
 
-## Clears the owner of a Node. Node ownership is recursive and will be removed on all children. 
+## Clears the owner of a Node. Node ownership is recursive and will be removed on all children.
 ## [br]
-## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients. 
+## [br][b]IMPORTANT:[/b] Make sure the NodePath of the Node matches up on all clients.
 ## [br]
 ## [br][b]node -[/b] The Node on which you want to clear ownership.
 func clear_gdsync_owner(node : Node) -> void:
@@ -518,8 +518,8 @@ func get_gdsync_owner(node : Node) -> int:
 func is_gdsync_owner(node : Node) -> bool:
 	return _session_controller.is_gdsync_owner(node)
 
-## Connects up a signal so that a specific function gets called if the owner of the Node changes. 
-## The function must have one parameter which is the Client ID of the new owner. 
+## Connects up a signal so that a specific function gets called if the owner of the Node changes.
+## The function must have one parameter which is the Client ID of the new owner.
 ## The Client ID will be -1 if the doesn't have an owner anymore
 ## [br]
 ## [br][b]node -[/b] The Node of which you want to monitor ownership.
@@ -549,7 +549,7 @@ func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 # -----------------------------------------------------------------------------
 #region Lobby Functions
 
-## Attempts to retrieve all publicly visible lobbies from the server. 
+## Attempts to retrieve all publicly visible lobbies from the server.
 ## Will emit the signal [signal lobbies_received] once the server has collected all lobbies
 func get_public_lobbies() -> void:
 	if !_connection_controller.valid_connection(): return
@@ -558,7 +558,7 @@ func get_public_lobbies() -> void:
 	else:
 		_request_processor.get_public_lobbies()
 
-## Attempts to retrieve a publicly visible lobby from the server. 
+## Attempts to retrieve a publicly visible lobby from the server.
 ## Will emit the signal [signal lobby_received] once the server has collected the lobby information
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby.
@@ -573,10 +573,10 @@ func get_public_lobby(lobby_name : String) -> void:
 ## If it fails [signal lobby_creation_failed] is emitted. Creating a lobby has a cooldown of 3 seconds.
 ## [br]
 ## [br][b]name -[/b] The name of the lobby you want to create. Has a maximum of 32 characters.
-## [br][b]password -[/b] The password of the lobby. Leave empty if you want everyone to be able to join without a password. 
+## [br][b]password -[/b] The password of the lobby. Leave empty if you want everyone to be able to join without a password.
 ## Has a maximum of 16 characters.
 ## [br][b]public -[/b] If true, the lobby will be visible when using [method get_public_lobbies]
-## [br][b]player_limit -[/b] The player limit of the lobby. If 0 it will automatically be set to the maximum your plan allows. 
+## [br][b]player_limit -[/b] The player limit of the lobby. If 0 it will automatically be set to the maximum your plan allows.
 ## This is also the case if the limit entered exceeds your plan limit.
 ## [br][b]tags -[/b] Any starting tags you would like to add to the lobby.
 ## [br][b]data -[/b] Any starting data you would like to add to the lobby.
@@ -587,8 +587,8 @@ func lobby_create(name : String, password : String = "", public : bool = true, p
 	else:
 		_request_processor.create_new_lobby_request(name, password, public, player_limit, tags, data)
 
-## Attempts to join an existing lobby. If successful [signal lobby_joined] is emitted. 
-## If it fails [signal lobby_join_failed] is emitted. 
+## Attempts to join an existing lobby. If successful [signal lobby_joined] is emitted.
+## If it fails [signal lobby_join_failed] is emitted.
 ## Using this function might cause your Client ID to change when joining a lobby that is not on your current server.
 ## [br]
 ## [br][b]name -[/b] The name of the lobby you are trying to join.
@@ -662,11 +662,11 @@ func lobby_get_player_limit() -> int:
 func lobby_has_password() -> bool:
 	return _session_controller.lobby_has_password()
 
-## Adds a new or updates the value of a tag. Tags are publicly visible data that is returned with [method get_public_lobbies]. 
+## Adds a new or updates the value of a tag. Tags are publicly visible data that is returned with [method get_public_lobbies].
 ## Especially useful when display information like the gamemode or map.
 ## [br]
 ## [br]
-## This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
+## This does not instantly update, so it won't have an affect on [method lobby_has_tag] and [method lobby_get_tag] until
 ## a response from the server is returned. If the operation was successful [signal lobby_tag_changed] is emitted.
 ## [br]
 ## [br][b]key -[/b] The key of the tag.
@@ -678,7 +678,7 @@ func lobby_set_tag(key : String, value) -> void:
 ## Deletes an existing tag.
 ## [br]
 ## [br]
-## This does not instantly update, so it won't have an affect on [method has_lobby_tag] and [method get_lobby_tag] until 
+## This does not instantly update, so it won't have an affect on [method lobby_has_tag] and [method lobby_get_tag] until
 ## a response from the server is returned. If the operation was successful [signal lobby_tag_changed] is emitted.
 ## [br]
 ## [br][b]key -[/b] The key of the tag.
@@ -703,10 +703,10 @@ func lobby_get_tag(key : String, default = null):
 func lobby_get_all_tags() -> Dictionary:
 	return _session_controller.get_all_lobby_tags()
 
-## Adds new or updates existing lobby data. Data is private data that can only be viewed from inside the lobby. 
+## Adds new or updates existing lobby data. Data is private data that can only be viewed from inside the lobby.
 ## [br]
 ## [br]
-## This does not instantly update, so it won't have an affect on [method has_lobby_data] and [method get_lobby_data] until 
+## This does not instantly update, so it won't have an affect on [method lobby_has_data] and [method lobby_get_data] until
 ## a response from the server is returned. If operation was successful [signal lobby_data_changed] is emitted.
 ## [br]
 ## [br][b]key -[/b] The key of the data.
@@ -718,7 +718,7 @@ func lobby_set_data(key : String, value) -> void:
 ## Deletes existing data.
 ## [br]
 ## [br]
-## This does not instantly update, so it won't have an affect on [method has_lobby_data] and [method get_lobby_data] until 
+## This does not instantly update, so it won't have an affect on [method lobby_has_data] and [method lobby_get_data] until
 ## a response from the server is returned. If operation was successful [signal lobby_data_changed] is emitted.
 ## [br]
 ## [br][b]key -[/b] The key of the tag.
@@ -755,9 +755,9 @@ func lobby_get_all_data() -> Dictionary:
 # -----------------------------------------------------------------------------
 #region Player Functions
 
-## Sets data for your client. Player data has a maximum size of 2048 bytes, if this limit is exceeded 
-## a critical error is printed. 
-## Emits [signal player_data_changed]. It may take up to 1 second for this signal to be emitted, as player 
+## Sets data for your client. Player data has a maximum size of 2048 bytes, if this limit is exceeded
+## a critical error is printed.
+## Emits [signal player_data_changed]. It may take up to 1 second for this signal to be emitted, as player
 ## data is synchronized every second if altered.
 ## [br]
 ## [br][b]key -[/b] The key of the player data.
@@ -767,7 +767,7 @@ func player_set_data(key : String, value) -> void:
 	_session_controller.set_player_data(key, value)
 	_request_processor.create_set_player_data_request(key, value)
 
-## Erases data for your client. 
+## Erases data for your client.
 ## Emits [signal player_data_changed] with null as the value.
 ## [br]
 ## [br][b]key -[/b] The key of the player data.
@@ -776,7 +776,7 @@ func player_erase_data(key : String) -> void:
 	_session_controller.erase_player_data(key)
 	_request_processor.create_erase_player_data_request(key)
 
-## Gets data from a specific client. If you want to retreive your own data you can input your own id. 
+## Gets data from a specific client. If you want to retreive your own data you can input your own id.
 ## You can get your own id using [method get_client_id].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
@@ -786,7 +786,7 @@ func player_get_data(client_id : int, key : String, default = null):
 	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, key, default)
 
-## Gets all data from a specific client. If you want to retreive your own data you can input your own id. 
+## Gets all data from a specific client. If you want to retreive your own data you can input your own id.
 ## You can get your own id using [method get_client_id].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
@@ -794,8 +794,8 @@ func player_get_all_data(client_id : int) -> Dictionary:
 	if !_connection_controller.valid_connection(): return {}
 	return _session_controller.get_all_player_data(client_id)
 
-## Sets the username of the player. If enabled in the configuration menu, usernames can be set to unique. 
-## When this setting is enabled there can be no duplicate usernames inside a lobby. 
+## Sets the username of the player. If enabled in the configuration menu, usernames can be set to unique.
+## When this setting is enabled there can be no duplicate usernames inside a lobby.
 ## Emits [signal player_data_changed] with the key "Username".
 ## [br]
 ## [br][b]name -[/b] The username of this client.
@@ -814,19 +814,19 @@ func player_set_username(name : String) -> void:
 # -----------------------------------------------------------------------------
 #region Accounts & Persistent Data Storage
 
-## Creates an account in the database linked to the API key. 
+## Creates an account in the database linked to the API key.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_CREATION_RESPONSE_CODE].
 ## [br]
 ## [br][b]email -[/b] The email of the account. The email has to be unique.
-## [br][b]username -[/b] The username of the account. The username has to be unique. 
+## [br][b]username -[/b] The username of the account. The username has to be unique.
 ## The username has to be between 3 and 20 characters long.
-## [br][b]password -[/b] The password of the account. 
+## [br][b]password -[/b] The password of the account.
 ## The password has to be between 3 and 20 characters long.
 func account_create(email : String, username : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.create_account(email, username, password)
 
-## Deletes an existing account in the database linked to the API key. 
+## Deletes an existing account in the database linked to the API key.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DELETION_RESPONSE_CODE].
 ## [br]
 ## [br][b]email -[/b] The email of the account.
@@ -835,9 +835,9 @@ func account_delete(email : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_account(email, password)
 
-## Can be used to verify the email of an account. Requires email verification to be enabled in the User Accounts 
-## settings. An email can be verified by inputting the verification code sent to the email address. 
-## Verifying the email will automatically log in the user. 
+## Can be used to verify the email of an account. Requires email verification to be enabled in the User Accounts
+## settings. An email can be verified by inputting the verification code sent to the email address.
+## Verifying the email will automatically log in the user.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_VERIFICATION_RESPONSE_CODE].
 ## [br]
 ## [br][b]email -[/b] The email of the account.
@@ -847,7 +847,7 @@ func account_verify(email : String, code : String, valid_time : float = 86400) -
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.verify_account(email, code, valid_time)
 
-## Sends a new verification code to the email address. A new code can only be sent once the most recent 
+## Sends a new verification code to the email address. A new code can only be sent once the most recent
 ## code has expired. Requires email verification to be enabled in the User Account settings.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_RESEND_VERIFICATION_RESPONSE_CODE].
 ## [br]
@@ -857,9 +857,9 @@ func account_resend_verification_code(email : String, password : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.resend_verification_code(email, password)
 
-## Returns if the specified account has a verified email. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_IS_VERIFIED_RESPONSE_CODE] response code. 
+## Returns if the specified account has a verified email.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_IS_VERIFIED_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]username -[/b] The username of the account.
 ## [codeblock]
@@ -871,13 +871,13 @@ func account_is_verified(username : String = "") -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.is_verified(username)
 
-## Attempt to login into an existing account. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE] response code. 
+## Attempt to login into an existing account.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE] response code.
 ## [br]
 ## [br]
-## If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will 
-## expire. If the ban is permanent, the value will be -1. 
+## If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will
+## expire. If the ban is permanent, the value will be -1.
 ## [br]
 ## [br][b]email -[/b] The email of the account.
 ## [br][b]password -[/b] The password of the account.
@@ -891,8 +891,8 @@ func account_login(email : String, password : String, valid_time : float = 86400
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.login(email, password, valid_time)
 
-## Attempt to login with a previous session. If that session has not yet expired it will login using 
-## and refresh the session time. 
+## Attempt to login with a previous session. If that session has not yet expired it will login using
+## and refresh the session time.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE].
 ## [br]
 ## [br][b]valid_time -[/b] The time in seconds how long the login session is valid.
@@ -900,13 +900,13 @@ func account_login_from_session(valid_time : float = 86400) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.login_from_session(valid_time)
 
-## Invalidates the current login session. 
+## Invalidates the current login session.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_LOGOUT_RESPONSE_CODE].
 func account_logout() -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.logout()
 
-## Bans the current logged-in account. 
+## Bans the current logged-in account.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_BAN_RESPONSE_CODE].
 ## [br]
 ## [br][b]ban_duration -[/b] The ban duration in days. Any amount above 1000 days results in a permanent ban.
@@ -940,8 +940,8 @@ func account_request_password_reset(email : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.request_password_reset(email)
 
-## Attempt to use a password reset code. If the code is valid the password of the account will be changed. 
-## See [method request_account_password_reset] for sending the password reset code. 
+## Attempt to use a password reset code. If the code is valid the password of the account will be changed.
+## See [method account_request_password_reset] for sending the password reset code.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_RESET_PASSWORD_RESPONSE_CODE].
 ## [br]
 ## [br][b]email -[/b] The email of the account.
@@ -982,11 +982,11 @@ func account_remove_friend(friend : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.remove_friend(friend)
 
-## Gets the friend status between you and another account. Information besides the FriendStatus is only 
-## available if the friend request is accepted. 
+## Gets the friend status between you and another account. Information besides the FriendStatus is only
+## available if the friend request is accepted.
 ## If the lobby name is not empty, the player is in a lobby.
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_GET_FRIEND_STATUS_RESPONSE_CODE] response code. 
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_GET_FRIEND_STATUS_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]friend -[/b] The username of the account you want the friend status of.
 ## [codeblock]
@@ -1004,10 +1004,10 @@ func account_get_friend_status(friend : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.account_get_friend_status(friend)
 
-## Returns an array of all friends with their status. Information besides the FriendStatus is only 
-## available if the friend request is accepted. 
+## Returns an array of all friends with their status. Information besides the FriendStatus is only
+## available if the friend request is accepted.
 ## If the lobby name is not empty, the player is in a lobby.
-## [br][br]Returns a [Dictionary] with the format seen below 
+## [br][br]Returns a [Dictionary] with the format seen below
 ## and the [constant ENUMS.ACCOUNT_GET_FRIENDS_RESPONSE_CODE] response code.
 ## [codeblock]
 ## {
@@ -1041,12 +1041,12 @@ func account_get_friends() -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_friends()
 
-## Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document 
-## will be stored on the specified location. If the collections specified in the path don't already 
+## Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document
+## will be stored on the specified location. If the collections specified in the path don't already
 ## exist, they are automatically created. Documents may also be nested in other documents.
-## [br][br]Documents can be private or public. If externally visible, other players may retrieve and read 
-## the document contents. Setting [param externally_visible] to true will automatically make all parent 
-## collections/documents visible as well. Setting [param externally_visible] to false will automatically 
+## [br][br]Documents can be private or public. If externally visible, other players may retrieve and read
+## the document contents. Setting [param externally_visible] to true will automatically make all parent
+## collections/documents visible as well. Setting [param externally_visible] to false will automatically
 ## hide all nested collections and documents.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DOCUMENT_SET_RESPONSE_CODE].
 ## [br]
@@ -1057,9 +1057,9 @@ func account_document_set(path : String, document : Dictionary, externally_visib
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_player_document(path, document, externally_visible)
 
-## Documents can be private or public. If externally visible, other players may retrieve and read 
-## the document contents. Setting [param externally_visible] to true will automatically make all parent 
-## collections/documents visible as well. Setting [param externally_visible] to false will automatically 
+## Documents can be private or public. If externally visible, other players may retrieve and read
+## the document contents. Setting [param externally_visible] to true will automatically make all parent
+## collections/documents visible as well. Setting [param externally_visible] to false will automatically
 ## hide all nested collections and documents.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DOCUMENT_SET_EXTERNAL_VISIBLE_RESPONSE_CODE].
 ## [br]
@@ -1069,9 +1069,9 @@ func account_document_set_external_visible(path : String, externally_visible : b
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.set_external_visible(path, externally_visible)
 
-## Retrieve a dictionary/document of data from the currently logged-in account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code. 
+## Retrieve a dictionary/document of data from the currently logged-in account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]path -[/b] The path of the document or collection.
 ## [codeblock]
@@ -1083,9 +1083,9 @@ func account_get_document(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, "")
 
-## Check if a dictionary/document or collection exists on the currently logged-in account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code. 
+## Check if a dictionary/document or collection exists on the currently logged-in account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]path -[/b] The path of the document or collection.
 ## [codeblock]
@@ -1097,9 +1097,9 @@ func account_has_document(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, "")
 
-## Browse through a collection from the currently logged-in account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code. 
+## Browse through a collection from the currently logged-in account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]path -[/b] The path of the document or collection.
 ## [codeblock]
@@ -1117,7 +1117,7 @@ func account_browse_collection(path : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, "")
 
-## Delete a dictionary/document or collection from the currently logged-in account using GD-Sync cloud storage. 
+## Delete a dictionary/document or collection from the currently logged-in account using GD-Sync cloud storage.
 ## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_DELETE_DOCUMENT_RESPONSE_CODE].
 ## [br]
 ## [br][b]path -[/b] The path of the document or collection.
@@ -1125,9 +1125,9 @@ func account_delete_document(path : String) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.delete_player_document(path)
 
-## Retrieve a dictionary/document of data from another account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code. 
+## Retrieve a dictionary/document of data from another account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_GET_DOCUMENT_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]external_username -[/b] The username of the account you want to perform the action on.
 ## [br][b]path -[/b] The path of the document or collection.
@@ -1140,9 +1140,9 @@ func account_get_external_document(external_username : String, path : String) ->
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_player_document(path, external_username)
 
-## Check if a dictionary/document or collection exists on another account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code. 
+## Check if a dictionary/document or collection exists on another account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_HAS_DOCUMENT_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]external_username -[/b] The username of the account you want to perform the action on.
 ## [br][b]path -[/b] The path of the document or collection.
@@ -1155,9 +1155,9 @@ func account_has_external_document(external_username : String, path : String) ->
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_player_document(path, external_username)
 
-## Browse through a collection from another account using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code. 
+## Browse through a collection from another account using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_BROWSE_COLLECTION_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]external_username -[/b] The username of the account you want to perform the action on.
 ## [br][b]path -[/b] The path of the document or collection.
@@ -1176,9 +1176,9 @@ func account_browse_external_collection(external_username : String, path : Strin
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_player_collection(path, external_username)
 
-## Check if a leaderboard exists using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.LEADERBOARD_EXISTS_RESPONSE_CODE] response code. 
+## Check if a leaderboard exists using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.LEADERBOARD_EXISTS_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
 ## [codeblock]
@@ -1190,15 +1190,15 @@ func leaderboard_exists(leaderboard : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.has_leaderboard(leaderboard)
 
-## Retrieve a list of all leaderboards using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.LEADERBOARD_GET_ALL_RESPONSE_CODE] response code. 
+## Retrieve a list of all leaderboards using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.LEADERBOARD_GET_ALL_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
 ## [codeblock]
 ## {
 ##    "Code" : 0,
-##    "Result" : 
+##    "Result" :
 ##       [
 ##          "Leaderboard1",
 ##          "Leaderboard2"
@@ -1209,9 +1209,9 @@ func leaderboard_get_all() -> Dictionary:
 	return await _data_controller.get_leaderboards()
 
 
-## Browse a leaderboard and all submitted scores using GD-Sync cloud storage. 
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.LEADERBOARD_BROWSE_SCORES_RESPONSE_CODE] response code. 
+## Browse a leaderboard and all submitted scores using GD-Sync cloud storage.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.LEADERBOARD_BROWSE_SCORES_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
 ## [br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
@@ -1220,7 +1220,7 @@ func leaderboard_get_all() -> Dictionary:
 ## {
 ##    "Code" : 0,
 ##    "FinalPage": 7,
-##    "Result" : 
+##    "Result" :
 ##       [
 ##          {"Rank": 1, "Score": 828, "Username": "User1"},
 ##          {"Rank": 2, "Score": 700, "Username": "User2"},
@@ -1231,17 +1231,17 @@ func leaderboard_browse_scores(leaderboard : String, page_size : int, page : int
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.browse_leaderboard(leaderboard, page_size, page)
 
-## Get the score and rank of an account for a specific leaderboard using GD-Sync cloud storage. 
+## Get the score and rank of an account for a specific leaderboard using GD-Sync cloud storage.
 ## If the user has no score submission on the leaderboard, Score will be 0 and Rank -1.
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.LEADERBOARD_GET_SCORE_RESPONSE_CODE] response code. 
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.LEADERBOARD_GET_SCORE_RESPONSE_CODE] response code.
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
 ## [br][b]page_size -[/b] The amount of scores returned. The maximum page size is 100.
 ## [codeblock]
 ## {
 ##    "Code" : 0,
-##    "Result" : 
+##    "Result" :
 ##       {
 ##          "Score" : 100,
 ##          "Rank" : 1
@@ -1251,7 +1251,7 @@ func leaderboard_get_score(leaderboard : String, username : String) -> Dictionar
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_leaderboard_score(leaderboard, username)
 
-## Submits a score to a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
+## Submits a score to a leaderboard for the currently logged-in account using GD-Sync cloud storage.
 ## If the user already has a score submission, it will be overwritten.
 ## [br][br]Returns the result of the request as [constant ENUMS.LEADERBOARD_SUBMIT_SCORE_RESPONSE_CODE].
 ## [br]
@@ -1261,7 +1261,7 @@ func leaderboard_submit_score(leaderboard : String, score : int) -> int:
 	if _connection_controller.is_local_check(): return 1
 	return await _data_controller.submit_score(leaderboard, score)
 
-## Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage. 
+## Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage.
 ## [br][br]Returns the result of the request as [constant ENUMS.LEADERBOARD_DELETE_SCORE_RESPONSE_CODE].
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
@@ -1287,8 +1287,8 @@ func leaderboard_delete_score(leaderboard : String) -> int:
 func steam_integration_enabled() -> bool:
 	return _steam.steam_integration_enabled
 
-## Links your GD-Sync account with your Steam account. Thiw will allow you to log into your GD-Sync account 
-## using your active Steam session. 
+## Links your GD-Sync account with your Steam account. Thiw will allow you to log into your GD-Sync account
+## using your active Steam session.
 ## [br][br]Returns the result of the request as [constant ENUMS.LINK_STEAM_ACCOUNT_RESPONSE_CODE].
 func steam_link_account() -> int:
 	return await _steam.link_steam_account()
@@ -1298,14 +1298,14 @@ func steam_link_account() -> int:
 func steam_unlink_account() -> int:
 	return await _steam.unlink_steam_account()
 
-## Logs into your GD-Sync account using the active Steam session. 
+## Logs into your GD-Sync account using the active Steam session.
 ## Only works if a Steam account has been linked.
-## [br][br]Returns a [Dictionary] with the format seen below 
-## and the [constant ENUMS.STEAM_LOGIN_RESPONSE_CODE] response code. 
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.STEAM_LOGIN_RESPONSE_CODE] response code.
 ## [br]
 ## [br]
-## If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will 
-## expire. If the ban is permanent, the value will be -1. 
+## If the user is banned, it will include the "Banned" key, which contains the unix timestamp when the ban will
+## expire. If the ban is permanent, the value will be -1.
 ## [br]
 ## [br][b]valid_time -[/b] The time in seconds how long the login session is valid.
 ## [codeblock]
