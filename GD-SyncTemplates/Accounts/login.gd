@@ -19,7 +19,7 @@ func login() -> void:
 	var response : Dictionary = await GDSync.login(email, password)
 	var response_code : int = response["Code"]
 	
-	if response_code == ENUMS.LOGIN_RESPONSE_CODE.SUCCESS:
+	if response_code == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		error_text.text = ""
 		logged_in.emit(email)
 	else:
@@ -30,19 +30,19 @@ func login() -> void:
 
 func set_error_text(response_code : int, response : Dictionary) -> void:
 	match(response_code):
-		ENUMS.LOGIN_RESPONSE_CODE.NO_RESPONSE_FROM_SERVER:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.NO_RESPONSE_FROM_SERVER:
 			error_text.text = "No response from server."
-		ENUMS.LOGIN_RESPONSE_CODE.DATA_CAP_REACHED:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.DATA_CAP_REACHED:
 			error_text.text = "Data transfer cap has been reached."
-		ENUMS.LOGIN_RESPONSE_CODE.RATE_LIMIT_EXCEEDED:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.RATE_LIMIT_EXCEEDED:
 			error_text.text = "Rate limit exceeded, please wait and try again."
-		ENUMS.LOGIN_RESPONSE_CODE.NO_DATABASE:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.NO_DATABASE:
 			error_text.text = "API key has no linked database."
-		ENUMS.LOGIN_RESPONSE_CODE.EMAIL_OR_PASSWORD_INCORRECT:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.EMAIL_OR_PASSWORD_INCORRECT:
 			error_text.text = "Email or password incorrect."
-		ENUMS.LOGIN_RESPONSE_CODE.NOT_VERIFIED:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.NOT_VERIFIED:
 			error_text.text = "The email address has not yet been verified."
-		ENUMS.LOGIN_RESPONSE_CODE.BANNED:
+		ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.BANNED:
 			var ban_time : int = response["BanTime"]
 			
 			if ban_time == -1:
@@ -50,5 +50,3 @@ func set_error_text(response_code : int, response : Dictionary) -> void:
 			else:
 				var ban_time_string : String = Time.get_datetime_string_from_unix_time(ban_time, true)
 				error_text.text = "Account is banned until "+ban_time_string+"."
-
-

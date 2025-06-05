@@ -170,5 +170,3 @@ func _input(event):
 	if event.is_action_pressed(cancel_action_name):
 		if _typing: get_viewport().set_input_as_handled()
 		stop_typing()
-
-
