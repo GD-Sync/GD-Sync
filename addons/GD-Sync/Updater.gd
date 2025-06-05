@@ -32,11 +32,11 @@ func update_repo(path:String = "", tries : int = 0) -> bool:
 	var entries = JSON.parse_string(res[3].get_string_from_utf8())
 	if typeof(entries) == TYPE_ARRAY:
 		for e in entries:
-			if e["type"] == "file":
+			if e["type"] == "file" and !"template" in e["name"].to_lower():
 				_download(e["download_url"], e["path"], 0)
 			elif e["type"] == "dir":
 				update_repo(e["path"], tries)
-	elif typeof(entries) == TYPE_DICTIONARY:
+	elif typeof(entries) == TYPE_DICTIONARY and entries.get("type") == "file" and !"template" in entries["name"].to_lower():
 		_download(entries["download_url"], entries["path"], 0)
 	
 	_busy_counter -= 1
