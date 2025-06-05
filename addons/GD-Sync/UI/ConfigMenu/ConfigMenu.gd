@@ -29,6 +29,8 @@ var plugin
 
 var menu_open : bool = false
 
+var updater : Updater
+
 func _ready():
 	if plugin == null: return
 	if ProjectSettings.has_setting("GD-Sync/publicKey"):
@@ -41,6 +43,13 @@ func _ready():
 		%CSharpSupport.button_pressed = ProjectSettings.get_setting("GD-Sync/csharp")
 	if ProjectSettings.has_setting("GD-Sync/uniqueUsername"):
 		%UniqueUsernames.button_pressed = ProjectSettings.get_setting("GD-Sync/uniqueUsername")
+	
+	updater = Updater.new()
+	add_child(updater)
+
+func update_ready() -> void:
+	%DefaultPannel.visible = false
+	%UpdatePanel.visible = true
 
 func _input(event):
 	if !menu_open: return
@@ -91,3 +100,19 @@ func _on_sender_id_toggled(button_pressed):
 
 func _on_description_meta_clicked(meta):
 	OS.shell_open(meta)
+
+func _on_update_button_pressed() -> void:
+	%LoadIcon.play()
+	$AnimationPlayer.play("Downloading")
+	
+	var result : bool = await updater.update_repo()
+	
+	%DefaultPannel.visible = true
+	%UpdatePanel.visible = false
+	$AnimationPlayer.play_backwards("Downloading")
+	
+	if result:
+		print("")
+		print_rich("[color=#61ff71][b]The newest version of GD-Sync has been installed. Please restart the engine to complete the update.[/b][/color]")
+	else:
+		print_rich("[color=indianred][b]GD-Sync failed to update. Please try downloading it from the Godot Asset Library instead.[/b][/color]")

@@ -1,9 +1,71 @@
-[gd_scene load_steps=9 format=3 uid="uid://1ho7vq1qum7y"]
+[gd_scene load_steps=53 format=3 uid="uid://1ho7vq1qum7y"]
 
 [ext_resource type="Script" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
+[ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
 [ext_resource type="Script" path="res://addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd" id="4_pljkn"]
+
+[sub_resource type="Animation" id="Animation_p5x7e"]
+resource_name = "Downloading"
+length = 1.8
+tracks/0/type = "bezier"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:position:y")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(-350, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/1/type = "bezier"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0.5, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/2/type = "bezier"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:y")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0.5, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/UIAnchor:modulate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0333333, 0.366667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoAnchor/Logo/LoadIcon:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1, 1.76667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
 
 [sub_resource type="Animation" id="Animation_x05bw"]
 resource_name = "Open"
@@ -173,15 +235,332 @@ tracks/6/keys = {
 "update": 0,
 "values": [Color(1, 1, 1, 0)]
 }
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("CenterContainer/LogoAnchor/Logo/LoadIcon:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_d74rd"]
 _data = {
+"Downloading": SubResource("Animation_p5x7e"),
 "Open": SubResource("Animation_x05bw"),
 "RESET": SubResource("Animation_qx43o")
 }
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw5my"]
 bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7n4q8"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cpyqf"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xrhuh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yg1kq"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q6pvr"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dr3eh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l308m"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bo1b1"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qnxdd"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1m25y"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ir2b"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_psoh2"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f7j2m"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ucpbx"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nbmvf"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_38ar6"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h5tbl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ijnjl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u7mul"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vpehh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4max4"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ud1gk"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1qysi"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1ygi4"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qtqjo"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bcmcd"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ukgla"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5m3dn"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pgi17"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o14da"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wnnec"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wm8ux"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fa2em"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2dq2p"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p0gcl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hd6io"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hrq83"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gvthg"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wkeq8"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oxpxj"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 1162, 166, 166)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_m25b5"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7n4q8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cpyqf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xrhuh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yg1kq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q6pvr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dr3eh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_l308m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bo1b1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qnxdd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1m25y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ir2b")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_psoh2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f7j2m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ucpbx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nbmvf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_38ar6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h5tbl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ijnjl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u7mul")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vpehh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4max4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ud1gk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1qysi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1ygi4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qtqjo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bcmcd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ukgla")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5m3dn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pgi17")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o14da")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wnnec")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wm8ux")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fa2em")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2dq2p")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p0gcl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hd6io")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hrq83")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gvthg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wkeq8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oxpxj")
+}],
+"loop": true,
+"name": &"default",
+"speed": 25.0
+}]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xr6mm"]
+content_margin_left = 15.0
+content_margin_top = 8.0
+content_margin_right = 15.0
+content_margin_bottom = 8.0
+bg_color = Color(0.25098, 0.556863, 0.670588, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.380392, 1, 0.443137, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="ConfigMenu" type="Control"]
 visible = false
@@ -230,6 +609,15 @@ anchors_preset = 0
 unique_name_in_owner = true
 texture = ExtResource("3_eccmp")
 
+[node name="LoadIcon" type="AnimatedSprite2D" parent="CenterContainer/LogoAnchor/Logo"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+position = Vector2(0, 172.975)
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_m25b5")
+autoplay = "default"
+frame_progress = 0.471284
+
 [node name="UIAnchor" type="Control" parent="CenterContainer"]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 2
@@ -245,7 +633,8 @@ offset_right = 475.0
 offset_bottom = 325.0
 theme = ExtResource("2_wd24h")
 
-[node name="Panel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="DefaultPannel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+unique_name_in_owner = true
 layout_mode = 0
 offset_left = -450.0
 offset_top = -250.0
@@ -253,7 +642,7 @@ offset_right = -50.0
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"GDPanel"
 
-[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Panel"]
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/DefaultPannel"]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
@@ -262,6 +651,32 @@ text = "Welcome to the GD-Sync configuration menu! Here you can find basic setti
 - [url=https://www.gd-sync.com]Official Website[/url]
 - [url=https://www.gd-sync.com/documentation]Documentation[/url]
 - [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
+
+[node name="UpdatePanel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = -450.0
+offset_top = -250.0
+offset_right = -50.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "A new update for GD-Sync is available. Press the button below to automatically update to the newest version.
+
+- [url=https://www.gd-sync.com]Official Website[/url]
+- [url=https://www.gd-sync.com/documentation]Documentation[/url]
+- [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
+
+[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_override_styles/normal = SubResource("StyleBoxFlat_xr6mm")
+text = "Update"
 
 [node name="Panel2" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
 layout_mode = 0
@@ -451,7 +866,9 @@ properties = PackedStringArray()
 interpolated = false
 interpolation_speed = 1.0
 
-[connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/Panel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/DefaultPannel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/UpdatePanel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="pressed" from="CenterContainer/UIAnchor/UI/UpdatePanel/UpdateButton" to="." method="_on_update_button_pressed"]
 [connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
 [connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/CSharpSupport" to="." method="_on_c_sharp_support_toggled"]
