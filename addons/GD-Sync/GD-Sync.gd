@@ -120,9 +120,10 @@ func check_for_updates() -> void:
 		var data : Dictionary = extract_data_from_html(html)
 		var new_version : String = data.get("version", version)
 		if is_version_newer(version, new_version):
+			config_menu.update_ready()
 			print("")
 			print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
-			print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" from the Godot asset library.[/color]")
+			print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" in the configuration menu (Project -> Tools -> GD-Sync).[/color]")
 			print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
 
 func extract_data_from_html(html: String) -> Dictionary:
