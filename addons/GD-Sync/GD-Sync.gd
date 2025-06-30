@@ -66,7 +66,7 @@ func _enter_tree() -> void:
 	if Engine.has_singleton("Steam"):
 		print_rich("[color=#408EAB]	- Steam integration detected and enabled.[/color]")
 	
-	check_for_updates()
+	check_for_updates_and_news()
 
 func _exit_tree() -> void:
 	config_menu.free()
@@ -101,7 +101,7 @@ func disable_csharp_api() -> void:
 	
 	remove_autoload_singleton("GDSyncSharp")
 
-func check_for_updates() -> void:
+func check_for_updates_and_news() -> void:
 	var request : HTTPRequest = HTTPRequest.new()
 	request.timeout = 5
 	add_child(request)
@@ -118,6 +118,7 @@ func check_for_updates() -> void:
 	if result[1] == 200:
 		var html : String = result[3].get_string_from_ascii()
 		var data : Dictionary = extract_data_from_html(html)
+		
 		var new_version : String = data.get("version", version)
 		if is_version_newer(version, new_version):
 			config_menu.update_ready()
@@ -125,6 +126,9 @@ func check_for_updates() -> void:
 			print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
 			print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" in the configuration menu (Project -> Tools -> GD-Sync).[/color]")
 			print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
+		print("")
+		for news in data.get("news", []):
+			print_rich(news)
 
 func extract_data_from_html(html: String) -> Dictionary:
 	var re := RegEx.new()
