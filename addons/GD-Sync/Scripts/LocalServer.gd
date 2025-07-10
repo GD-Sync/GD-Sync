@@ -101,11 +101,6 @@ func clear_lobby_data() -> void:
 	local_lobby_name = ""
 	local_lobby_password = ""
 	
-	await get_tree().process_frame
-	await get_tree().process_frame
-	await get_tree().process_frame
-	await get_tree().process_frame
-	
 	local_lobby_data.clear()
 	local_lobby_tags.clear()
 	local_owner_cache.clear()
@@ -148,14 +143,20 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 		found_lobbies[local_lobby_name] = lobby_dict
 		
 		set_process(true)
-		GDSync.lobby_created.emit.call_deferred(local_lobby_name)
+		GDSync.lobby_created.emit.call_deferred(name)
 	else:
-		GDSync.lobby_creation_failed.emit.call_deferred(local_lobby_name, result)
+		GDSync.lobby_creation_failed.emit.call_deferred(name, result)
 
 func join_lobby(name : String, password : String) -> void:
+	var tries : int = 0
+	while !found_lobbies.has(name) and tries < 5:
+		tries += 1
+		await get_tree().create_timer(1.0).timeout
+	
 	if found_lobbies.has(name):
 		var lobby_data : Dictionary = found_lobbies[name]
 		var connect_err : int = connection_controller.connect_to_local_server(lobby_data["IP"])
+		
 		if connect_err == OK:
 			request_processor.send_client_id()
 			session_controller.broadcast_player_data()
@@ -240,7 +241,7 @@ func _process(delta: float) -> void:
 					local_server.set_target_peer(client.peer_id)
 					local_server.put_packet(var_to_bytes(client.requests_UDP))
 					client.requests_UDP.clear()
-		
+			
 			while local_server.get_available_packet_count() > 0:
 				var channel : int = local_server.get_packet_channel()
 				var peer_id : int = local_server.get_packet_peer()
