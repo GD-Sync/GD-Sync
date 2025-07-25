@@ -249,7 +249,7 @@ func _get_property_list() -> Array:
 func _get_configuration_warnings() -> PackedStringArray:
 	var warnings : PackedStringArray = []
 	
-	warnings.append("The VoiceChat Node is experimental. Please report any issues in GitHub.")
+	warnings.append("The VoiceChat Node is experimental. Please report any issues on GitHub.")
 	
 	if _output_player == null:
 		warnings.append("No output AudioStreamPlayer assigned.")
