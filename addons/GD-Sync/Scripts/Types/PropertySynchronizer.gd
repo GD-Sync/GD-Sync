@@ -307,6 +307,9 @@ func _extrapolate(delta : float) -> void:
 		if property_data["Type"] == TYPE_VECTOR3:
 			var vec_delta : Vector3 = target_value-last_value
 			property_data["TargetValue"] = target_value + vec_delta*extrapolate_time
+		elif property_data["Type"] == TYPE_VECTOR2:
+			var vec_delta : Vector2 = target_value-last_value
+			property_data["TargetValue"] = target_value + vec_delta*extrapolate_time
 
 func _refresh_property_lookup() -> void:
 	if node == null: return
