@@ -63,7 +63,7 @@ func _notification(what : int) -> void:
 
 func quit() -> void:
 	if logged_in:
-		GDSync.leave_lobby()
+		GDSync.lobby_leave()
 		await set_friend_status()
 	
 	safe_quit = true
