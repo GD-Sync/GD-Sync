@@ -650,7 +650,9 @@ text = "Welcome to the GD-Sync configuration menu! Here you can find basic setti
 
 - [url=https://www.gd-sync.com]Official Website[/url]
 - [url=https://www.gd-sync.com/documentation]Documentation[/url]
-- [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
+- [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]
+
+- [url=log]Log Directory[/url]"
 
 [node name="UpdatePanel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
 unique_name_in_owner = true
@@ -865,6 +867,9 @@ script = ExtResource("4_pljkn")
 properties = PackedStringArray()
 interpolated = false
 interpolation_speed = 1.0
+extrapolation = null
+extrapolated = false
+max_extrapolation_time = 0.2
 
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/DefaultPannel/Description" to="." method="_on_description_meta_clicked"]
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/UpdatePanel/Description" to="." method="_on_description_meta_clicked"]

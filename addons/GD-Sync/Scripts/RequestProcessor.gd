@@ -35,6 +35,7 @@ var GDSync
 var connection_controller
 var session_controller
 var data_controller
+var logger
 
 var settings_applied : bool = false
 
@@ -44,6 +45,7 @@ func _ready() -> void:
 	connection_controller = GDSync._connection_controller
 	session_controller = GDSync._session_controller
 	data_controller = GDSync._data_controller
+	logger = GDSync._logger
 
 func has_packets(type : int) -> bool:
 	match(type):
@@ -156,6 +158,9 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 func process_message(request : Array) -> void:
 	var message : int = request[ENUMS.MESSAGE_DATA.TYPE]
 	
+	if OS.is_debug_build() and message != ENUMS.MESSAGE_TYPE.SET_SENDER_ID:
+		logger.write_log("Message received. <"+str(ENUMS.MESSAGE_TYPE.keys()[message])+"><"+str(request)+">")
+	
 	match(message):
 		ENUMS.MESSAGE_TYPE.CRITICAL_ERROR:
 			handle_critical_error(request[ENUMS.MESSAGE_DATA.ERROR])
@@ -215,6 +220,7 @@ func process_message(request : Array) -> void:
 			GDSync.lobby_received.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 
 func handle_critical_error(error : int) -> void:
+	logger.write_error("CRITICAL ERROR. <"+str(ENUMS.CRITICAL_ERROR.keys()[error])+">")
 	match error:
 		ENUMS.CRITICAL_ERROR.LOBBY_DATA_FULL:
 			push_error("
@@ -242,20 +248,26 @@ func handle_critical_error(error : int) -> void:
 			")
 
 func switch_server(ip : String, connect_time : float) -> void:
+	logger.write_log("Server switch requested by server. <"+ip+">")
 	session_controller.lobby_switch_pending = true
 	session_controller.connect_time = connect_time
 	connection_controller.external_lobby_switch(ip)
 
 func set_variable_cached(request : Array) -> void:
-	if !session_controller.has_nodepath_from_index(request[ENUMS.VAR_DATA.NODE_PATH]): return
-	if !session_controller.has_name_from_index(request[ENUMS.VAR_DATA.NAME]): return
+	if !session_controller.has_nodepath_from_index(request[ENUMS.VAR_DATA.NODE_PATH]):
+		logger.write_error("Set variable cached was called but the indexed NodePath was not found. <"+str(request[ENUMS.VAR_DATA.NODE_PATH]+">"))
+		return
+	if !session_controller.has_name_from_index(request[ENUMS.VAR_DATA.NAME]):
+		logger.write_error("Set variable cached was called but the indexed name was not found. <"+str(request[ENUMS.VAR_DATA.NAME])+">")
+		return
+	
 	request[ENUMS.VAR_DATA.NODE_PATH] = session_controller.get_nodepath_from_index(request[ENUMS.VAR_DATA.NODE_PATH])
 	request[ENUMS.VAR_DATA.NAME] = session_controller.get_name_from_index(request[ENUMS.VAR_DATA.NAME])
 	set_variable(request)
 
 func set_variable(request : Array) -> void:
 	var id : String = request[ENUMS.VAR_DATA.NODE_PATH]
-	var propertyName : String = request[ENUMS.VAR_DATA.NAME]
+	var property_name : String = request[ENUMS.VAR_DATA.NAME]
 	
 	var object : Object
 	if session_controller.has_resource_by_reference(id):
@@ -264,27 +276,34 @@ func set_variable(request : Array) -> void:
 		object = get_node_or_null(id)
 	
 	if object == null:
+		logger.write_error("Set variable failed since the target Node or Resource was not found. <"+id+"><"+property_name+">")
 		return
 	if connection_controller.PROTECTED:
-		if !session_controller.object_is_exposed(object) and !session_controller.property_is_exposed(object, propertyName):
-			push_error("Attempted to set a protected property \""+propertyName+"\" on "+id+", please expose it using GDSync.expose_property() or GDSync.expose_node()/GDSync.expose_resource().")
+		if !session_controller.object_is_exposed(object) and !session_controller.property_is_exposed(object, property_name):
+			logger.write_error("Set variable failed since the object or variable was not exposed. <"+id+"><"+property_name+">")
+			push_error("Attempted to set a protected property \""+property_name+"\" on "+id+", please expose it using GDSync.expose_property() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !propertyName in object:
-			push_error("Attempted to set nonexistent property \""+propertyName+"\" on "+id)
+		if !property_name in object:
+			logger.write_error("Set variable failed since the Node or Resource does not contain the specified variable. <"+id+"><"+property_name+">")
+			push_error("Attempted to set nonexistent property \""+property_name+"\" on "+id)
 			return
 	
-	object.set(propertyName, request[ENUMS.VAR_DATA.VALUE])
+	object.set(property_name, request[ENUMS.VAR_DATA.VALUE])
 
 func call_function_cached(request : Array) -> void:
-	if !session_controller.has_nodepath_from_index(request[ENUMS.FUNCTION_DATA.NODE_PATH]): return
-	if !session_controller.has_name_from_index(request[ENUMS.FUNCTION_DATA.NAME]): return
+	if !session_controller.has_nodepath_from_index(request[ENUMS.FUNCTION_DATA.NODE_PATH]):
+		logger.write_error("Call function cached was called but the indexed NodePath was not found. <"+str(request[ENUMS.FUNCTION_DATA.NODE_PATH])+">")
+		return
+	if !session_controller.has_name_from_index(request[ENUMS.FUNCTION_DATA.NAME]):
+		logger.write_error("Call function cached was called but the indexed name was not found. <"+str(request[ENUMS.FUNCTION_DATA.NAME])+">")
+		return
 	request[ENUMS.FUNCTION_DATA.NODE_PATH] = session_controller.get_nodepath_from_index(request[ENUMS.FUNCTION_DATA.NODE_PATH])
 	request[ENUMS.FUNCTION_DATA.NAME] = session_controller.get_name_from_index(request[ENUMS.FUNCTION_DATA.NAME])
 	call_function(request)
 
 func call_function(request : Array) -> void:
 	var id : String = request[ENUMS.FUNCTION_DATA.NODE_PATH]
-	var functionName : String = request[ENUMS.FUNCTION_DATA.NAME]
+	var function_name : String = request[ENUMS.FUNCTION_DATA.NAME]
 	
 	var object : Object
 	if session_controller.has_resource_by_reference(id):
@@ -293,19 +312,22 @@ func call_function(request : Array) -> void:
 		object = get_node_or_null(id)
 	
 	if object == null:
+		logger.write_error("Call function failed since the target Node or Resource was not found. <"+id+"><"+function_name+">")
 		return
 	if connection_controller.PROTECTED:
-		if !session_controller.object_is_exposed(object) and !session_controller.function_is_exposed(object, functionName):
-			push_error("Attempted to call a protected function \""+functionName+"\" on "+id+", please expose it using GDSync.expose_func() or GDSync.expose_node()/GDSync.expose_resource().")
+		if !session_controller.object_is_exposed(object) and !session_controller.function_is_exposed(object, function_name):
+			logger.write_error("Call function failed since the object or variable was not exposed. <"+id+"><"+function_name+">")
+			push_error("Attempted to call a protected function \""+function_name+"\" on "+id+", please expose it using GDSync.expose_func() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !object.has_method(functionName):
-			push_error("Attempted to call nonexistent function \""+functionName+"\" on "+id)
+		if !object.has_method(function_name):
+			logger.write_error("Call function failed since the Node or Resource does not contain the specified variable. <"+id+"><"+function_name+">")
+			push_error("Attempted to call nonexistent function \""+function_name+"\" on "+id)
 			return
 	
 	if request.size()-1 >= ENUMS.FUNCTION_DATA.PARAMETERS:
-		object.callv(functionName, request[ENUMS.FUNCTION_DATA.PARAMETERS])
+		object.callv(function_name, request[ENUMS.FUNCTION_DATA.PARAMETERS])
 	else:
-		object.call(functionName)
+		object.call(function_name)
 
 func set_mc_owner_remote(node_path : String, owner) -> void:
 	if get_tree().current_scene != null:
@@ -324,6 +346,7 @@ func validate_public_key() -> void:
 	]
 	
 	requestsSETUP.append(request)
+	logger.write_log("Validating public key.")
 
 func send_client_id() -> void:
 	var request : Array = [
@@ -349,6 +372,7 @@ func apply_settings() -> void:
 	requestsSERV.append(use_sender_id_request)
 	
 	settings_applied = true
+	logger.write_log("Applying settings.")
 
 func secure_connection() -> void:
 	var request : Array = [
@@ -362,6 +386,7 @@ func secure_connection() -> void:
 	connection_controller.status = ENUMS.CONNECTION_STATUS.CONNECTION_SECURED
 	
 	if session_controller.lobby_switch_pending:
+		logger.write_log("Lobby switch succeeded.")
 		session_controller.lobby_switch_pending = false
 		session_controller.broadcast_player_data()
 		if session_controller.connect_time > 0:
@@ -418,7 +443,7 @@ func create_set_var_request(object : Object, variable_name : String, client_id :
 
 func create_function_call_request(function : Callable, parameters : Array, client_id : int, reliable : bool) -> void:
 	var object : Object = function.get_object()
-	var functionName : String = function.get_method()
+	var function_name : String = function.get_method()
 	var request : Array = []
 	var id : String
 	
@@ -433,23 +458,23 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 	else:
 		return
 	
-	if !connection_controller.is_local() and session_controller.nodepath_is_cached(id) and session_controller.name_is_cached(functionName):
+	if !connection_controller.is_local() and session_controller.nodepath_is_cached(id) and session_controller.name_is_cached(function_name):
 		request = [
 			ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED,
 			session_controller.get_nodepath_index(id),
-			session_controller.get_name_index(functionName),
+			session_controller.get_name_index(function_name),
 			client_id
 		]
 	else:
 		request = [
 			ENUMS.REQUEST_TYPE.CALL_FUNCTION,
 			id,
-			functionName,
+			function_name,
 			client_id
 		]
 		
 		create_nodepath_cache(id)
-		create_name_cache(functionName)
+		create_name_cache(function_name)
 	
 	if parameters.size() > 0:
 		request.append(parameters)
@@ -460,12 +485,14 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 		requestsUDP.append(request)
 
 func create_nodepath_cache(node_path : String) -> void:
+	if connection_controller.is_local(): return
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.CACHE_NODE_PATH,
 		node_path
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Creating NodePath cache. <"+node_path+">")
 
 func create_erase_nodepath_cache_request(index : int) -> void:
 	var request : Array = [
@@ -476,12 +503,14 @@ func create_erase_nodepath_cache_request(index : int) -> void:
 	requestsSERV.append(request)
 
 func create_name_cache(name : String) -> void:
+	if connection_controller.is_local(): return
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.CACHE_NAME,
 		name
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Creating name cache. <"+name+">")
 
 func create_erase_name_cache_request(index : int) -> void:
 	var request : Array = [
@@ -497,6 +526,7 @@ func get_public_lobbies() -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Getting public lobbies.")
 
 func get_public_lobby(lobby_name : String) -> void:
 	var request : Array = [
@@ -505,6 +535,7 @@ func get_public_lobby(lobby_name : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Getting public lobby. <"+str(lobby_name)+">")
 
 func create_new_lobby_request(name : String, password : String, public : bool, playerLimit : int, tags : Dictionary, data : Dictionary) -> void:
 	if var_to_bytes(tags).size() > 2048:
@@ -534,6 +565,7 @@ func create_new_lobby_request(name : String, password : String, public : bool, p
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Create lobby. <"+str(request[1])+">")
 
 func create_join_lobby_request(name : String, password : String) -> void:
 	var request : Array = [
@@ -543,6 +575,7 @@ func create_join_lobby_request(name : String, password : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Join lobby. <"+str(name)+">")
 
 func create_leave_lobby_request() -> void:
 	var request : Array = [
@@ -550,6 +583,7 @@ func create_leave_lobby_request() -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Leave lobby.")
 
 func create_open_lobby_request() -> void:
 	var request : Array = [
@@ -557,6 +591,7 @@ func create_open_lobby_request() -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Opening the lobby.")
 
 func create_close_lobby_request() -> void:
 	var request : Array = [
@@ -564,6 +599,7 @@ func create_close_lobby_request() -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Closing the lobby.")
 
 func create_lobby_visiblity_request(public : bool) -> void:
 	var request : Array = [
@@ -572,6 +608,7 @@ func create_lobby_visiblity_request(public : bool) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Changing lobby visibility. <"+str(public)+">")
 
 func create_change_lobby_password_request(password : String) -> void:
 	var request : Array = [
@@ -580,6 +617,7 @@ func create_change_lobby_password_request(password : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Changing lobby password. <"+str(password)+">")
 
 func create_set_username_request(name : String) -> void:
 	var request : Array = [
@@ -588,6 +626,7 @@ func create_set_username_request(name : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Setting username. <"+str(name)+">")
 
 func create_set_player_data_request(name : String, value) -> void:
 	var request : Array = [
@@ -597,6 +636,7 @@ func create_set_player_data_request(name : String, value) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Setting player data. <"+str(name)+"><"+str(value)+">")
 
 func create_erase_player_data_request(name : String) -> void:
 	var request : Array = [
@@ -605,6 +645,7 @@ func create_erase_player_data_request(name : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Erasing player data. <"+str(name)+">")
 
 func create_set_lobby_tag_request(name : String, value) -> void:
 	var request : Array = [
@@ -614,6 +655,7 @@ func create_set_lobby_tag_request(name : String, value) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Setting lobby tag. <"+str(name)+"><"+str(value)+">")
 
 func create_erase_lobby_tag_request(name : String) -> void:
 	var request : Array = [
@@ -622,6 +664,7 @@ func create_erase_lobby_tag_request(name : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Erasing lobby tag. <"+str(name)+">")
 
 func create_set_lobby_data_request(name : String, value) -> void:
 	var request : Array = [
@@ -631,6 +674,7 @@ func create_set_lobby_data_request(name : String, value) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Setting lobby data. <"+str(name)+"><"+str(value)+">")
 
 func create_erase_lobby_data_request(name : String) -> void:
 	var request : Array = [
@@ -639,6 +683,7 @@ func create_erase_lobby_data_request(name : String) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Erasing lobby data. <"+str(name)+">")
 
 func set_gdsync_owner(node : Node, owner) -> void:
 	var request : Array = [
@@ -648,6 +693,7 @@ func set_gdsync_owner(node : Node, owner) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Setting ownership. <"+str(node.get_path())+"><"+str(owner)+">")
 
 func set_connect_time(connect_time : float) -> void:
 	var request : Array = [
@@ -664,3 +710,4 @@ func kick_player(client_id : int) -> void:
 	]
 	
 	requestsSERV.append(request)
+	logger.write_log("Kicking player. <"+str(client_id)+">")

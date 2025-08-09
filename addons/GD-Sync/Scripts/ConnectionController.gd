@@ -28,6 +28,7 @@ var GDSync
 var request_processor
 var https_controller
 var local_server
+var logger
 
 const API_VERSION : int = 2
 
@@ -63,10 +64,13 @@ var load_balancers : PackedStringArray = [
 func _ready() -> void:
 	name = "ConnectionController"
 	process_priority = -1000
+	
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
 	https_controller = GDSync._https_controller
 	local_server = GDSync._local_server
+	logger = GDSync._logger
+	
 	lb_request = HTTPRequest.new()
 	add_child(lb_request)
 	lb_request.timeout = 4.0
@@ -87,6 +91,7 @@ func _ready() -> void:
 		USE_SENDER_ID = ProjectSettings.get_setting("GD-Sync/useSenderID")
 	
 	if _PUBLIC_KEY == "" || _PRIVATE_KEY == "":
+		logger.write_log("Incorrect public/private key. <"+_PUBLIC_KEY+"> <"+_PRIVATE_KEY+">")
 		push_error("
 		No Public or Private key was entered in the GD-Sync setttings. 
 		Please add one under Project->Tools->GD-Sync."
@@ -127,12 +132,16 @@ func reset_multiplayer() -> void:
 	if emit_disconnect: GDSync.disconnected.emit()
 
 func start_multiplayer() -> void:
-	if status != ENUMS.CONNECTION_STATUS.DISABLED: return
+	logger.write_log("Starting multiplayer.")
+	if status != ENUMS.CONNECTION_STATUS.DISABLED:
+		logger.write_error("Multiplayer has already been started.")
+		return
+	
 	reset_multiplayer()
 	status = ENUMS.CONNECTION_STATUS.FINDING_LB
-	
 	last_poll = Time.get_unix_time_from_system()
 	
+	logger.write_log("Requesting servers from load balancers.")
 	var load_balancers : Array = self.load_balancers.duplicate()
 	load_balancers.shuffle()
 	while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
@@ -140,6 +149,8 @@ func start_multiplayer() -> void:
 		var complete_url : String = "https://"+address
 		https_controller.active_lb = complete_url
 		load_balancers.erase(address)
+		logger.write_log("Requesting servers from "+address)
+		
 		lb_request.request(
 			complete_url+"/connect",
 			[],
@@ -149,10 +160,12 @@ func start_multiplayer() -> void:
 		lb_request.cancel_request()
 	
 	if status == ENUMS.CONNECTION_STATUS.FINDING_LB:
+		logger.write_error("No response from load balancers.")
 		reset_multiplayer()
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 
 func start_local_multiplayer() -> void:
+	logger.write_log("Starting local multiplayer.")
 	if status != ENUMS.CONNECTION_STATUS.DISABLED: return
 	reset_multiplayer()
 	status = ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION
@@ -160,29 +173,43 @@ func start_local_multiplayer() -> void:
 	var rng : RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
 	client_id = abs(rng.randi())
+	logger.write_log("Local client id generated. <"+str(client_id)+">")
 	
 	if local_server.start_local_peer():
+		logger.write_log("Local multiplayer started.")
 		GDSync.client_id_changed.emit.call_deferred(client_id)
 		GDSync.connected.emit.call_deferred()
 	else:
+		logger.write_error("Local multiplayer failed to start, port is in use.")
 		reset_multiplayer()
 		GDSync.connection_failed.emit.call_deferred(ENUMS.CONNECTION_FAILED.LOCAL_PORT_ERROR)
 
 func stop_multiplayer() -> void:
+	logger.write_log("Stopping multiplayer.")
 	reset_multiplayer()
 
 func lb_request_completed(result, response_code, headers, body : PackedByteArray) -> void:
+	logger.write_log("Load balancer completed. <"+str(response_code)+">")
+	
 	if status != ENUMS.CONNECTION_STATUS.FINDING_LB: return
 	if response_code == 401:
+		logger.write_error("Load balancer request failed, incorrect public key. <"+_PUBLIC_KEY+">")
+		
 		reset_multiplayer()
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.INVALID_PUBLIC_KEY)
 		return
 	if response_code != 200:
+		logger.write_error("Load balancer request failed. <"+str(response_code)+">")
 		return
+	
+	logger.write_log("Decoding received servers.")
 	var servers : Array = str_to_var(body.get_string_from_ascii())
+	logger.write_log("Received servers decoded. <"+str(servers)+">")
 	
 	if servers.size() == 0:
+		logger.write_error("Load balancer request did not return any servers.")
 		return
+	
 	status = ENUMS.CONNECTION_STATUS.PINGING_SERVERS
 	var serverPings : Dictionary = {}
 	
@@ -191,10 +218,12 @@ func lb_request_completed(result, response_code, headers, body : PackedByteArray
 	find_best_server(serverPings)
 
 func ping_game_servers(servers : Array, serverPings : Dictionary) -> void:
+	logger.write_log("Pinging game servers. <"+str(servers)+">")
 	for server in servers:
 		ping_game_server(server, serverPings)
 
 func ping_game_server(server : String, serverPings : Dictionary) -> void:
+	logger.write_log("Pining game server. <"+server+">")
 	var peer : PacketPeerUDP = PacketPeerUDP.new()
 	peer.connect_to_host(server, 8081)
 	await get_tree().create_timer(0.1).timeout
@@ -216,13 +245,17 @@ func listen_for_pings(peer, server, serverPings) -> void:
 		while peer.get_available_packet_count() > 0:
 			totalPing += Time.get_ticks_msec()-peer.get_var()
 			pings += 1
+			logger.write_log("Ping received. <"+server+">")
 		await get_tree().create_timer(0.02).timeout
 	
 	if pings > 0:
 		serverPings[totalPing/pings] = server
 
 func find_best_server(serverPings : Dictionary) -> void:
+	logger.write_log("Finding best server <"+str(serverPings)+">")
+	
 	if serverPings.size() == 0:
+		logger.write_error("No pings received from any server.")
 		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 		reset_multiplayer()
 		return
@@ -233,6 +266,7 @@ func find_best_server(serverPings : Dictionary) -> void:
 	connect_to_server(serverPings[lowestPing])
 
 func connect_to_server(server : String) -> void:
+	logger.write_log("Connecting to server. <"+server+">")
 	if OS.has_feature("web"):
 		client.create_client("ws://"+server+":8090")
 	else:
@@ -249,6 +283,7 @@ func connect_to_server(server : String) -> void:
 		if status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return
 		if current_i == connection_i:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTING:
+				logger.write_log("Connection timeout, server did not respond.")
 				GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 			reset_multiplayer()
 	else:
@@ -258,18 +293,22 @@ func connect_to_server(server : String) -> void:
 		connect_to_server(server_ip)
 
 func connect_to_local_server(server : String) -> int:
+	logger.write_log("Connecting to local server. <"+server+">")
+	
 	client.close()
 	return client.create_client(server, 8080)
 
 func external_lobby_switch(server : String) -> void:
+	logger.write_log("External lobby switch to another server. <"+server+">")
 	status = ENUMS.CONNECTION_STATUS.LOBBY_SWITCH
 	reset_multiplayer()
 	connect_to_server(server)
 
 func _process(delta) -> void:
-	if status == ENUMS.CONNECTION_STATUS.CONNECTED:
+	if status >= ENUMS.CONNECTION_STATUS.CONNECTED and !is_local():
 		var current_time : float = Time.get_unix_time_from_system()
 		if current_time - last_poll >= 5:
+			logger.write_error("Client did not poll for over 5 seconds, disconnect.")
 			reset_multiplayer()
 		last_poll = current_time
 	
@@ -278,7 +317,9 @@ func _process(delta) -> void:
 			if is_local():
 				pass
 			else:
-				if status >= ENUMS.CONNECTION_STATUS.CONNECTED: reset_multiplayer()
+				if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
+					logger.write_error("MultiplayerPeer lost its connection.")
+					reset_multiplayer()
 		MultiplayerPeer.CONNECTION_CONNECTING:
 			client.poll()
 		MultiplayerPeer.CONNECTION_CONNECTED:
@@ -306,13 +347,16 @@ func _process(delta) -> void:
 				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
 
 func set_client_id(client_id : int) -> void:
+	logger.write_log("Client id received from server. <"+str(client_id)+">")
 	self.client_id = client_id
 	GDSync.client_id_changed.emit(client_id)
 	status = ENUMS.CONNECTION_STATUS.CONNECTED
 	request_processor.validate_public_key()
 
 func set_client_key(client_key) -> void:
+	logger.write_log("Client key received from server. <"+str(client_key)+">")
 	if client_key == null:
+		logger.write_error("Client key was empty.")
 		reset_multiplayer()
 		GDSync.emit_signal("connection_failed", ENUMS.CONNECTION_FAILED.INVALID_PUBLIC_KEY)
 		return
@@ -335,5 +379,6 @@ func refresh_decryptor() -> void:
 	decryptor.start(AESContext.MODE_CBC_DECRYPT, cbc_key, cbc_iv)
 
 func set_host(host : int) -> void:
+	logger.write_log("Host changed. <"+str(host)+">")
 	self.host = host
 	get_parent().emit_signal("host_changed", host == GDSync.get_client_id(), host)

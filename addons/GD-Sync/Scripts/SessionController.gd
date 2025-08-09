@@ -282,8 +282,6 @@ func erase_resource_reference(resource : Resource) -> void:
 		reference_resource_cache.erase(id)
 
 func has_resource_reference(resource : Resource) -> bool:
-	print(resource_reference_cache)
-	print(reference_resource_cache)
 	return resource_reference_cache.has(resource)
 
 func get_resource_reference(resource : Resource) -> String:

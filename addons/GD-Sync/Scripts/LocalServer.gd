@@ -31,6 +31,7 @@ var GDSync
 var connection_controller
 var request_processor
 var session_controller
+var logger
 
 var local_lobby_name : String = ""
 var local_lobby_password : String = ""
@@ -78,6 +79,7 @@ func _ready() -> void:
 	connection_controller = GDSync._connection_controller
 	request_processor = GDSync._request_processor
 	session_controller = GDSync._session_controller
+	logger = GDSync._logger
 	
 	local_server.peer_connected.connect(peer_connected)
 	local_server.peer_disconnected.connect(peer_disconnected)
@@ -89,6 +91,7 @@ func _ready() -> void:
 	set_process(false)
 
 func reset_multiplayer() -> void:
+	logger.write_log("Closing local multiplayer.", "[LocalServer]")
 	local_peer.close()
 	local_lobby_timer.stop()
 	set_process(false)
@@ -98,6 +101,7 @@ func reset_multiplayer() -> void:
 	clear_lobby_data()
 
 func clear_lobby_data() -> void:
+	logger.write_log("Clear lobby data.", "[LocalServer]")
 	local_lobby_name = ""
 	local_lobby_password = ""
 	
@@ -109,14 +113,19 @@ func clear_lobby_data() -> void:
 	local_server.close()
 
 func start_local_peer() -> bool:
+	logger.write_log("Starting local peer.", "[LocalServer]")
 	for port in range(min_port_range, max_port_range):
 		var bind_error : int = local_peer.bind(port)
 		if bind_error == OK:
+			logger.write_log("Local peer binded to port. <"+str(port)+">", "[LocalServer]")
 			local_lobby_timer.start()
 			return true
+	
+	logger.write_error("Local peer war unable to bind to a port.", "[LocalServer]")
 	return false
 
 func create_local_lobby(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
+	logger.write_log("Creating local lobby.", "[LocalServer]")
 	var result : int = -1
 	
 	local_peer.set_broadcast_enabled(true)
@@ -148,8 +157,11 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 		GDSync.lobby_creation_failed.emit.call_deferred(name, result)
 
 func join_lobby(name : String, password : String) -> void:
+	logger.write_log("Joining local lobby. <"+name+">", "[LocalServer]")
+	
 	var tries : int = 0
 	while !found_lobbies.has(name) and tries < 5:
+		logger.write_error("Local lobby not found. <"+name+">", "[LocalServer]")
 		tries += 1
 		await get_tree().create_timer(1.0).timeout
 	
@@ -158,10 +170,13 @@ func join_lobby(name : String, password : String) -> void:
 		var connect_err : int = connection_controller.connect_to_local_server(lobby_data["IP"])
 		
 		if connect_err == OK:
+			logger.write_log("Connected to local lobby host.", "[LocalServer]")
 			request_processor.send_client_id()
 			session_controller.broadcast_player_data()
 			request_processor.create_join_lobby_request(name, password)
 			return
+		else:
+			logger.write_error("Unable to connect to discovered lobby. <"+str(lobby_data["IP"])+">", "[LocalServer]")
 	
 	GDSync.lobby_join_failed.emit.call_deferred(name, ENUMS.LOBBY_JOIN_ERROR.LOBBY_DOES_NOT_EXIST)
 
@@ -191,6 +206,8 @@ func perform_local_scan() -> void:
 		
 		if server_ip != '' and port > 0:
 			var lobby_data : Dictionary = bytes_to_var(bytes)
+			if !found_lobbies.has(lobby_data["Name"]):
+				logger.write_log("Discovered local lobby. <"+server_ip+"><"+lobby_data["Name"]+">", "[LocalServer]")
 			lobby_data["IP"] = server_ip
 			lobby_data["DetectionTime"] = Time.get_unix_time_from_system()
 			found_lobbies[lobby_data["Name"]] = lobby_data
@@ -199,6 +216,7 @@ func perform_local_scan() -> void:
 		if !lobby_data.has("DetectionTime"): continue
 		if Time.get_unix_time_from_system() - lobby_data["DetectionTime"] > 2.0:
 			found_lobbies.erase(lobby_data["Name"])
+			logger.write_log("Local lobby lost. <"+lobby_data["Name"]+">", "[LocalServer]")
 	
 	if local_lobby_name != "":
 		for port in range(min_port_range, max_port_range):
@@ -210,12 +228,14 @@ func is_local_server() -> bool:
 	return local_lobby_name != ""
 
 func peer_connected(id : int) -> void:
+	logger.write_log("Peer connected.", "[LocalServer]")
 	var client : Client = Client.new()
 	client.peer = local_server.get_peer(id)
 	client.peer_id = id
 	peer_client_table[id] = client
 
 func peer_disconnected(id : int) -> void:
+	logger.write_log("Peer disconnected.", "[LocalServer]")
 	if peer_client_table.has(id):
 		var client : Client = peer_client_table[id]
 		leave_lobby_request(client)
@@ -223,6 +243,7 @@ func peer_disconnected(id : int) -> void:
 func _process(delta: float) -> void:
 	match(local_server.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
+			logger.write_log("Peer lost its connection.", "[LocalServer]")
 			connection_controller.reset_multiplayer()
 		MultiplayerPeer.CONNECTION_CONNECTING:
 			local_server.poll()
@@ -253,6 +274,7 @@ func _process(delta: float) -> void:
 				if message.has(ENUMS.PACKET_VALUE.SERVER_REQUESTS):
 					for request in message[ENUMS.PACKET_VALUE.SERVER_REQUESTS]:
 						var request_type : int = request[ENUMS.DATA.REQUEST_TYPE]
+						logger.write_log("Received server request. <"+str(from.client_id)+"><"+str(ENUMS.REQUEST_TYPE.keys()[request_type])+"><"+str(request)+">", "[LocalServer]")
 						match(request_type):
 							ENUMS.REQUEST_TYPE.SET_CLIENT_ID:
 								from.client_id = request[ENUMS.DATA.NAME]
@@ -396,6 +418,7 @@ func join_lobby_request(from : Client, request : Array) -> void:
 		send_message(ENUMS.MESSAGE_TYPE.SET_MC_OWNER, from, node_path, local_owner_cache[node_path])
 
 func leave_lobby_request(from : Client) -> void:
+	logger.write_log(" <"+str(from.client_id)+">", "[LocalServer]")
 	if lobby_client_table.has(from.client_id):
 		lobby_client_table.erase(from.client_id)
 		

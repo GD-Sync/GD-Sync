@@ -99,6 +99,8 @@ func _on_sender_id_toggled(button_pressed):
 	ProjectSettings.save()
 
 func _on_description_meta_clicked(meta):
+	if meta == "log":
+		meta = OS.get_user_data_dir()+"/GD-Sync/logs"
 	OS.shell_open(meta)
 
 func _on_update_button_pressed() -> void:

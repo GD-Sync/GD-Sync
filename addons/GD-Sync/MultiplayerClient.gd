@@ -181,6 +181,7 @@ var _data_controller
 var _node_tracker
 var _local_server
 var _steam
+var _logger
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
@@ -191,6 +192,7 @@ func _init():
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
 	_local_server = preload("res://addons/GD-Sync/Scripts/LocalServer.gd").new()
 	_steam = preload("res://addons/GD-Sync/Scripts/Steam.gd").new()
+	_logger = preload("res://addons/GD-Sync/Scripts/Logger.gd").new()
 
 func _ready():
 	add_child(_request_processor)
@@ -201,6 +203,7 @@ func _ready():
 	add_child(_node_tracker)
 	add_child(_local_server)
 	add_child(_steam)
+	add_child(_logger)
 
 
 
@@ -292,7 +295,7 @@ func sync_var(object : Object, variable_name : String, reliable : bool = true) -
 func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
 
-## Calls a function on a Node on all other clients in the current lobby.
+## Calls a function on a Node on all other clients in the current lobby, excluding yourself.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
@@ -316,6 +319,19 @@ func call_func(callable : Callable, parameters : Array = [], reliable : bool = t
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func_on(client_id : int, callable : Callable, parameters : Array = [], reliable  : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
+
+## Calls a function on a Node on all clients in the current lobby, including yourself.
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
+## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
+## This may introduce more latency. Use unreliable if the function call is non-essential.
+func call_func_all(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
+	callable.call(parameters)
+	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
 
 ## Instantiates a Node on all clients in the current lobby.
 ## [br]
