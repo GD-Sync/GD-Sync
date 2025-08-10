@@ -403,8 +403,13 @@ func create_set_var_request(object : Object, variable_name : String, client_id :
 	
 	if object is Node:
 		id = String(object.get_path())
+		
+		for i in range(10):
+			if object.has_meta("PauseSync"):
+				await get_tree().process_frame
 	elif object is RefCounted:
 		if !session_controller.has_resource_reference(object):
+			logger.write_error("Creating set variable request failed, the Resource was not registered. <"+str(object)+"><"+variable_name+">")
 			push_error("Resource must be registered using GDSync.register_resource()")
 			return
 		
@@ -449,8 +454,13 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 	
 	if object is Node:
 		id = String(object.get_path())
+		
+		for i in range(10):
+			if object.has_meta("PauseSync"):
+				await get_tree().process_frame
 	elif object is RefCounted:
 		if !session_controller.has_resource_reference(object):
+			logger.write_error("Creating call function request failed, the Resource was not registered. <"+str(object)+"><"+function_name+">")
 			push_error("Resource must be registered using GDSync.register_resource()")
 			return
 		
