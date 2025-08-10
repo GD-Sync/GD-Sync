@@ -28,6 +28,7 @@ var INSTANTIATOR_SCENE : GDScript = load("res://addons/GD-Sync/Scripts/Types/Nod
 
 var GDSync
 var request_processor
+var logger
 
 var replication_cache : Dictionary = {}
 var replication_settings : Dictionary = {}
@@ -39,6 +40,7 @@ func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
+	logger = GDSync._logger
 	
 	root_instantiator = INSTANTIATOR_SCENE.new()
 	root_instantiator.spawn_type = 1
@@ -80,6 +82,8 @@ func broadcast_replication(client_id : int) -> void:
 func create_replication_requests(client_id : int, instantiator_path : String, nodes_to_replicate : Array) -> void:
 	var settings : Array = replication_settings[instantiator_path]
 	
+	logger.write_log("Creating remote replication requests. <"+str(client_id)+"><"+str(instantiator_path)+"><"+str(settings)+">", "[NodeTracker]")
+	
 	var sync_starting_changes : bool = settings[ENUMS.NODE_REPLICATION_SETTINGS.SYNC_STARTING_CHANGES]
 	var original_properties : Dictionary = settings[ENUMS.NODE_REPLICATION_SETTINGS.ORIGINAL_PROPERTIES]
 	var excluded_properties : PackedStringArray = settings[ENUMS.NODE_REPLICATION_SETTINGS.EXCLUDED_PROPERTIES]
@@ -90,8 +94,12 @@ func create_replication_requests(client_id : int, instantiator_path : String, no
 	while nodes_to_replicate.size() > 0 and replication_counter < 32:
 		var node : Node = nodes_to_replicate.pop_front()
 		replication_counter += 1
-		if !is_instance_valid(node): continue
-		if !node.is_inside_tree(): continue
+		if !is_instance_valid(node):
+			logger.write_error("Failed to create remote replication request, Node was invalid. <"+str(client_id)+"><"+str(instantiator_path)+">", "[NodeTracker]")
+			continue
+		if !node.is_inside_tree():
+			logger.write_error("Failed to create remote replication request, Node is not inside the tree. <"+str(client_id)+"><"+str(instantiator_path)+">", "[NodeTracker]")
+			continue
 		
 		var id : int = node.get_meta("GDID")
 		var changed_properties : Dictionary = {}
@@ -125,14 +133,18 @@ func replicate_remote(settings : Array, replication_data : Array) -> void:
 	var instantiator : Node = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.INSTANTIATOR])
 	var target : Node = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.TARGET])
 	
-	if target == null: return
+	if target == null:
+		logger.write_error("Remote replication failed, target Node was not found. <"+str(settings)+">", "[NodeTracker]")
+		return
 	if instantiator == null:
+		logger.write_log("Remote replication did not find the target Instantiator, falling back to the root Instantiator. <"+str(settings)+">", "[NodeTracker]")
 		var scene : PackedScene = load(settings[ENUMS.NODE_REPLICATION_SETTINGS.SCENE])
 		root_instantiator.scene = scene
 		root_instantiator.target = target
 		root_instantiator.replicate_settings = settings
 		instantiator = root_instantiator
 	
+	logger.write_log("Replicating Nodes. <"+str(settings)+"><"+str(replication_data)+">", "[NodeTracker]")
 	for node_replication_data in replication_data:
 		instantiator._instantiate_remote(
 			node_replication_data[ENUMS.NODE_REPLICATION_DATA.ID],
@@ -165,8 +177,11 @@ func multiplayer_instantiate(
 		str(scene.resource_path, sync_starting_changes, excluded_properties, replicate_on_join
 	))
 	
+	logger.write_log("Multiplayer Instantiate. <"+settings_key+">", "[NodeTracker]")
+	
 	var instantiator : Node
 	if !instantiator_lib.has(settings_key):
+		logger.write_log("Creating Instantiator.", "[NodeTracker]")
 		instantiator = INSTANTIATOR_SCENE.new()
 		instantiator.spawn_type = 1
 		instantiator.scene = scene
@@ -187,6 +202,7 @@ func multiplayer_instantiate(
 		])
 	else:
 		instantiator = instantiator_lib[settings_key]
+		logger.write_log("Using existing Instantiator.", "[NodeTracker]")
 	
 	instantiator.target = parent
 	instantiator.target_path = str(parent.get_path())
@@ -207,15 +223,19 @@ func create_instantiator_remote(
 	var parent : Node = get_node_or_null(parent_path)
 	
 	if scene == null:
+		logger.write_error("Failed to create remote Instaniator, invalid scene path. <"+scene_path+">", "[NodeTracker]")
 		push_error("Remote instantiate failed, invalid scene path.")
 		return
 	if parent == null:
-		push_error("Remote instantiate failed, parent node not found")
+		logger.write_error("Failed to create remote Instantiator, parent Node not found. <"+str(parent_path)+">", "[NodeTracker]")
+		push_error("Remote instantiate failed, parent Node not found")
 		return
 	
 	var settings_key : StringName = StringName(
 		str(scene_path, sync_starting_changes, excluded_properties, replicate_on_join
 	))
+	
+	logger.write_log("Created remote Instaniator. <"+settings_key+">", "[NodeTracker]")
 	
 	if !instantiator_lib.has(settings_key):
 		var instantiator : Node = INSTANTIATOR_SCENE.new()
