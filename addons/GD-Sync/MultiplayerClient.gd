@@ -254,6 +254,11 @@ func _manual_connect(address : String) -> void:
 func get_client_id() -> int:
 	return _connection_controller.client_id
 
+## Measures and returns the ping between this and another client. Useful to know how much latency there is between clients.
+## If the returned float is -1, the ping calculation failed.
+func get_client_ping(client_id : int) -> float:
+	return await _session_controller.get_ping(client_id)
+
 ## Returns the Client ID of the last client to perform a remote function call on this client.
 ## Useful for knowing where a remote function call came from.
 ## Returns -1 if nobody performed a remote function call yet.

@@ -59,6 +59,8 @@ var events : Array[Dictionary] = []
 var active_scene_change : String = ""
 var scene_ready_list : Array[int] = []
 
+var ping_sessions : Dictionary = {}
+
 func _ready() -> void:
 	name = "SessionController"
 	GDSync = get_node("/root/GDSync")
@@ -72,6 +74,8 @@ func _ready() -> void:
 	GDSync.expose_func(mark_scene_ready)
 	GDSync.expose_func(switch_scene_success)
 	GDSync.expose_func(switch_scene_failed)
+	GDSync.expose_func(ping_send)
+	GDSync.expose_func(ping_return)
 	
 	GDSync.client_joined.connect(client_joined)
 	GDSync.client_left.connect(client_left)
@@ -587,3 +591,36 @@ func instantiate_threaded(tree : SceneTree, packed_scene : PackedScene) -> Node:
 		await tree.create_timer(0.02).timeout
 	
 	return thread.wait_to_finish()
+
+func get_ping(client_id : int) -> float:
+	var rng : RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.randomize()
+	var session_id : int = rng.randi()
+	
+	var session_data : Dictionary = {"ping" : 0.0, "count" : 0}
+	ping_sessions[session_id] = session_data
+	
+	for i in range(5):
+		var time : float = Time.get_ticks_msec()/1000.0
+		GDSync.call_func_on(client_id, ping_send, [GDSync.get_client_id(), session_id, time])
+		await get_tree().create_timer(0.02).timeout
+	
+	for i in range(5):
+		await get_tree().create_timer(0.1).timeout
+		if session_data["count"] == 5: break
+	
+	ping_sessions.erase(session_id)
+	if session_data["count"] == 0:
+		return -1
+	else:
+		return session_data["ping"]/float(session_data["count"])
+
+func ping_send(origin_client : int, session_id : int, time : float) -> void:
+	GDSync.call_func_on(origin_client, ping_return, [session_id, time])
+
+func ping_return(session_id : int, time : float) -> void:
+	if !ping_sessions.has(session_id): return
+	var ping : float = Time.get_ticks_msec()/1000.0 - time
+	var session_data : Dictionary = ping_sessions[session_id]
+	session_data["count"] = session_data["count"] + 1
+	session_data["ping"] = session_data["ping"] + ping
