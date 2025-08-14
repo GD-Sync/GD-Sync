@@ -171,6 +171,7 @@ func join_lobby(name : String, password : String) -> void:
 		
 		if connect_err == OK:
 			logger.write_log("Connected to local lobby host.", "[LocalServer]")
+			connection_controller.in_local_lobby = true
 			request_processor.send_client_id()
 			session_controller.broadcast_player_data()
 			request_processor.create_join_lobby_request(name, password)
@@ -316,7 +317,7 @@ func broadcast_request(request : Array, from : Client, reliable : bool) -> void:
 	
 	var peers : Array = get_target_peers(request, from)
 	for client in peers:
-		set_sender_id(from, client, reliable)
+		if connection_controller.USE_SENDER_ID: set_sender_id(from, client, reliable)
 		put_request(request, client, reliable)
 
 func get_target_peers(request : Array, from : Client) -> Array:

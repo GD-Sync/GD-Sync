@@ -45,6 +45,7 @@ var host : int = -1
 var connecting : bool = false
 var connection_i : int = 0
 var last_poll : float = 0.0
+var in_local_lobby : bool = false
 
 var server_ip : String = ""
 var encryptor : AESContext = AESContext.new()
@@ -128,6 +129,7 @@ func reset_multiplayer() -> void:
 	status = ENUMS.CONNECTION_STATUS.DISABLED
 	client_id = -1
 	host = -1
+	in_local_lobby = false
 	
 	if emit_disconnect: GDSync.disconnected.emit()
 
@@ -314,9 +316,7 @@ func _process(delta) -> void:
 	
 	match(client.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
-			if is_local():
-				pass
-			else:
+			if !is_local() or in_local_lobby:
 				if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
 					logger.write_error("MultiplayerPeer lost its connection.")
 					reset_multiplayer()
