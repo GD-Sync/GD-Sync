@@ -34,11 +34,10 @@ func synchronize(forced : bool = true, force_reliable : bool = false) -> void:
 	for property_name in _property_lookup:
 		var property_data : Dictionary = _property_lookup[property_name]
 		var new_property = node.get(property_name)
-		if !forced and new_property == property_data["TargetValue"]: continue
-		property_data["TargetValue"] = new_property
-		GDSync.call_func(_sync_received, [property_name, new_property, GDSync.get_multiplayer_time()], reliable || force_reliable)
+		if _check_property_changed(property_data, new_property):
+			GDSync.call_func(_sync_received, [property_name, new_property, GDSync.get_multiplayer_time()], reliable || force_reliable)
 
-## Temporarily pauses interpolation for [param seconds].
+## Temporarily pauses interpolation for [param seconds]. Useful when teleporting a Node from one spot to another to prevent it from gliding there.
 func pause_interpolation(seconds : float) -> void:
 	_pause_interpolation_remote(seconds)
 	GDSync.call_func(_pause_interpolation_remote, [seconds])
@@ -239,6 +238,23 @@ func _check_property_states(delta : float) -> void:
 	else:
 		if interpolated: _interpolate(delta)
 		if extrapolated: _extrapolate(delta)
+
+func _check_property_changed(property_data : Dictionary, new_property) -> bool:
+	if property_data["Type"] == TYPE_DICTIONARY:
+		if property_data["TargetValue"] == null or !new_property.recursive_equal(property_data["TargetValue"], 5):
+			property_data["TargetValue"] = new_property.duplicate(true)
+			return true
+	
+	if property_data["Type"] == TYPE_ARRAY:
+		if new_property != property_data["TargetValue"]:
+			property_data["TargetValue"] = new_property.duplicate(true)
+			return true
+	
+	if new_property != property_data["TargetValue"]:
+		property_data["TargetValue"] = new_property
+		return true
+	
+	return false
 
 func _may_synchronize(delta : float) -> bool:
 	_current_cooldown -= delta
