@@ -218,6 +218,10 @@ func process_message(request : Array) -> void:
 			GDSync.lobby_leave()
 		ENUMS.MESSAGE_TYPE.LOBBY_RECEIVED:
 			GDSync.lobby_received.emit(request[ENUMS.MESSAGE_DATA.VALUE])
+		ENUMS.MESSAGE_TYPE.LOBBY_NAME_CHANGED:
+			GDSync.lobby_name_changed.emit(request[ENUMS.MESSAGE_DATA.VALUE])
+		ENUMS.MESSAGE_TYPE.LOBBY_NAME_CHANGE_FAILED:
+			GDSync.lobby_name_change_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
 
 func handle_critical_error(error : int) -> void:
 	logger.write_error("CRITICAL ERROR. <"+str(ENUMS.CRITICAL_ERROR.keys()[error])+">")
@@ -628,6 +632,24 @@ func create_change_lobby_password_request(password : String) -> void:
 	
 	requestsSERV.append(request)
 	logger.write_log("Changing lobby password. <"+str(password)+">")
+
+func create_lobby_name_change_request(name : String) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.CHANGE_LOBBY_NAME,
+		name
+	]
+	
+	requestsSERV.append(request)
+	logger.write_log("Changing lobby name. <"+str(name)+">")
+
+func create_set_host_request(client_id : int) -> void:
+	var request : Array = [
+		ENUMS.REQUEST_TYPE.SET_HOST,
+		client_id
+	]
+	
+	requestsSERV.append(request)
+	logger.write_log("Changing lobby host. <"+str(client_id)+">")
 
 func create_set_username_request(name : String) -> void:
 	var request : Array = [

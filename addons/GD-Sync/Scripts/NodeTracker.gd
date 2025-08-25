@@ -48,6 +48,7 @@ func _ready() -> void:
 	
 	GDSync.expose_func(replicate_remote)
 	GDSync.expose_func(create_instantiator_remote)
+	GDSync.expose_func(multiplayer_queue_free_remote)
 	GDSync.client_joined.connect(client_joined)
 
 func lobby_left() -> void:
@@ -251,3 +252,19 @@ func create_instantiator_remote(
 		instantiator.target_path = str(parent.get_path())
 		
 		instantiator_lib[settings_key] = instantiator
+
+func multiplayer_queue_free(node : Node) -> void:
+	if !is_instance_valid(node) || !node.is_inside_tree(): return
+	node.queue_free()
+	
+	logger.write_log("Creating remote free request. <"+str(node.get_path())+">", "[NodeTracker]")
+	GDSync.call_func(multiplayer_queue_free_remote, [node.get_path()])
+
+func multiplayer_queue_free_remote(node_path : NodePath) -> void:
+	var node : Node = get_node_or_null(node_path)
+	if node == null:
+		logger.write_error("Failed to remotely free, Node not found. <"+str(node_path)+">", "[NodeTracker]")
+		return
+	
+	logger.write_log("Remotely freed Node. <"+str(node_path)+">", "[NodeTracker]")
+	node.queue_free()

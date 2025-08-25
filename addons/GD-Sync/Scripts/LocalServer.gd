@@ -307,6 +307,10 @@ func _process(delta: float) -> void:
 								erase_player_data_request(from, request)
 							ENUMS.REQUEST_TYPE.KICK_PLAYER:
 								kick_player(from, request)
+							ENUMS.REQUEST_TYPE.CHANGE_PASSWORD:
+								change_password(from, request)
+							ENUMS.REQUEST_TYPE.CHANGE_LOBBY_NAME:
+								change_lobby_name(from, request)
 				
 				if message.has(ENUMS.PACKET_VALUE.CLIENT_REQUESTS):
 					for request in message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]:
@@ -539,7 +543,21 @@ func kick_player(from : Client, request : Array) -> void:
 	var kicked_client : Client = lobby_client_table.get(client_id, null)
 	if kicked_client == null: return
 	
-	
+	lobby_client_table.erase(client_id)
+	send_message(ENUMS.MESSAGE_TYPE.KICKED, kicked_client)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	kicked_client.peer.peer_disconnect()
+
+func change_password(from : Client, request : Array) -> void:
+	if(from.client_id != GDSync.get_client_id()): return
+	var password : String = request[ENUMS.DATA.NAME]
+	local_lobby_password = password
+
+func change_lobby_name(from : Client, request : Array) -> void:
+	if(from.client_id != GDSync.get_client_id()): return
+	var name : String = request[ENUMS.DATA.NAME]
+	local_lobby_name = name
 
 func get_lobby_dictionary(with_data : bool = false) -> Dictionary:
 	var dict : Dictionary = {

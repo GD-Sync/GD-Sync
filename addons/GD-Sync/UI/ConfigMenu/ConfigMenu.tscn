@@ -1,10 +1,10 @@
 [gd_scene load_steps=53 format=3 uid="uid://1ho7vq1qum7y"]
 
-[ext_resource type="Script" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
 [ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
-[ext_resource type="Script" path="res://addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd" id="4_pljkn"]
+[ext_resource type="Script" uid="uid://blvjqa7dxm0jr" path="res://addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd" id="4_pljkn"]
 
 [sub_resource type="Animation" id="Animation_p5x7e"]
 resource_name = "Downloading"
@@ -250,9 +250,9 @@ tracks/7/keys = {
 
 [sub_resource type="AnimationLibrary" id="AnimationLibrary_d74rd"]
 _data = {
-"Downloading": SubResource("Animation_p5x7e"),
-"Open": SubResource("Animation_x05bw"),
-"RESET": SubResource("Animation_qx43o")
+&"Downloading": SubResource("Animation_p5x7e"),
+&"Open": SubResource("Animation_x05bw"),
+&"RESET": SubResource("Animation_qx43o")
 }
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw5my"]

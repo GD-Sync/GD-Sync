@@ -71,6 +71,18 @@ signal lobby_created(lobby_name : String)
 ## Check [constant ENUMS.LOBBY_CREATION_ERROR] for possible errors.
 signal lobby_creation_failed(lobby_name : String, error : int)
 
+## Emitted if [method lobby_change_name] was successful.
+## [br]
+## [br][b]lobby_name -[/b] The new lobby name.
+signal lobby_name_changed(lobby_name : String)
+
+## Emitted if [method lobby_change_name] failes.
+## [br]
+## [br][b]lobby_name -[/b] The new lobby name that failed.
+## [br][b]error -[/b] The reason why the name change failed.
+## Check [constant ENUMS.LOBBY_NAME_CHANGE_ERROR] for possible errors.
+signal lobby_name_change_failed(lobby_name : String, error : int)
+
 ## Emitted when [method lobby_join] was successful.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that the player joined.
@@ -275,6 +287,12 @@ func is_host() -> bool:
 func get_host() -> int:
 	return _connection_controller.host
 
+## Manually sets the host of the current lobby. Can only be used by the current host. This function does not work in local multiplayer.
+## [br]
+## [br][b]client_id -[/b] The Client ID of the new host.
+func set_host(client_id : int) -> void:
+	_request_processor.create_set_host_request(client_id)
+
 ## Synchronizes a variable on a Object across all other clients in the current lobby.
 ## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
 ## [br]
@@ -356,6 +374,9 @@ func multiplayer_instantiate(
 		excluded_properties : PackedStringArray = [],
 		replicate_on_join : bool = true) -> Node:
 	return _node_tracker.multiplayer_instantiate(scene, parent, sync_starting_changes, excluded_properties, replicate_on_join)
+
+func multiplayer_queue_free(node : Node) -> void:
+	_node_tracker.multiplayer_queue_free(node)
 
 ## Returns a float which contains the current multiplayer time. This time is synchronized across clients in
 ## the same lobby. Can be used for time-based events. See [method synced_event_create] for creating
@@ -639,6 +660,13 @@ func lobby_open() -> void:
 func lobby_set_visibility(public : bool) -> void:
 	if !_connection_controller.valid_connection(): return
 	_request_processor.create_lobby_visiblity_request(public)
+
+## Changes the name of the current lobby. Only works for the host of the lobby. If successful [signal lobby_name_changed] is emitted.
+## If it fails [signal lobby_name_change_failed] is emitted. Changing the lobby name shares a 3 second cooldown with [method lobby_create].
+## [br]
+## [br][b]name -[/b] The new lobby name. Has a maximum of 32 characters.
+func lobby_change_name(name : String) -> void:
+	_request_processor.create_lobby_name_change_request(name)
 
 ## Changes the password of the lobby. Only works for the host of the lobby.
 ## [br]
