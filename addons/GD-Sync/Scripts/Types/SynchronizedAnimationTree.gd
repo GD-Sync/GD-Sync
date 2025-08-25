@@ -1,5 +1,5 @@
 @tool
-@icon("res://addons/GD-Sync/Scripts/Types/SynchronizedAnimationTree.gd")
+@icon("res://addons/GD-Sync/UI/Icons/SynchronizedAnimationTree.png")
 extends AnimationTree
 class_name SynchronizedAnimationTree
 
