@@ -400,6 +400,8 @@ func synced_event_create(event_name : String, delay : float = 1.0, parameters : 
 	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
 ## Changes the current scene for all clients. Waits with changing until the scene has fully loaded on all clients.
+## Emits [code]change_scene_called[/code] when a scene change is requested, [code]change_scene_success[/code] when it succeeds,
+## and [code]change_scene_failed[/code] if it fails on any client.
 ## [br]
 ## [br][b]scene_path -[/b] The resource path of the scene.
 func change_scene(scene_path : String) -> void:
