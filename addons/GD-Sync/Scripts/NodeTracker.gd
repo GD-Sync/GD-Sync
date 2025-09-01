@@ -33,18 +33,25 @@ var logger
 var replication_cache : Dictionary = {}
 var replication_settings : Dictionary = {}
 var root_instantiator
+var instantiator_regex : RegEx
 
 var instantiator_lib : Dictionary = {}
 
+var lobby_i : int = 0
+
 func _ready() -> void:
-	name = "SessionController"
+	name = "NodeTracker"
 	GDSync = get_node("/root/GDSync")
 	request_processor = GDSync._request_processor
 	logger = GDSync._logger
 	
 	root_instantiator = INSTANTIATOR_SCENE.new()
 	root_instantiator.spawn_type = 1
+	root_instantiator.name = "RootInstantiator"
 	add_child(root_instantiator)
+	
+	instantiator_regex = RegEx.new()
+	instantiator_regex.compile("[^a-z0-9]")
 	
 	GDSync.expose_func(replicate_remote)
 	GDSync.expose_func(create_instantiator_remote)
@@ -52,6 +59,12 @@ func _ready() -> void:
 	GDSync.client_joined.connect(client_joined)
 
 func lobby_left() -> void:
+	lobby_i += 1
+	
+	for instantiator in instantiator_lib.values():
+		if is_instance_valid(instantiator):
+			instantiator.queue_free()
+	
 	instantiator_lib.clear()
 	replication_cache.clear()
 	replication_settings.clear()
@@ -134,9 +147,21 @@ func replicate_remote(settings : Array, replication_data : Array) -> void:
 	var instantiator : Node = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.INSTANTIATOR])
 	var target : Node = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.TARGET])
 	
-	if target == null:
-		logger.write_error("Remote replication failed, target Node was not found. <"+str(settings)+">", "[NodeTracker]")
+	var tries : int = 0
+	var current_lobby_i : int = lobby_i
+	while target == null:
+		tries += 1
+		await get_tree().create_timer(0.6).timeout
+		logger.write_error("Remote replication failed, target Node was not found. Trying again. <"+str(settings)+">", "[NodeTracker]")
+		target = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.TARGET])
+		
+		if tries >= 100:
+			logger.write_error("Remote replication failed, target Node was not found. <"+str(settings)+">", "[NodeTracker]")
+			return
+	
+	if current_lobby_i != lobby_i:
 		return
+	
 	if instantiator == null:
 		logger.write_log("Remote replication did not find the target Instantiator, falling back to the root Instantiator. <"+str(settings)+">", "[NodeTracker]")
 		var scene : PackedScene = load(settings[ENUMS.NODE_REPLICATION_SETTINGS.SCENE])
@@ -184,12 +209,12 @@ func multiplayer_instantiate(
 	if !instantiator_lib.has(settings_key):
 		logger.write_log("Creating Instantiator.", "[NodeTracker]")
 		instantiator = INSTANTIATOR_SCENE.new()
+		instantiator.name = instantiator_regex.sub(scene.resource_path.to_lower(), "", true)
 		instantiator.spawn_type = 1
 		instantiator.scene = scene
 		instantiator.sync_starting_changes = sync_starting_changes
 		instantiator.excluded_properties = excluded_properties
 		instantiator.replicate_on_join = replicate_on_join
-		instantiator.name = settings_key
 		add_child(instantiator)
 		
 		instantiator_lib[settings_key] = instantiator
@@ -227,9 +252,19 @@ func create_instantiator_remote(
 		logger.write_error("Failed to create remote Instaniator, invalid scene path. <"+scene_path+">", "[NodeTracker]")
 		push_error("Remote instantiate failed, invalid scene path.")
 		return
-	if parent == null:
-		logger.write_error("Failed to create remote Instantiator, parent Node not found. <"+str(parent_path)+">", "[NodeTracker]")
-		push_error("Remote instantiate failed, parent Node not found")
+	
+	var tries : int = 0
+	var current_lobby_i : int = lobby_i
+	while parent == null:
+		tries += 1
+		await get_tree().create_timer(0.6).timeout
+		logger.write_error("Failed to create remote Instantiator, parent Node not found. Trying again. <"+str(parent_path)+">", "[NodeTracker]")
+		
+		if tries >= 100:
+			logger.write_error("Failed to create remote Instantiator, parent Node not found. <"+str(parent_path)+">", "[NodeTracker]")
+			return
+	
+	if current_lobby_i != lobby_i:
 		return
 	
 	var settings_key : StringName = StringName(
@@ -240,12 +275,12 @@ func create_instantiator_remote(
 	
 	if !instantiator_lib.has(settings_key):
 		var instantiator : Node = INSTANTIATOR_SCENE.new()
+		instantiator.name = instantiator_regex.sub(scene_path.to_lower(), "", true)
 		instantiator.spawn_type = 1
 		instantiator.scene = scene
 		instantiator.sync_starting_changes = sync_starting_changes
 		instantiator.excluded_properties = excluded_properties
 		instantiator.replicate_on_join = replicate_on_join
-		instantiator.name = settings_key
 		add_child(instantiator)
 		
 		instantiator.target = parent

@@ -33,6 +33,7 @@ var active_lb : String = ""
 
 func _ready():
 	GDSync = get_node("/root/GDSync")
+	name = "HTTPSController"
 	connection_controller = GDSync._connection_controller
 	data_controller = GDSync._data_controller
 	logger = GDSync._logger

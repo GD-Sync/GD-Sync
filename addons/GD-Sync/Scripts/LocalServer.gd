@@ -76,6 +76,7 @@ class Client extends RefCounted:
 
 func _ready() -> void:
 	GDSync = get_node("/root/GDSync")
+	name = "LocalServer"
 	connection_controller = GDSync._connection_controller
 	request_processor = GDSync._request_processor
 	session_controller = GDSync._session_controller
