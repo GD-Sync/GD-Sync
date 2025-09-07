@@ -55,7 +55,7 @@ var _record_effect : AudioEffectCapture
 var _output_stream : AudioStreamGenerator
 var _output_stream_playback : AudioStreamGeneratorPlayback
 ## The output player which will play received voice samples.
-var _output_player : Node
+var _output_player : Node : set = set_output_player
 
 var _input_configured : bool = false
 var _output_configured : bool = false
@@ -208,21 +208,14 @@ func _configure_output() -> void:
 	
 	_output_stream = AudioStreamGenerator.new()
 	_output_stream.buffer_length = 0.1
-	
-	match(spatial_mode):
-		0:
-			_output_player = AudioStreamPlayer.new()
-		1:
-			_output_player = AudioStreamPlayer2D.new()
-		2:
-			_output_player = AudioStreamPlayer3D.new()
-	
-	_output_player.name = "MicOut"
-	add_child(_output_player)
 	_output_player.stream = _output_stream
 	_output_player.play()
 	
 	_output_stream_playback = _output_player.get_stream_playback()
+
+func set_output_player(p : Node) -> void:
+	_output_player = p
+	update_configuration_warnings()
 
 func _get_property_list() -> Array:
 	var properties : Array = []
