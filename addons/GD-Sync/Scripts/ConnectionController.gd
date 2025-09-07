@@ -46,6 +46,7 @@ var connecting : bool = false
 var connection_i : int = 0
 var last_poll : float = 0.0
 var in_local_lobby : bool = false
+var attempt_tcp : bool = false
 
 var server_ip : String = ""
 var encryptor : AESContext = AESContext.new()
@@ -269,10 +270,12 @@ func find_best_server(serverPings : Dictionary) -> void:
 
 func connect_to_server(server : String) -> void:
 	logger.write_log("Connecting to server. <"+server+">")
-	if OS.has_feature("web"):
+	if client is WebSocketMultiplayerPeer:
+		logger.write_log("Connecting using TCP.")
 		client.create_client("ws://"+server+":8090")
 	else:
-		client.create_client(server, 8080)
+		logger.write_log("Connecting using UDP.")
+		#client.create_client(server, 8080)
 	last_poll = Time.get_unix_time_from_system()
 	
 	connection_i += 1
@@ -285,7 +288,20 @@ func connect_to_server(server : String) -> void:
 		if status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED: return
 		if current_i == connection_i:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTING:
-				logger.write_log("Connection timeout, server did not respond.")
+				logger.write_error("Connection timeout, server did not respond.")
+				
+				if !OS.has_feature("web"):
+					if !attempt_tcp:
+						attempt_tcp = true
+						client.close()
+						client = WebSocketMultiplayerPeer.new()
+						logger.write_log("Attempting TCP connection.")
+						connect_to_server(server_ip)
+						return
+					else:
+						attempt_tcp = false
+						client = ENetMultiplayerPeer.new()
+					
 				GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 			reset_multiplayer()
 	else:
