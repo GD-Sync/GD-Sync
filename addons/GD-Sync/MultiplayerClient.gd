@@ -353,7 +353,7 @@ func call_func_on(client_id : int, callable : Callable, parameters : Array = [],
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the function call is non-essential.
 func call_func_all(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
-	callable.call(parameters)
+	callable.callv(parameters)
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
 
 ## Instantiates a Node on all clients in the current lobby.
