@@ -290,7 +290,7 @@ func connect_to_server(server : String) -> void:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTING:
 				logger.write_error("Connection timeout, server did not respond.")
 				
-				if !OS.has_feature("web"):
+				if !OS.has_feature("web") and !is_local():
 					if !attempt_tcp:
 						attempt_tcp = true
 						client.close()
