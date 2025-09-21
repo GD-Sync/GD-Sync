@@ -275,26 +275,26 @@ func erase_name_cache(index : int) -> void:
 		name_cache.erase(name)
 		name_index_cache.erase(index)
 
-func create_resource_reference(resource : Resource, id : String) -> void:
+func create_resource_reference(resource : RefCounted, id : String) -> void:
 	reference_resource_cache[id] = resource
 	resource_reference_cache[resource] = id
 
-func erase_resource_reference(resource : Resource) -> void:
+func erase_resource_reference(resource : RefCounted) -> void:
 	if resource_reference_cache.has(resource):
 		var id : String = resource_reference_cache[resource]
 		resource_reference_cache.erase(resource)
 		reference_resource_cache.erase(id)
 
-func has_resource_reference(resource : Resource) -> bool:
+func has_resource_reference(resource : RefCounted) -> bool:
 	return resource_reference_cache.has(resource)
 
-func get_resource_reference(resource : Resource) -> String:
+func get_resource_reference(resource : RefCounted) -> String:
 	return resource_reference_cache[resource]
 
 func has_resource_by_reference(id : String) -> bool:
 	return reference_resource_cache.has(id)
 
-func get_resource_by_reference(id : String) -> Resource:
+func get_resource_by_reference(id : String) -> RefCounted:
 	return reference_resource_cache[id]
 
 func set_player_data(key : String, value) -> void:

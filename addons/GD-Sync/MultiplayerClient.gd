@@ -434,13 +434,13 @@ func set_protection_mode(protected : bool) -> void:
 ## [br]
 ## [br][b]resource -[/b] The resource you want to register.
 ## [br][b]id -[/b] The ID you want to assign to it.
-func register_resource(resource : Resource, id : String) -> void:
+func register_resource(resource : RefCounted, id : String) -> void:
 	_session_controller.create_resource_reference(resource, id)
 
 ## Allows you to deregister a previously registered resource.
 ## [br]
 ## [br][b]resource -[/b] The resource you want to deregister.
-func deregister_resource(resource : Resource) -> void:
+func deregister_resource(resource : RefCounted) -> void:
 	_session_controller.erase_resource_reference(resource)
 
 ## Exposes a Node so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will succeed.
@@ -467,7 +467,7 @@ func hide_node(node : Node) -> void:
 ## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
 ## [br]
 ## [br][b]resource -[/b] The Resource you want to expose.
-func expose_resource(resource : Resource) -> void:
+func expose_resource(resource : RefCounted) -> void:
 	_session_controller.expose_object(resource)
 
 ## Hides a Resource so that all [method call_func], [method call_func_on], [method sync_var] and [method sync_var_on] will fail.
@@ -476,7 +476,7 @@ func expose_resource(resource : Resource) -> void:
 ## [br][b]IMPORTANT:[/b] Make sure the Resource has been registered using [method register_resource].
 ## [br]
 ## [br][b]resource -[/b] The Resource you want to hide.
-func hide_resource(resource : Resource) -> void:
+func hide_resource(resource : RefCounted) -> void:
 	_session_controller.hide_object(resource)
 
 ## Exposes a function so that [method call_func] and [method call_func_on] will succeed.
