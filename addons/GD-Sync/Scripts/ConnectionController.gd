@@ -314,6 +314,7 @@ func connect_to_local_server(server : String) -> int:
 	logger.write_log("Connecting to local server. <"+server+">")
 	
 	client.close()
+	client = ENetMultiplayerPeer.new()
 	return client.create_client(server, 8080)
 
 func external_lobby_switch(server : String) -> void:
