@@ -419,6 +419,9 @@ func expose_func(function : Callable) -> void:
 	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	exposedArray.append(functionName)
 	object.set_meta("ExposedFunctions", exposedArray)
+	
+	if object is GDScript:
+		create_resource_reference(object, object.resource_path)
 
 func hide_function(function : Callable) -> void:
 	var object : Object = function.get_object()

@@ -462,6 +462,8 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 		for i in range(10):
 			if object.has_meta("PauseSync"):
 				await get_tree().process_frame
+	elif object is GDScript:
+		id = object.resource_path
 	elif object is RefCounted:
 		if !session_controller.has_resource_reference(object):
 			logger.write_error("Creating call function request failed, the Resource was not registered. <"+str(object)+"><"+function_name+">")
