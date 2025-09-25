@@ -59,12 +59,19 @@ var _output_player : Node : set = set_output_player
 
 var _input_configured : bool = false
 var _output_configured : bool = false
+var _muted : bool = false
 
 func set_input_device(device_name : String) -> void:
 	AudioServer.input_device = device_name
 
 func get_input_devices() -> PackedStringArray:
 	return AudioServer.get_input_device_list()
+
+func mute_microphone() -> void:
+	_muted = true
+
+func unmute_microphone() -> void:
+	_muted = false
 
 func _ready() -> void:
 	if Engine.is_editor_hint():
@@ -97,6 +104,10 @@ func _process(delta: float) -> void:
 		return
 	
 	if _input_configured and _record_effect.get_frames_available() > 0:
+		if _muted:
+			_record_effect.clear_buffer()
+			return
+		
 		var recording_data : PackedVector2Array = _record_effect.get_buffer(_record_effect.get_frames_available())
 		var data : PackedFloat32Array = PackedFloat32Array()
 		
