@@ -452,17 +452,21 @@ func get_leaderboard_score(leaderboard : String, username : String) -> Dictionar
 	
 	var data : Dictionary = {
 		"Code" : result["Code"],
-		"Result" : result["Result"] if result.size() > 1 else {"Rank" : -1, "Score" : 0}
+		"Result" : result["Result"] if result.size() > 1 else {"Rank" : -1, "Score" : 0, "Data" : {}}
 	}
 	return data
 
-func submit_score(leaderboard : String, score : int) -> int:
+func submit_score(leaderboard : String, score : int, data : Dictionary) -> int:
+	if var_to_bytes(data).size() > 2048:
+		return ENUMS.LEADERBOARD_SUBMIT_SCORE_RESPONSE_CODE.DATA_TOO_LAGE
+	
 	var result : Dictionary = await https_controller.perform_https_request(
 		"submitscore",
 		{
 			"Token" : login_token,
 			"Leaderboard" : leaderboard,
-			"Score" : score
+			"Score" : score,
+			"Data" : data
 		}
 	)
 	

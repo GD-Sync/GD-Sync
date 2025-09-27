@@ -1048,12 +1048,12 @@ func account_remove_friend(friend : String) -> int:
 ##       "Lobby" : {
 ##          "Name" : "Epic Lobby",
 ##          "HasPassword" : false
-##        }
+##       }
 ##    }
 ## }[/codeblock]
 func account_get_friend_status(friend : String) -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
-	return await _data_controller.account_get_friend_status(friend)
+	return await _data_controller.get_friend_status(friend)
 
 ## Returns an array of all friends with their status. Information besides the FriendStatus is only
 ## available if the friend request is accepted.
@@ -1158,10 +1158,10 @@ func account_has_document(path : String) -> Dictionary:
 ##    "Code" : 0,
 ##    "Result" :
 ##       [
-##          {"ExternallyVisible": true, "Name": "profile", "Path": "saves/profile", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "save1", "Path": "saves/save1", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "save2", "Path": "saves/save2", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
+##          {"ExternallyVisible" : true, "Name" : "profile", "Path" : "saves/profile", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "save1", "Path" : "saves/save1", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "save2", "Path" : "saves/save2", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "configs", "Path" : "saves/configs", "Type" : "Collection"}
 ##       ]
 ## }[/codeblock]
 func account_browse_collection(path : String) -> Dictionary:
@@ -1217,10 +1217,10 @@ func account_has_external_document(external_username : String, path : String) ->
 ##    "Code" : 0,
 ##    "Result" :
 ##       [
-##          {"ExternallyVisible": true, "Name": "profile", "Path": "saves/profile", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "save1", "Path": "saves/save1", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "save2", "Path": "saves/save2", "Type": "Document"},
-##          {"ExternallyVisible": false, "Name": "configs", "Path": "saves/configs", "Type": "Collection"}
+##          {"ExternallyVisible" : true, "Name" : "profile", "Path" : "saves/profile", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "save1", "Path" : "saves/save1", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "save2", "Path" : "saves/save2", "Type" : "Document"},
+##          {"ExternallyVisible" : false, "Name" : "configs", "Path" : "saves/configs", "Type" : "Collection"}
 ##       ]
 ## }[/codeblock]
 func account_browse_external_collection(external_username : String, path : String) -> Dictionary:
@@ -1270,12 +1270,12 @@ func leaderboard_get_all() -> Dictionary:
 ## [codeblock]
 ## {
 ##    "Code" : 0,
-##    "FinalPage": 7,
+##    "FinalPage" : 7,
 ##    "Result" :
 ##       [
-##          {"Rank": 1, "Score": 828, "Username": "User1"},
-##          {"Rank": 2, "Score": 700, "Username": "User2"},
-##          {"Rank": 3, "Score": 10, "Username": "User3"}
+##          {"Rank" : 1, "Score" : 828, "Username" : "User1", "Data" : {"CustomValue" : 1},
+##          {"Rank" : 2, "Score" : 700, "Username" : "User2"}, "Data" : {},
+##          {"Rank" : 3, "Score" : 10, "Username" : "User3", "Data" : {}}
 ##       ]
 ## }[/codeblock]
 func leaderboard_browse_scores(leaderboard : String, page_size : int, page : int) -> Dictionary:
@@ -1295,7 +1295,8 @@ func leaderboard_browse_scores(leaderboard : String, page_size : int, page : int
 ##    "Result" :
 ##       {
 ##          "Score" : 100,
-##          "Rank" : 1
+##          "Rank" : 1,
+##          "Data" : {"CustomValue" : 1}
 ##       }
 ## }[/codeblock]
 func leaderboard_get_score(leaderboard : String, username : String) -> Dictionary:
@@ -1308,9 +1309,10 @@ func leaderboard_get_score(leaderboard : String, username : String) -> Dictionar
 ## [br]
 ## [br][b]leaderboard -[/b] The name of the leaderboard.
 ## [br][b]score -[/b] The score you want to submit.
-func leaderboard_submit_score(leaderboard : String, score : int) -> int:
+## [br][b]data -[/b] Any extra information you would like to attach to the score. This dictionary can be a maximum of 2048 bytes in size.
+func leaderboard_submit_score(leaderboard : String, score : int, data : Dictionary = {}) -> int:
 	if _connection_controller.is_local_check(): return 1
-	return await _data_controller.submit_score(leaderboard, score)
+	return await _data_controller.submit_score(leaderboard, score, data)
 
 ## Deletes a score from a leaderboard for the currently logged-in account using GD-Sync cloud storage.
 ## [br][br]Returns the result of the request as [constant ENUMS.LEADERBOARD_DELETE_SCORE_RESPONSE_CODE].
