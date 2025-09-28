@@ -275,7 +275,7 @@ func connect_to_server(server : String) -> void:
 		client.create_client("ws://"+server+":8090")
 	else:
 		logger.write_log("Connecting using UDP.")
-		#client.create_client(server, 8080)
+		client.create_client(server, 8080)
 	last_poll = Time.get_unix_time_from_system()
 	
 	connection_i += 1
