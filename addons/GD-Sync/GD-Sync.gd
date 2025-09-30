@@ -35,7 +35,7 @@ var load_balancers : PackedStringArray = [
 	"lb3.gd-sync.com",
 ]
 
-var version : String = "0.12"
+var version : String = "0.13"
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")
