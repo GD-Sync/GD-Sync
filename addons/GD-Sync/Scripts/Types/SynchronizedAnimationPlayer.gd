@@ -29,7 +29,7 @@ class_name SynchronizedAnimationPlayer
 ## If enabled, GD-Sync will attempt to synchronize the playback of animations across clients.
 @export var sync_playback : bool = true
 
-func play(name: StringName = "", custom_blend: float = -1, custom_speed: float = 1.0, from_end: bool = false) -> void:
+func play_synced(name: StringName = &"", custom_blend: float = -1, custom_speed: float = 1.0, from_end: bool = false) -> void:
 	var send_remote_play : bool = !is_playing() || current_animation != name
 	super.play(name, custom_blend, custom_speed, from_end)
 	
@@ -69,25 +69,25 @@ func play(name: StringName = "", custom_blend: float = -1, custom_speed: float =
 		if use_name:GDSync._request_processor.create_name_cache(name)
 		GDSync.call_func(_play_remote, parameters)
 
-func play_backwards(name: StringName = "", custom_blend: float = -1) -> void:
+func play_backwards_synced(name: StringName = &"", custom_blend: float = -1) -> void:
 	self.play(name, custom_blend, -1.0, true)
 
-func pause() -> void:
+func pause_synced() -> void:
 	super.pause()
 	if !GDSync.is_active(): return
 	GDSync.call_func(_pause_remote)
 
-func stop(keep_state : bool = false) -> void:
+func stop_synced(keep_state : bool = false) -> void:
 	super.stop(keep_state)
 	if !GDSync.is_active(): return
 	GDSync.call_func(_remote_stop, [keep_state])
 
-func queue(name : StringName) -> void:
+func queue_synced(name : StringName) -> void:
 	super.queue(name)
 	if !GDSync.is_active(): return
 	GDSync.call_func(_queue_remote, [name])
 
-func seek(seconds : float, update : bool = false, update_only : bool = false) -> void:
+func seek_synced(seconds : float, update : bool = false, update_only : bool = false) -> void:
 	super.seek(seconds, update, update_only)
 	if !GDSync.is_active(): return
 	
@@ -110,7 +110,7 @@ func seek(seconds : float, update : bool = false, update_only : bool = false) ->
 	parameters.push_front(GDSync.get_multiplayer_time())
 	GDSync.call_func(_seek_remote, parameters)
 
-func advance(delta : float) -> void:
+func advance_synced(delta : float) -> void:
 	super.advance(delta)
 	if !GDSync.is_active(): return
 	GDSync.call_func(_advance_remote, [delta])
