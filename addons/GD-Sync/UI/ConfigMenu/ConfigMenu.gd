@@ -41,8 +41,12 @@ func _ready():
 		%Protected.button_pressed = ProjectSettings.get_setting("GD-Sync/protectedMode")
 	if ProjectSettings.has_setting("GD-Sync/csharp"):
 		%CSharpSupport.button_pressed = ProjectSettings.get_setting("GD-Sync/csharp")
+	if ProjectSettings.has_setting("GD-Sync/useSenderID"):
+		%SenderID.button_pressed = ProjectSettings.get_setting("GD-Sync/useSenderID")
 	if ProjectSettings.has_setting("GD-Sync/uniqueUsername"):
 		%UniqueUsernames.button_pressed = ProjectSettings.get_setting("GD-Sync/uniqueUsername")
+	if ProjectSettings.has_setting("GD-Sync/scriptValidation"):
+		%ScriptValidation.button_pressed = ProjectSettings.get_setting("GD-Sync/scriptValidation")
 	
 	updater = Updater.new()
 	add_child(updater)
@@ -96,6 +100,10 @@ func _on_unique_usernames_toggled(button_pressed):
 
 func _on_sender_id_toggled(button_pressed):
 	ProjectSettings.set_setting("GD-Sync/useSenderID", button_pressed)
+	ProjectSettings.save()
+
+func _on_script_validation_toggled(button_pressed) -> void:
+	ProjectSettings.set_setting("GD-Sync/scriptValidation", button_pressed)
 	ProjectSettings.save()
 
 func _on_description_meta_clicked(meta):

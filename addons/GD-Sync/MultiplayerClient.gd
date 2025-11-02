@@ -318,7 +318,7 @@ func sync_var(object : Object, variable_name : String, reliable : bool = true) -
 func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
 
-## Calls a function on a Node on all other clients in the current lobby, excluding yourself.
+## Calls a function on a Node or Resource on all other clients in the current lobby, excluding yourself.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
@@ -330,7 +330,7 @@ func sync_var_on(client_id : int, object : Object, variable_name : String, relia
 func call_func(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
 
-## Calls a function on a Node on a specific client in the current lobby.
+## Calls a function on a Node or Resource on a specific client in the current lobby.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
@@ -343,7 +343,7 @@ func call_func(callable : Callable, parameters : Array = [], reliable : bool = t
 func call_func_on(client_id : int, callable : Callable, parameters : Array = [], reliable  : bool = true) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
 
-## Calls a function on a Node on all clients in the current lobby, including yourself.
+## Calls a function on a Node or Resource on all clients in the current lobby, including yourself.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
@@ -355,6 +355,26 @@ func call_func_on(client_id : int, callable : Callable, parameters : Array = [],
 func call_func_all(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
 	callable.callv(parameters)
 	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
+
+## Emits a signal on a Node or Resource on all other clients in the current lobby, excluding yourself.
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]object -[/b] The object on which you want to emit the signal.
+## [br][b]signal_name -[/b] The name of the signal.
+## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
+func emit_signal_remote(target_signal : Signal, parameters : Array = []) -> void:
+	var clients : Array = lobby_get_all_clients()
+	clients.erase(get_client_id())
+	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
+
+func emit_signal_remote_on(client_id : int, target_signal : Signal, parameters : Array = []) -> void:
+	_session_controller.emit_signal_on_clients([client_id], target_signal, parameters)
+
+func emit_signal_remote_all(target_signal : Signal, parameters : Array = []) -> void:
+	var clients : Array = lobby_get_all_clients()
+	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
 
 ## Instantiates a Node on all clients in the current lobby.
 ## [br]
@@ -492,8 +512,24 @@ func expose_func(callable : Callable) -> void:
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function you want to hide.
-func hide_function(callable : Callable) -> void:
-	_session_controller.hide_function(callable)
+func hide_func(callable : Callable) -> void:
+	_session_controller.hide_func(callable)
+
+## Exposes a signal so that [method emit_signal_remote], [method emit_signal_remote_on] and [method emit_signal_remote_all] will succeed.
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]signal_name -[/b] The signal you want to expose.
+func expose_signal(target_signal : Signal) -> void:
+	_session_controller.expose_signal(target_signal)
+
+## Hides a signal so that [method emit_signal_remote], [method emit_signal_remote_on] and [method emit_signal_remote_all] will fail.
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]signal_name -[/b] The signal you want to hide.
+func hide_signal(target_signal : Signal) -> void:
+	_session_controller.hide_signal(target_signal)
 
 ## Exposes a variable so that [method sync_var] and [method sync_var_on] will succeed.
 ## [br]

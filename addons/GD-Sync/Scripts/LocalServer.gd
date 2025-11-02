@@ -270,6 +270,9 @@ func _process(delta: float) -> void:
 				var peer_id : int = local_server.get_packet_peer()
 				var bytes : PackedByteArray = local_server.get_packet()
 				
+				if !peer_client_table.has(peer_id):
+					continue
+				
 				var from : Client = peer_client_table[peer_id]
 				var message : Dictionary = bytes_to_var(bytes)
 				
@@ -288,7 +291,7 @@ func _process(delta: float) -> void:
 								open_lobby_request(from, request)
 							ENUMS.REQUEST_TYPE.CLOSE_LOBBY:
 								close_lobby_request(from, request)
-							ENUMS.REQUEST_TYPE.SET_MC_OWNER:
+							ENUMS.REQUEST_TYPE.SET_GDSYNC_OWNER:
 								set_owner_request(from, request)
 							ENUMS.REQUEST_TYPE.SET_LOBBY_TAG:
 								set_lobby_tag_request(from, request)
@@ -421,7 +424,7 @@ func join_lobby_request(from : Client, request : Array) -> void:
 		send_message(ENUMS.MESSAGE_TYPE.CLIENT_JOINED, from, client.client_id)
 	
 	for node_path in local_owner_cache:
-		send_message(ENUMS.MESSAGE_TYPE.SET_MC_OWNER, from, node_path, local_owner_cache[node_path])
+		send_message(ENUMS.MESSAGE_TYPE.SET_GDSYNC_OWNER, from, node_path, local_owner_cache[node_path])
 
 func leave_lobby_request(from : Client) -> void:
 	logger.write_log(" <"+str(from.client_id)+">", "[LocalServer]")
@@ -468,7 +471,7 @@ func set_owner_request(from : Client, request : Array) -> void:
 		local_owner_cache[node_path] = owner
 	
 	for client_id in lobby_client_table:
-		send_message(ENUMS.MESSAGE_TYPE.SET_MC_OWNER, lobby_client_table[client_id], node_path, owner)
+		send_message(ENUMS.MESSAGE_TYPE.SET_GDSYNC_OWNER, lobby_client_table[client_id], node_path, owner)
 
 func set_lobby_tag_request(from : Client, request : Array) -> void:
 	var key = request[ENUMS.LOBBY_DATA.NAME]

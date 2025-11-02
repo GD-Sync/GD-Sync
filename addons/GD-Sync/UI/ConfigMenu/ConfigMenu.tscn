@@ -1,10 +1,9 @@
-[gd_scene load_steps=53 format=3 uid="uid://1ho7vq1qum7y"]
+[gd_scene load_steps=52 format=3 uid="uid://1ho7vq1qum7y"]
 
-[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Script" uid="uid://dwivitqtoupai" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
 [ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
-[ext_resource type="Script" uid="uid://blvjqa7dxm0jr" path="res://addons/GD-Sync/Scripts/Types/PropertySynchronizer.gd" id="4_pljkn"]
 
 [sub_resource type="Animation" id="Animation_p5x7e"]
 resource_name = "Downloading"
@@ -575,7 +574,7 @@ script = ExtResource("1")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="."]
 libraries = {
-"": SubResource("AnimationLibrary_d74rd")
+&"": SubResource("AnimationLibrary_d74rd")
 }
 speed_scale = 2.0
 
@@ -835,6 +834,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="SenderID" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 
@@ -853,6 +853,35 @@ text = "Tells the server whether it should append extra data to each remote func
 Retrieving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
 fit_content = true
 
+[node name="Spacing4" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="ScriptValidation" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+layout_mode = 2
+
+[node name="ScriptValidation" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+button_pressed = true
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Script Validation"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Script validation scans the script you are currently working on to detect possible mistakes and errors. If the plugin detects incorrect function usage or unexposed remote calls, a warning will be displayed in the Godot editor. This helps you catch common issues early, reducing debugging time and preventing runtime errors."
+fit_content = true
+
 [node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI"]
 layout_mode = 0
 offset_left = -135.0
@@ -861,15 +890,6 @@ offset_right = 115.0
 offset_bottom = 310.0
 theme = ExtResource("2_wd24h")
 text = "Close"
-
-[node name="PropertySynchronizer" type="Node" parent="."]
-script = ExtResource("4_pljkn")
-properties = PackedStringArray()
-interpolated = false
-interpolation_speed = 1.0
-extrapolation = null
-extrapolated = false
-max_extrapolation_time = 0.2
 
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/DefaultPannel/Description" to="." method="_on_description_meta_clicked"]
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/UpdatePanel/Description" to="." method="_on_description_meta_clicked"]
@@ -880,4 +900,5 @@ max_extrapolation_time = 0.2
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer/ScriptValidation" to="." method="_on_script_validation_toggled"]
 [connection signal="pressed" from="CenterContainer/UIAnchor/UI/Close" to="." method="close"]

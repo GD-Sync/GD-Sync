@@ -178,8 +178,8 @@ func process_message(request : Array) -> void:
 			session_controller.cache_name(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2])
 		ENUMS.MESSAGE_TYPE.ERASE_NAME_CACHE:
 			session_controller.erase_nodepath_cache(request[ENUMS.MESSAGE_DATA.VALUE])
-		ENUMS.MESSAGE_TYPE.SET_MC_OWNER:
-			set_mc_owner_remote(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2] if request.size() >= 4 else null)
+		ENUMS.MESSAGE_TYPE.SET_GDSYNC_OWNER:
+			set_gdsync_owner_remote(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.VALUE2] if request.size() >= 4 else null)
 		ENUMS.MESSAGE_TYPE.HOST_CHANGED:
 			connection_controller.set_host(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_CREATED:
@@ -287,10 +287,10 @@ func set_variable(request : Array) -> void:
 			logger.write_error("Set variable failed since the object or variable was not exposed. <"+id+"><"+property_name+">")
 			push_error("Attempted to set a protected property \""+property_name+"\" on "+id+", please expose it using GDSync.expose_property() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !property_name in object:
-			logger.write_error("Set variable failed since the Node or Resource does not contain the specified variable. <"+id+"><"+property_name+">")
-			push_error("Attempted to set nonexistent property \""+property_name+"\" on "+id)
-			return
+	if !property_name in object:
+		logger.write_error("Set variable failed since the Node or Resource does not contain the specified variable. <"+id+"><"+property_name+">")
+		push_error("Attempted to set nonexistent property \""+property_name+"\" on "+id)
+		return
 	
 	object.set(property_name, request[ENUMS.VAR_DATA.VALUE])
 
@@ -320,26 +320,26 @@ func call_function(request : Array) -> void:
 		return
 	if connection_controller.PROTECTED:
 		if !session_controller.object_is_exposed(object) and !session_controller.function_is_exposed(object, function_name):
-			logger.write_error("Call function failed since the object or variable was not exposed. <"+id+"><"+function_name+">")
+			logger.write_error("Call function failed since the object or function was not exposed. <"+id+"><"+function_name+">")
 			push_error("Attempted to call a protected function \""+function_name+"\" on "+id+", please expose it using GDSync.expose_func() or GDSync.expose_node()/GDSync.expose_resource().")
 			return
-		if !object.has_method(function_name):
-			logger.write_error("Call function failed since the Node or Resource does not contain the specified variable. <"+id+"><"+function_name+">")
-			push_error("Attempted to call nonexistent function \""+function_name+"\" on "+id)
-			return
+	if !object.has_method(function_name):
+		logger.write_error("Call function failed since the Node or Resource does not contain the specified function. <"+id+"><"+function_name+">")
+		push_error("Attempted to call nonexistent function \""+function_name+"\" on "+id)
+		return
 	
 	if request.size()-1 >= ENUMS.FUNCTION_DATA.PARAMETERS:
 		object.callv(function_name, request[ENUMS.FUNCTION_DATA.PARAMETERS])
 	else:
 		object.call(function_name)
 
-func set_mc_owner_remote(node_path : String, owner) -> void:
+func set_gdsync_owner_remote(node_path : String, owner) -> void:
 	if get_tree().current_scene != null:
 		var node : Node = get_node_or_null(node_path)
 		if node == null: return
-		session_controller.set_mc_owner_remote(node, owner)
+		session_controller.set_gdsync_owner_remote(node, owner)
 	else:
-		session_controller.set_mc_owner_delayed(node_path, owner)
+		session_controller.set_gdsync_owner_delayed(node_path, owner)
 
 func validate_public_key() -> void:
 	var request : Array = [
@@ -721,7 +721,7 @@ func create_erase_lobby_data_request(name : String) -> void:
 
 func set_gdsync_owner(node : Node, owner) -> void:
 	var request : Array = [
-		ENUMS.REQUEST_TYPE.SET_MC_OWNER,
+		ENUMS.REQUEST_TYPE.SET_GDSYNC_OWNER,
 		String(node.get_path()),
 		owner
 	]
