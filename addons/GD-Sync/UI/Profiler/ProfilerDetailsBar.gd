@@ -1,10 +1,33 @@
-# ProfilerDetailsBar.gd
 @tool
 extends HBoxContainer
 
+#Copyright (c) 2025 GD-Sync.
+#All rights reserved.
+#
+#Redistribution and use in source form, with or without modification,
+#are permitted provided that the following conditions are met:
+#
+#1. Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#
+#2. Neither the name of GD-Sync nor the names of its contributors may be used
+#   to endorse or promote products derived from this software without specific
+#   prior written permission.
+#
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+#EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+#OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT
+#SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+#INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+#TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+#BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+#ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
+#SUCH DAMAGE.
+
 @export var profiler : Node = null
 @export var listen_key : String = "up"
-@export var other_threshold : float = 2.0  # % below which entries go to "Other"
+@export var other_threshold : float = 2.0
 @export var bar_segment_template : Control = null
 @export var other_color : Color = Color("#888888")
 @export var color_palette : Array[Color] = [
@@ -13,8 +36,8 @@ extends HBoxContainer
 	Color("#bcf60c"), Color("#fabebe"), Color("#008080"), Color("#e6beff")
 ]
 
-var segment_cache : Dictionary = {}   # object_name → Control
-var data_cache : Dictionary = {}      # object_name → { total_bytes, percent, keys }
+var segment_cache : Dictionary = {}
+var data_cache : Dictionary = {}
 var rebuild_scheduled : bool = false
 
 func _ready() -> void:
@@ -47,7 +70,6 @@ func _on_details(details : Dictionary) -> void:
 	if !details.has(listen_key): return
 	var raw_data : Dictionary = details[listen_key]
 	
-	# Aggregate by object
 	var object_stats : Dictionary = {}
 	for key in raw_data.keys():
 		var entry = raw_data[key]
@@ -57,7 +79,6 @@ func _on_details(details : Dictionary) -> void:
 		object_stats[obj].total_bytes += entry.total_bytes
 		object_stats[obj].keys.append(key)
 	
-	# Calculate total
 	var total_bytes : int = 0
 	for obj in object_stats.keys():
 		total_bytes += object_stats[obj].total_bytes
@@ -66,12 +87,10 @@ func _on_details(details : Dictionary) -> void:
 		_clear_all_segments()
 		return
 	
-	# Calculate per-object percent
 	for obj in object_stats.keys():
 		var bytes = object_stats[obj].total_bytes
 		object_stats[obj].percent = (bytes as float / total_bytes) * 100.0
 	
-	# Build final list: major + "Other"
 	var major_objects : Array = []
 	var other_bytes : int = 0
 	var other_keys : Array = []
@@ -98,19 +117,14 @@ func _on_details(details : Dictionary) -> void:
 			"keys": other_keys
 		})
 	
-	# Sort by percent descending (largest first)
 	major_objects.sort_custom(func(a, b): return a.percent > b.percent)
 	
-	# Update cache
 	data_cache.clear()
 	for item in major_objects:
 		data_cache[item.name] = item
 	
 	_schedule_rebuild()
 
-# -------------------------------------------------------------------------
-#  Rebuild bar (deferred, zero lag) — now with correct left-to-right order
-# -------------------------------------------------------------------------
 func _schedule_rebuild() -> void:
 	if rebuild_scheduled: return
 	rebuild_scheduled = true
@@ -120,7 +134,6 @@ func _rebuild_bar_deferred() -> void:
 	if not rebuild_scheduled: return
 	rebuild_scheduled = false
 	
-	# Build ordered list: largest → smallest
 	var ordered_names : Array = data_cache.keys()
 	ordered_names.sort_custom(func(a, b):
 		return data_cache[a].percent > data_cache[b].percent
@@ -136,16 +149,13 @@ func _rebuild_bar_deferred() -> void:
 		var item = data_cache[obj_name]
 		var seg = _get_or_create_segment(obj_name)
 		
-		# Color
 		var col = other_color if obj_name == "Other" else color_palette[color_idx % color_palette.size()]
 		seg.modulate = col
 		color_idx += 1
 		
-		# Ratio
 		var ratio = item.percent / total_percent * 100.0
 		seg.size_flags_stretch_ratio = ratio
 		
-		# Tooltip
 		var tooltip = "%s\n%.2f%% (%s)" % [
 			obj_name,
 			item.percent,
@@ -153,14 +163,11 @@ func _rebuild_bar_deferred() -> void:
 		]
 		seg.tooltip_text = tooltip
 		
-		# Store keys
 		seg.set_meta("keys", item.keys)
 		
-		# Ensure correct order: move to end (left → right)
 		if seg.get_index() != get_child_count() - 1:
 			move_child(seg, -1)
 	
-	# Remove unused
 	_remove_unused_segments(ordered_names)
 
 func _get_or_create_segment(obj_name : String) -> Control:
@@ -173,7 +180,6 @@ func _get_or_create_segment(obj_name : String) -> Control:
 	seg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	seg.mouse_filter = Control.MOUSE_FILTER_PASS
 	
-	# Hover effect
 	seg.connect("mouse_entered", func():
 		seg.modulate.a = 0.8
 	)
@@ -199,9 +205,6 @@ func _clear_all_segments() -> void:
 		seg.queue_free()
 	segment_cache.clear()
 
-# -------------------------------------------------------------------------
-#  Formatting
-# -------------------------------------------------------------------------
 func _format_bytes(b : int) -> String:
 	if b <= 0: return "0 B"
 	var u = ["B","KB","MB","GB"]
