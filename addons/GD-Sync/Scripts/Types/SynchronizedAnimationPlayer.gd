@@ -66,7 +66,7 @@ func play_synced(name: StringName = &"", custom_blend: float = -1, custom_speed:
 	if name_cached:
 		GDSync.call_func(_play_remote_cached, parameters)
 	else:
-		if use_name:GDSync._request_processor.create_name_cache(name)
+		if use_name:GDSync._request_processor.create_name_cache("", name)
 		GDSync.call_func(_play_remote, parameters)
 
 func play_backwards_synced(name: StringName = &"", custom_blend: float = -1) -> void:
@@ -80,7 +80,7 @@ func pause_synced() -> void:
 func stop_synced(keep_state : bool = false) -> void:
 	stop(keep_state)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_remote_stop, [keep_state])
+	GDSync.call_func(_stop_remote, [keep_state])
 
 func queue_synced(name : StringName) -> void:
 	queue(name)
@@ -168,9 +168,6 @@ func _play_remote(start_time : float = 0.0, name : StringName = &"", custom_blen
 
 func _pause_remote() -> void:
 	pause()
-
-func _remote_stop(keep_state : bool = false) -> void:
-	stop(keep_state)
 
 func _queue_remote(name : StringName) -> void:
 	queue(name)

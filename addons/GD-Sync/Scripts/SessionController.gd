@@ -106,7 +106,7 @@ func handle_events(delta : float) -> void:
 	
 	synced_time_cooldown -= delta
 	if synced_time_cooldown <= 0.0:
-		synced_time_cooldown = 5.0
+		synced_time_cooldown = 30.0
 		GDSync.call_func(sync_timer, [synced_time])
 
 func sync_timer(time : float) -> void:
@@ -167,6 +167,9 @@ func set_lobby_data(name : String, password : String) -> void:
 	synced_time = 0.0
 	lobby_name = name
 	lobby_password = password
+	
+	logger.register_profiler_data("lobby_name", lobby_name)
+	logger.register_profiler_data("lobby_password", password)
 
 func lobby_created() -> void:
 	own_lobby = true
@@ -318,6 +321,8 @@ func player_data_changed(client_id : int, key : String) -> void:
 		GDSync.player_data_changed.emit(client_id, key, data[key])
 	else:
 		GDSync.player_data_changed.emit(client_id, key, null)
+	
+	logger.register_profiler_data("player_data", player_data)
 
 func erase_player_data(key : String) -> void:
 	if player_data[GDSync.get_client_id()].has(key):
@@ -350,6 +355,7 @@ func override_player_data(data : Dictionary) -> void:
 
 func override_lobby_data(data : Dictionary) -> void:
 	lobby_data = data
+	logger.register_profiler_data("lobby_data", lobby_data)
 
 func get_player_limit() -> int:
 	if !lobby_data.has("PlayerLimit"): return 0

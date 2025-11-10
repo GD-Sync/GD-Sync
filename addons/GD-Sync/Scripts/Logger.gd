@@ -39,12 +39,29 @@ var recent_log_counts : Dictionary = {}
 var log_timer : float = 0.0
 var new_logs : bool = false
 
+var use_profiler : bool = false
+var monitor_connections : bool = false
+var connection_timer : float = 0.0
+var profiler_data : Dictionary = {}
+var profiler_message_queue : Array = []
+var debugger_singleton
+
 func _ready() -> void:
 	name = "Logger"
 	GDSync = get_node("/root/GDSync")
 	
 	logging_enabled = OS.is_debug_build()
 	set_process(logging_enabled)
+	
+	if OS.has_feature("editor"):
+		debugger_singleton = Engine.get_singleton("EngineDebugger")
+		debugger_singleton.register_message_capture("gdsyncprofiler", _capture)
+		debugger_singleton.send_message("gdsyncprofiler:gamestart", [])
+		
+		GDSync.client_joined.connect(func(client_id : int):
+			register_profiler_message("clientjoined", [client_id]))
+		GDSync.client_left.connect(func(client_id : int):
+			register_profiler_message("clientleft", [client_id]))
 	
 	if !logging_enabled: return
 	var time : float = Time.get_unix_time_from_system()
@@ -69,6 +86,24 @@ func _process(delta: float) -> void:
 	log_timer -= delta
 	_process_logs()
 	_write_logs()
+	_monitor_connections(delta)
+
+func _monitor_connections(delta : float) -> void:
+	if !monitor_connections:
+		return
+	
+	connection_timer -= delta
+	if connection_timer <= 0.0:
+		connection_timer += 1.0
+		
+		for client_id in GDSync.lobby_get_all_clients():
+			_monitor_connection(client_id)
+
+func _monitor_connection(client_id : int) -> void:
+	if GDSync.get_client_id() == client_id: return
+	
+	var ping : float = await GDSync.get_client_ping(client_id)
+	register_profiler_message("pingmeasured", [client_id, ping])
 
 func _process_logs() -> void:
 	var current_time : float = Time.get_unix_time_from_system()
@@ -120,3 +155,38 @@ func write_log(log : String, prefix : String = "") -> void:
 
 func write_error(error : String, prefix : String = "") -> void:
 	write_log(error, prefix+"[ERROR]")
+
+func _capture(message : String, data : Array) -> bool:
+	if message == "start":
+		use_profiler = true
+		debugger_singleton.send_message("gdsyncprofiler:setdata", [profiler_data])
+		
+		for message_data in profiler_message_queue:
+			debugger_singleton.send_message("gdsyncprofiler:"+message_data[0], message_data[1])
+		profiler_message_queue.clear()
+		return true
+	if message == "stop":
+		use_profiler = false
+		return true
+	if message == "start_monitoring_connections":
+		monitor_connections = true
+		return true
+	if message == "stop_monitoring_connections":
+		monitor_connections = false
+		return true
+	return false
+
+func register_profiler_data(key : String, value) -> void:
+	profiler_data[key] = value
+	if !use_profiler: return
+	debugger_singleton.send_message("gdsyncprofiler:setdata", [profiler_data])
+
+func register_profiler_message(message : String, values : Array) -> void:
+	if !use_profiler:
+		profiler_message_queue.append([message, values])
+		return
+	debugger_singleton.send_message("gdsyncprofiler:"+message, values)
+
+func register_transfer_usage(origin : Dictionary, byte_count : int, upload : bool, details : String) -> void:
+	if !use_profiler: return
+	debugger_singleton.send_message("gdsyncprofiler:registertransfer", [GDSync.get_client_id(), origin, byte_count, upload, details])

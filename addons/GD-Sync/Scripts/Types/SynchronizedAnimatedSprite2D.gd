@@ -27,9 +27,11 @@ class_name SynchronizedAnimatedSprite2D
 #SUCH DAMAGE.
 
 func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bool = false) -> void:
+	var send_remote_play : bool = !is_playing() || animation != name
 	play(name, custom_speed, from_end)
 	
 	if !GDSync.is_active(): return
+	if !send_remote_play: return
 	
 	var use_name : bool = name.length() > 0
 	var name_cached : bool = use_name and GDSync._session_controller.name_is_cached(name)
@@ -55,7 +57,7 @@ func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bo
 	if name_cached:
 		GDSync.call_func(_play_remote_cached, parameters)
 	else:
-		if use_name:GDSync._request_processor.create_name_cache(name)
+		if use_name:GDSync._request_processor.create_name_cache("", name)
 		GDSync.call_func(_play_remote, parameters)
 
 func play_backwards_synced(name: StringName = &"") -> void:

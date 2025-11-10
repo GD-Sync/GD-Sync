@@ -36,7 +36,7 @@ var _PUBLIC_KEY : String = ""
 var _PRIVATE_KEY : String = ""
 var UNIQUE_USERNAMES : bool = false
 var PROTECTED : bool = true
-var USE_SENDER_ID : bool = true
+var USE_SENDER_ID : bool = false
 
 var client : MultiplayerPeer = ENetMultiplayerPeer.new()
 var client_id : int = -1
@@ -365,6 +365,7 @@ func _process(delta) -> void:
 
 func set_client_id(client_id : int) -> void:
 	logger.write_log("Client id received from server. <"+str(client_id)+">")
+	logger.register_profiler_data("client_id", client_id)
 	self.client_id = client_id
 	GDSync.client_id_changed.emit(client_id)
 	status = ENUMS.CONNECTION_STATUS.CONNECTED
@@ -398,4 +399,7 @@ func refresh_decryptor() -> void:
 func set_host(host : int) -> void:
 	logger.write_log("Host changed. <"+str(host)+">")
 	self.host = host
-	get_parent().emit_signal("host_changed", host == GDSync.get_client_id(), host)
+	var is_host : bool = host == GDSync.get_client_id()
+	logger.register_profiler_data("is_host", is_host)
+	logger.register_profiler_data("host", host)
+	get_parent().emit_signal("host_changed", is_host, host)

@@ -25,6 +25,8 @@ extends EditorPlugin
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 # SUCH DAMAGE.
 
+#region GD-Sync
+
 const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCSharp/main/GDSync.cs"
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
@@ -36,6 +38,8 @@ var load_balancers : PackedStringArray = [
 ]
 
 var version : String = "0.13"
+
+var debugger = GDSyncProfiler.new()
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")
@@ -63,9 +67,11 @@ func _enter_tree() -> void:
 	
 	check_for_updates_and_news()
 	_initialize_remote_call_validator()
+	add_debugger_plugin(debugger)
 
 func _exit_tree() -> void:
 	config_menu.free()
+	remove_debugger_plugin(debugger)
 
 func config_selected() -> void:
 	config_menu.open()
@@ -151,6 +157,18 @@ func is_version_newer(current_version: String, new_version: String) -> bool:
 	
 	return false
 
+
+func _disable_plugin() -> void:
+	_disable_remote_call_validator()
+	remove_tool_menu_item("GD-Sync")
+	remove_autoload_singleton("GDSync")
+	if FileAccess.file_exists(CSHARP_PATH): 
+		remove_autoload_singleton("GDSyncSharp")
+
+#endregion
+
+
+#region CodeParser
 # ==============================================================================
 # Remote Call Validation
 # ==============================================================================
@@ -224,14 +242,6 @@ func _analyze_script_for_remote_calls(script: Script, console : bool) -> void:
 	var script_validation_enabled : bool = true
 	if ProjectSettings.has_setting("GD-Sync/scriptValidation"):
 		script_validation_enabled = ProjectSettings.get_setting("GD-Sync/scriptValidation")
-	
-	print(get_viewport().gui_get_hovered_control().get_path())
-	var control : Control = get_viewport().gui_get_hovered_control()
-	print(control.get_class())
-	if control is Button:
-		print(control.get_signal_connection_list("button_down"))
-		print(control.get_signal_connection_list("button_up"))
-		print(control.get_signal_connection_list("pressed"))
 	
 	if not script or not script is GDScript:
 		return
@@ -494,9 +504,86 @@ func _disable_remote_call_validator() -> void:
 	if _file_system and _file_system.has_signal("filesystem_changed"):
 		_file_system.disconnect("filesystem_changed", Callable(self, "_on_filesystem_changed"))
 
-func _disable_plugin() -> void:
-	_disable_remote_call_validator()
-	remove_tool_menu_item("GD-Sync")
-	remove_autoload_singleton("GDSync")
-	if FileAccess.file_exists(CSHARP_PATH): 
-		remove_autoload_singleton("GDSyncSharp")
+#endregion
+
+
+#region GD-SyncProfiler
+class GDSyncProfiler extends EditorDebuggerPlugin:
+	var profilers : Dictionary = {}
+	var message_history : Dictionary = {}
+
+	func _has_capture(capture):
+		return capture == "gdsyncprofiler"
+
+	func _capture(message : String, data : Array, session_id : int) -> bool:
+		if !("gdsyncprofiler" in message): return false
+		
+		var profiler = profilers[session_id]
+		if !is_instance_valid(profiler):
+			return false
+		
+		if message == "gdsyncprofiler:registertransfer":
+			profiler.callv("register_transfer_usage", data)
+			return true
+		
+		message_history[session_id].append([message, data.duplicate(true), session_id])
+		
+		if message == "gdsyncprofiler:setdata":
+			profiler.callv("register_custom_data", data)
+		elif message == "gdsyncprofiler:pingmeasured":
+			data.push_front("ping_measured")
+			profiler.callv("emit_signal", data)
+		elif message == "gdsyncprofiler:clientjoined":
+			data.push_front("client_joined")
+			profiler.callv("emit_signal", data)
+		elif message == "gdsyncprofiler:clientleft":
+			data.push_front("client_left")
+			profiler.callv("emit_signal", data)
+		elif message == "gdsyncprofiler:gamestart":
+			profiler.game_started()
+		return true
+
+	func _setup_session(session_id : int):
+		var profiler_scene : PackedScene = load("res://addons/GD-Sync/UI/Profiler/GDSyncProfiler.tscn")
+		if profiler_scene == null: return
+		var profiler : Control = profiler_scene.instantiate()
+		profiler.name = "GD-Sync Profiler"
+		var session = get_session(session_id)
+		
+		message_history[session_id] = []
+		
+		session.started.connect(func ():
+			profiler.validate_session()
+			message_history[session_id].clear()
+			profiler.clear())
+		session.stopped.connect(func (): 
+			profiler.stop()
+			profiler.invalidate_session())
+		
+		profiler.profiler_cleared.connect(func ():
+			var history : Array = message_history[session_id].duplicate(true)
+			await profiler.get_tree().process_frame
+			
+			for message in history:
+				_capture.callv(message)
+			
+			message_history[session_id] = history
+		)
+		profiler.profiler_started.connect(func ():
+			get_session(session_id).send_message("gdsyncprofiler:start", [])
+		)
+		profiler.profiler_stopped.connect(func ():
+			get_session(session_id).send_message("gdsyncprofiler:stop", [])
+		)
+		
+		profiler.start_monitoring_connections.connect(func ():
+			get_session(session_id).send_message("gdsyncprofiler:start_monitoring_connections", [])
+		)
+		profiler.stop_monitoring_connections.connect(func ():
+			get_session(session_id).send_message("gdsyncprofiler:stop_monitoring_connections", [])
+		)
+		
+		session.add_session_tab(profiler)
+		profilers[session_id] = profiler
+
+#endregion

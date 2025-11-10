@@ -31,6 +31,9 @@ var requestsSERV : Array = []
 var requestsRUDP : Array = []
 var requestsUDP : Array = []
 
+var name_cache_temp : Dictionary = {}
+var node_path_cache_temp : Dictionary = {}
+
 var GDSync
 var connection_controller
 var session_controller
@@ -99,11 +102,32 @@ func package_requests(type : int) -> PackedByteArray:
 		bytes = connection_controller.encryptor.update(bytes)
 	
 	packets_processed.emit()
+	
+	var return_bytes : PackedByteArray
 	if connection_controller.is_local():
-		return bytes
+		return_bytes = bytes
 	else:
 		var packet : Array = [padding, bytes.compress(2)]
-		return var_to_bytes(packet)
+		return_bytes = var_to_bytes(packet)
+	
+	if logger.use_profiler:
+		var compressed_packet_size : float = return_bytes.size()
+		var total_uncompressed_size : float = 0
+		var uncompressed_size_table : Dictionary = {}
+		for r in safe_requests:
+			var uncompressed_size : float = var_to_bytes(r).size()
+			total_uncompressed_size += uncompressed_size
+			uncompressed_size_table[r] = uncompressed_size
+		
+		for r in safe_requests:
+			var compressed_size_estimate : int = (uncompressed_size_table[r]/total_uncompressed_size)*compressed_packet_size
+			
+			var origin_data : Dictionary = get_request_origin_data(r)
+			
+			if origin_data.size() > 0:
+				logger.register_transfer_usage(origin_data, compressed_size_estimate, true, var_to_str(r))
+	
+	return return_bytes
 
 func check_request_size_safety(requests : Array) -> Array:
 	var size : int = var_to_bytes(requests).size()
@@ -116,6 +140,8 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 	var packet : Array = bytes_to_var(bytes)
 	var encryptedBytes : PackedByteArray
 	var requests : Array
+	
+	var compressed_packet_size : float = bytes.size()
 	
 	if connection_controller.is_local():
 		encryptedBytes = packet
@@ -132,6 +158,7 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 			var message : Dictionary = bytes_to_var(requestBytes)
 			requests = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
 		else:
+			var test : Array = bytes_to_var(requestBytes)
 			requests = bytes_to_var(requestBytes)
 	else:
 		if !connection_controller.is_local():
@@ -154,6 +181,51 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 				call_function_cached(request)
 			ENUMS.REQUEST_TYPE.MESSAGE:
 				process_message(request)
+	
+	if logger.use_profiler:
+		var total_uncompressed_size : float = 0
+		var uncompressed_size_table : Dictionary = {}
+		for r in requests:
+			var uncompressed_size : float = var_to_bytes(r).size()
+			total_uncompressed_size += uncompressed_size
+			uncompressed_size_table[r] = uncompressed_size
+		
+		for r in requests:
+			var compressed_size_estimate : int = (uncompressed_size_table[r]/total_uncompressed_size)*compressed_packet_size
+			var origin_data : Dictionary = get_request_origin_data(r)
+			
+			if origin_data.size() > 0:
+				logger.register_transfer_usage(origin_data, compressed_size_estimate, false, var_to_str(r))
+
+func get_request_origin_data(r : Array) -> Dictionary:
+	match r[ENUMS.DATA.REQUEST_TYPE]:
+		ENUMS.REQUEST_TYPE.SET_VARIABLE:
+			var id : String = r[ENUMS.VAR_DATA.NODE_PATH]
+			var property_name : String = r[ENUMS.VAR_DATA.NAME]
+			return {"type" : "sync_var", "object" : id, "target" : property_name}
+		ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED:
+			if r[ENUMS.VAR_DATA.NODE_PATH] is int and !session_controller.has_nodepath_from_index(r[ENUMS.VAR_DATA.NODE_PATH]):
+				return {}
+			if r[ENUMS.VAR_DATA.NAME] is int and !session_controller.has_name_from_index(r[ENUMS.VAR_DATA.NAME]):
+				return {}
+			var id : String = session_controller.get_nodepath_from_index(r[ENUMS.VAR_DATA.NODE_PATH]) if r[ENUMS.VAR_DATA.NODE_PATH] is int else r[ENUMS.VAR_DATA.NODE_PATH]
+			var property_name : String = session_controller.get_name_from_index(r[ENUMS.VAR_DATA.NAME]) if r[ENUMS.VAR_DATA.NAME] is int else r[ENUMS.VAR_DATA.NAME]
+			return {"type" : "sync_var optimized", "object" : id, "target" : property_name}
+		ENUMS.REQUEST_TYPE.CALL_FUNCTION:
+			var id : String = r[ENUMS.FUNCTION_DATA.NODE_PATH]
+			var function_name : String = r[ENUMS.FUNCTION_DATA.NAME]
+			return {"type" : "call_func", "object" : id, "target" : function_name}
+		ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED:
+			if r[ENUMS.FUNCTION_DATA.NODE_PATH] is int and !session_controller.has_nodepath_from_index(r[ENUMS.FUNCTION_DATA.NODE_PATH]):
+				return {}
+			if r[ENUMS.FUNCTION_DATA.NAME] is int and !session_controller.has_name_from_index(r[ENUMS.FUNCTION_DATA.NAME]):
+				return {}
+			var id : String = session_controller.get_nodepath_from_index(r[ENUMS.FUNCTION_DATA.NODE_PATH]) if r[ENUMS.FUNCTION_DATA.NODE_PATH] is int else r[ENUMS.FUNCTION_DATA.NODE_PATH]
+			var function_name : String = session_controller.get_name_from_index(r[ENUMS.FUNCTION_DATA.NAME]) if r[ENUMS.FUNCTION_DATA.NAME] is int else r[ENUMS.FUNCTION_DATA.NAME]
+			return {"type" : "call_func optimized", "object" : id, "target" : function_name}
+		ENUMS.REQUEST_TYPE.MESSAGE:
+			return {"type" : "internal", "object" : "GD-Sync", "target" : "Internal Message ("+ENUMS.MESSAGE_TYPE.keys()[r[ENUMS.MESSAGE_DATA.TYPE]].capitalize()+")"}
+	return {}
 
 func process_message(request : Array) -> void:
 	var message : int = request[ENUMS.MESSAGE_DATA.TYPE]
@@ -442,8 +514,8 @@ func create_set_var_request(object : Object, variable_name : String, client_id :
 			value,
 		]
 		
-		create_nodepath_cache(id)
-		create_name_cache(variable_name)
+		create_nodepath_cache(id, variable_name)
+		create_name_cache(id, variable_name)
 	
 	if reliable:
 		requestsRUDP.append(request)
@@ -489,8 +561,8 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 			client_id
 		]
 		
-		create_nodepath_cache(id)
-		create_name_cache(function_name)
+		create_nodepath_cache(id, function_name)
+		create_name_cache(id, function_name)
 	
 	if parameters.size() > 0:
 		request.append(parameters)
@@ -500,8 +572,16 @@ func create_function_call_request(function : Callable, parameters : Array, clien
 	else:
 		requestsUDP.append(request)
 
-func create_nodepath_cache(node_path : String) -> void:
+func create_nodepath_cache(node_path : String, name : String) -> void:
 	if connection_controller.is_local(): return
+	
+	var key : String = node_path+name
+	if !node_path_cache_temp.has(key):
+		node_path_cache_temp[key] = null
+		await get_tree().create_timer(30.0).timeout
+		node_path_cache_temp.erase(key)
+		return
+	
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.CACHE_NODE_PATH,
 		node_path
@@ -518,8 +598,16 @@ func create_erase_nodepath_cache_request(index : int) -> void:
 	
 	requestsSERV.append(request)
 
-func create_name_cache(name : String) -> void:
+func create_name_cache(node_path : String, name : String) -> void:
 	if connection_controller.is_local(): return
+	
+	var key : String = node_path+name
+	if !name_cache_temp.has(key):
+		name_cache_temp[key] = null
+		await get_tree().create_timer(30.0).timeout
+		name_cache_temp.erase(key)
+		return
+	
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.CACHE_NAME,
 		name
