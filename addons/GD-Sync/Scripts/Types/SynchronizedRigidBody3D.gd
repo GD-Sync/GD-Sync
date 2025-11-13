@@ -76,10 +76,12 @@ var GDSync
 
 var _cooldown : float = 0.0
 var _current_cooldown : float = 0.0
+var _current_fixed_cooldown : float = 0.0
 var _should_broadcast : bool = false
 var _last_owner : int = -1
 
 var _pending_sync : bool = true
+var _force_sync : bool = false
 var _pending_correction : bool = false
 
 var _remote_position : Vector3
@@ -89,10 +91,20 @@ var _remote_angular_velocity : Vector3
 
 var _disable_correction_counter : int = 0
 
-const _ROTATION_THRESHOLD : float = 0.03
-const _LINEAR_VELOCITY_THRESHOLD : float = 0.5
-const _ANGULAR_VELOCITY_THRESHOLD : float = 0.3
-const _POSITION_THRESHOLD : float = 0.01
+var _last_sync_position : Vector3 = Vector3.ZERO
+var _last_sync_rotation : Vector3 = Vector3.UP
+var _last_sync_linear_velocity : Vector3 = Vector3.ZERO
+var _last_sync_angular_velocity : Vector3 = Vector3.ZERO
+
+const _FIXED_COOLDOWN : float = 10.0
+const _SYNC_LINEAR_VELOCITY_THRESHOLD : float = 0.1
+const _SYNC_ANGULAR_VELOCITY_THRESHOLD : float = 0.05
+const _SYNC_ROTATION_THRESHOLD : float = 0.01
+const _SYNC_POSITION_THRESHOLD : float = 0.01
+const _CORRECTION_ROTATION_THRESHOLD : float = 0.03
+const _CORRECTION_LINEAR_VELOCITY_THRESHOLD : float = 0.1
+const _CORRECTION_ANGULAR_VELOCITY_THRESHOLD : float = 0.05
+const _CORRECTION_POSITION_THRESHOLD : float = 0.01
 
 func _ready() -> void:
 	if !Engine.is_editor_hint():
@@ -105,22 +117,46 @@ func _ready() -> void:
 		GDSync.expose_func(_sync_received)
 		
 		GDSync.host_changed.connect(_host_changed)
+		GDSync.client_joined.connect(_client_joined)
 		GDSync.connect_gdsync_owner_changed(self, _owner_changed)
 		
 		_update_sync_mode()
+		_current_fixed_cooldown = 2.0
 
 func _physics_process(delta: float) -> void:
 	if _should_broadcast:
 		if _may_synchronize(delta):
-			_pending_sync = true
+			var current_rot : Vector3 = global_transform.basis.get_euler()
+			var rot_diff : Vector3 = current_rot-_last_sync_rotation
+			if (
+				_force_sync or
+				abs((global_transform.origin-_last_sync_position).length_squared()) > _SYNC_POSITION_THRESHOLD or
+				abs((linear_velocity-_last_sync_linear_velocity).length_squared()) > _SYNC_LINEAR_VELOCITY_THRESHOLD or
+				abs((angular_velocity-_last_sync_angular_velocity).length_squared()) > _SYNC_ANGULAR_VELOCITY_THRESHOLD or
+				abs(rot_diff.x) > _SYNC_ROTATION_THRESHOLD or
+				abs(rot_diff.y) > _SYNC_ROTATION_THRESHOLD or
+				abs(rot_diff.z) > _SYNC_ROTATION_THRESHOLD
+				):
+				_last_sync_linear_velocity = linear_velocity
+				_last_sync_angular_velocity = angular_velocity
+				_last_sync_position = global_transform.origin
+				_last_sync_rotation = current_rot
+				_pending_sync = true
+				_force_sync = false
 	
-	_remote_position += _remote_linear_velocity * delta
-	_remote_euler += _remote_angular_velocity*delta
+	#_remote_position += _remote_linear_velocity * delta
+	#_remote_euler += _remote_angular_velocity*delta
 
 func _may_synchronize(delta : float) -> bool:
 	_current_cooldown -= delta
 	if _current_cooldown <= 0:
 		_current_cooldown += _cooldown
+		return true
+	
+	_current_fixed_cooldown -= delta
+	if _current_fixed_cooldown <= 0.0:
+		_current_fixed_cooldown += _FIXED_COOLDOWN
+		_force_sync = true
 		return true
 	return false
 
@@ -148,20 +184,20 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 				state.transform.origin,
 				state.transform.basis.get_euler())
 	else:
-		var rot_diff : Vector3 = state.transform.basis.get_euler()
+		var rot_diff : Vector3 = state.transform.basis.get_euler()-_remote_euler
 		if (
 			_disable_correction_counter == 0 and (
-			abs((state.linear_velocity-_remote_linear_velocity).length_squared()) > _LINEAR_VELOCITY_THRESHOLD or
-			abs((state.angular_velocity-_remote_angular_velocity).length_squared()) > _ANGULAR_VELOCITY_THRESHOLD or
-			abs((state.transform.origin-_remote_position).length_squared()) > _POSITION_THRESHOLD or
-			abs(rot_diff.x) > _ROTATION_THRESHOLD or
-			abs(rot_diff.y) > _ROTATION_THRESHOLD or
-			abs(rot_diff.z) > _ROTATION_THRESHOLD
+			abs((state.linear_velocity-_remote_linear_velocity).length_squared()) > _CORRECTION_LINEAR_VELOCITY_THRESHOLD or
+			abs((state.angular_velocity-_remote_angular_velocity).length_squared()) > _CORRECTION_ANGULAR_VELOCITY_THRESHOLD or
+			abs((state.transform.origin-_remote_position).length_squared()) > _CORRECTION_POSITION_THRESHOLD or
+			abs(rot_diff.x) > _CORRECTION_ROTATION_THRESHOLD or
+			abs(rot_diff.y) > _CORRECTION_ROTATION_THRESHOLD or
+			abs(rot_diff.z) > _CORRECTION_ROTATION_THRESHOLD
 			)):
 			state.linear_velocity = _remote_linear_velocity
 			state.angular_velocity = _remote_angular_velocity
-			state.transform.origin = lerp(state.transform.origin, _remote_position, 0.1)
-			state.transform.basis = state.transform.basis.slerp(Basis(Quaternion.from_euler(_remote_euler)), 0.1)
+			state.transform.origin = lerp(state.transform.origin, _remote_position, 0.3)
+			state.transform.basis = state.transform.basis.slerp(Basis(Quaternion.from_euler(_remote_euler)), 0.3)
 
 func _sync_received(time : float, lv : Vector3, av : Vector3, pos : Vector3, euler : Vector3) -> void:
 	var delta : float = min(GDSync.get_multiplayer_time()-time, 0.3)
@@ -169,11 +205,19 @@ func _sync_received(time : float, lv : Vector3, av : Vector3, pos : Vector3, eul
 	_remote_angular_velocity = av
 	_remote_position = pos + _remote_linear_velocity*delta
 	_remote_euler = euler + _remote_angular_velocity*delta
+	_last_sync_linear_velocity = _remote_linear_velocity
+	_last_sync_angular_velocity = _remote_angular_velocity
+	_last_sync_position = pos
+	_last_sync_rotation = euler
 	sleeping = false
 
 func _owner_changed(owner) -> void:
 	if owner >= 0: _last_owner = owner
 	_update_sync_mode()
+
+func _client_joined(client_id : int) -> void:
+	if _should_broadcast:
+		_pending_sync = true
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
 	_update_sync_mode()
