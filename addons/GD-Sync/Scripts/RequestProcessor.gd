@@ -144,7 +144,19 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 	var compressed_packet_size : float = bytes.size()
 	
 	if connection_controller.is_local():
-		encryptedBytes = packet
+		# Local mode: packet can be Dictionary (from package_requests) or Array (raw from host)
+		match typeof(packet):
+			TYPE_DICTIONARY:
+				if packet.has(ENUMS.PACKET_VALUE.CLIENT_REQUESTS):
+					requests = packet[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
+				elif packet.has(ENUMS.PACKET_VALUE.SERVER_REQUESTS):
+					requests = packet[ENUMS.PACKET_VALUE.SERVER_REQUESTS]
+				else:
+					requests = []
+			TYPE_ARRAY:
+				requests = packet
+			_:
+				assert(false, "Unrecognized packet format in local mode.")
 	else:
 		encryptedBytes = packet[2].decompress(packet[0], 2)
 	
@@ -161,11 +173,8 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 			var test : Array = bytes_to_var(requestBytes)
 			requests = bytes_to_var(requestBytes)
 	else:
-		if !connection_controller.is_local():
-			var message : Dictionary = bytes_to_var(encryptedBytes)
-			requests = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
-		else:
-			requests = packet
+		var message: Dictionary = bytes_to_var(encryptedBytes)
+		requests = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
 	
 	for r in requests:
 		var request : Array = r
