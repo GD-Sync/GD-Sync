@@ -136,49 +136,62 @@ func check_request_size_safety(requests : Array) -> Array:
 	else:
 		return requests
 
-func unpack_packet(bytes : PackedByteArray) -> void:
-	var packet : Array = bytes_to_var(bytes)
-	var encryptedBytes : PackedByteArray
-	var requests : Array
-	
-	var compressed_packet_size : float = bytes.size()
-	
-	if connection_controller.is_local():
-		# Local mode: packet can be Dictionary (from package_requests) or Array (raw from host)
-		match typeof(packet):
-			TYPE_DICTIONARY:
-				if packet.has(ENUMS.PACKET_VALUE.CLIENT_REQUESTS):
-					requests = packet[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
-				elif packet.has(ENUMS.PACKET_VALUE.SERVER_REQUESTS):
-					requests = packet[ENUMS.PACKET_VALUE.SERVER_REQUESTS]
-				else:
-					requests = []
-			TYPE_ARRAY:
-				requests = packet
-			_:
-				assert(false, "Unrecognized packet format in local mode.")
+func unpack_packet(bytes: PackedByteArray) -> void:
+	var packet: Array = bytes_to_var(bytes)
+	var compressed_packet_size: float = bytes.size()
+	var requests: Array
+
+	match connection_controller.status:
+		ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION:
+			requests = _unpack_local_packet(packet)
+		ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
+			requests = _unpack_secured_packet(packet)
+		_:
+			requests = _unpack_unsecured_remote_packet(packet)
+
+	_process_requests(requests)
+
+	if logger.use_profiler:
+		_log_profiler_data(requests, compressed_packet_size)
+
+
+func _unpack_local_packet(packet) -> Array:
+	match typeof(packet):
+		TYPE_DICTIONARY:
+			if packet.has(ENUMS.PACKET_VALUE.CLIENT_REQUESTS):
+				return packet[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
+			elif packet.has(ENUMS.PACKET_VALUE.SERVER_REQUESTS):
+				return packet[ENUMS.PACKET_VALUE.SERVER_REQUESTS]
+			return []
+		TYPE_ARRAY:
+			return packet
+		_:
+			assert(false, "Unrecognized packet format in local mode.")
+			return []
+
+
+func _unpack_secured_packet(packet: Array) -> Array:
+	var encryptedBytes: PackedByteArray = packet[2].decompress(packet[0], 2)
+	connection_controller.refresh_decryptor()
+	var requestBytes: PackedByteArray = connection_controller.decryptor.update(encryptedBytes)
+	requestBytes.resize(requestBytes.size() - packet[1])
+
+	if !settings_applied:
+		var message: Dictionary = bytes_to_var(requestBytes)
+		return message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
 	else:
-		encryptedBytes = packet[2].decompress(packet[0], 2)
-	
-	if connection_controller.status == ENUMS.CONNECTION_STATUS.CONNECTION_SECURED:
-		connection_controller.refresh_decryptor()
-		var requestBytes : PackedByteArray = connection_controller.decryptor.update(encryptedBytes)
-		var padding : int = packet[ENUMS.PACKET_VALUE.PADDING]
-		requestBytes.resize(requestBytes.size()-packet[1])
-		
-		if !settings_applied:
-			var message : Dictionary = bytes_to_var(requestBytes)
-			requests = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
-		else:
-			var test : Array = bytes_to_var(requestBytes)
-			requests = bytes_to_var(requestBytes)
-	else:
-		var message: Dictionary = bytes_to_var(encryptedBytes)
-		requests = message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
-	
+		return bytes_to_var(requestBytes)
+
+
+func _unpack_unsecured_remote_packet(packet: Array) -> Array:
+	var encryptedBytes: PackedByteArray = packet[2].decompress(packet[0], 2)
+	var message: Dictionary = bytes_to_var(encryptedBytes)
+	return message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]
+
+
+func _process_requests(requests: Array) -> void:
 	for r in requests:
-		var request : Array = r
-		
+		var request: Array = r
 		match request[ENUMS.DATA.REQUEST_TYPE]:
 			ENUMS.REQUEST_TYPE.SET_VARIABLE:
 				set_variable(request)
@@ -190,21 +203,22 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 				call_function_cached(request)
 			ENUMS.REQUEST_TYPE.MESSAGE:
 				process_message(request)
-	
-	if logger.use_profiler:
-		var total_uncompressed_size : float = 0
-		var uncompressed_size_table : Dictionary = {}
-		for r in requests:
-			var uncompressed_size : float = var_to_bytes(r).size()
-			total_uncompressed_size += uncompressed_size
-			uncompressed_size_table[r] = uncompressed_size
-		
-		for r in requests:
-			var compressed_size_estimate : int = (uncompressed_size_table[r]/total_uncompressed_size)*compressed_packet_size
-			var origin_data : Dictionary = get_request_origin_data(r)
-			
-			if origin_data.size() > 0:
-				logger.register_transfer_usage(origin_data, compressed_size_estimate, false, var_to_str(r))
+
+
+func _log_profiler_data(requests: Array, compressed_packet_size: float) -> void:
+	var total_uncompressed_size: float = 0
+	var uncompressed_size_table: Dictionary = {}
+	for r in requests:
+		var uncompressed_size: float = var_to_bytes(r).size()
+		total_uncompressed_size += uncompressed_size
+		uncompressed_size_table[r] = uncompressed_size
+
+	for r in requests:
+		var compressed_size_estimate: int = (uncompressed_size_table[r] / total_uncompressed_size) * compressed_packet_size
+		var origin_data: Dictionary = get_request_origin_data(r)
+
+		if origin_data.size() > 0:
+			logger.register_transfer_usage(origin_data, compressed_size_estimate, false, var_to_str(r))
 
 func get_request_origin_data(r : Array) -> Dictionary:
 	match r[ENUMS.DATA.REQUEST_TYPE]:
