@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2025 GD-Sync.
+#Copyright (c) 2026 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -96,7 +96,9 @@ func _ready() -> void:
 		logger.write_log("Incorrect public/private key. <"+_PUBLIC_KEY+"> <"+_PRIVATE_KEY+">")
 		push_error("
 		No Public or Private key was entered in the GD-Sync setttings. 
-		Please add one under Project->Tools->GD-Sync."
+		Please add one under Project->Tools->GD-Sync.
+		
+		If you are using local multiplayer only, you can ignore this error."
 		)
 
 func is_active() -> bool:

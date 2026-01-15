@@ -3,7 +3,7 @@
 extends RigidBody2D
 class_name SynchronizedRigidBody2D
 
-#Copyright (c) 2025 GD-Sync.
+#Copyright (c) 2026 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,

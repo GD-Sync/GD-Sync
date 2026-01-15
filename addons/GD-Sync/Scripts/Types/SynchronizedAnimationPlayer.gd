@@ -2,7 +2,7 @@
 extends AnimationPlayer
 class_name SynchronizedAnimationPlayer
 
-#Copyright (c) 2025 GD-Sync.
+#Copyright (c) 2026 GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
