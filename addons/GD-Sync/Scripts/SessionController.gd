@@ -516,9 +516,10 @@ func emit_gdsync_owner_changed(node : Node, owner) -> void:
 		emit_gdsync_owner_changed(child, owner)
 
 func get_gdsync_owner(node : Node) -> int:
-	var path_string : String = str(node.get_path())
-	if owner_cache.has(path_string):
-		set_gdsync_owner_remote(node, owner_cache[path_string])
+	if node.is_inside_tree():
+		var path_string : String = str(node.get_path())
+		if owner_cache.has(path_string):
+			set_gdsync_owner_remote(node, owner_cache[path_string])
 	
 	var ownerID : int = -1
 	var p : Node = node
