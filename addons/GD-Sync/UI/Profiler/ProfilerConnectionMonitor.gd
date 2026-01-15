@@ -147,6 +147,7 @@ func _on_client_joined(client_id : int) -> void:
 	latency_graph.visible = true
 	latency_graph.client_id = client_id
 	latency_graph.data_series[0]["label"] = "Latency to client "+str(client_id)
+	latency_graph.data_series[1]["label"] = "Perceived latency to client "+str(client_id)
 	client_latency_graphs[client_id] = latency_graph
 	
 	var jitter_graph : Control = jitter_graph_template.duplicate()
@@ -188,13 +189,19 @@ func _on_client_left(client_id : int) -> void:
 		client_jitter_graphs[client_id].queue_free()
 		client_jitter_graphs.erase(client_id)
 
-func _on_ping_measured(client_id : int, ping : float) -> void:
+func _on_ping_measured(client_id : int, ping : float, perceived_ping : float) -> void:
 	if !client_latency_graphs.has(client_id): return
+	ping *= 1000.0
+	perceived_ping *= 1000.0
+	
+	ping = max(0, ping)
+	perceived_ping = max(0, perceived_ping)
 	
 	var data : Dictionary = client_data[client_id]
 	var last_latency : float = data["latency"]
 	var jitter : float = abs(last_latency-ping) if last_latency > 0 else 0.0
 	data["latency"] = ping
+	data["perceived_latency"] = perceived_ping
 	data["jitter"] = jitter
 	
 	stats_updated.emit(client_id, data)

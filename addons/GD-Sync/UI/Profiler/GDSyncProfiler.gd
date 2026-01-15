@@ -30,7 +30,7 @@ signal custom_data_updated(data : Dictionary)
 signal message_details_updated(details : Dictionary)
 signal client_joined(client_id : int)
 signal client_left(client_id : int)
-signal ping_measured(client_id : int, ping : float)
+signal ping_measured(client_id : int, ping : float, perceived_ping : float)
 signal start_monitoring_connections
 signal stop_monitoring_connections
 signal profiler_cleared()

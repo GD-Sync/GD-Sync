@@ -357,9 +357,13 @@ func override_lobby_data(data : Dictionary) -> void:
 	lobby_data = data
 	logger.register_profiler_data("lobby_data", lobby_data)
 
-func get_player_limit() -> int:
+func get_lobby_player_limit() -> int:
 	if !lobby_data.has("PlayerLimit"): return 0
 	return lobby_data["PlayerLimit"]
+
+func get_lobby_visibility() -> bool:
+	if !lobby_data.has("Public"): return false
+	return lobby_data["Public"]
 
 func lobby_has_password() -> bool:
 	if lobby_data.has("HasPassword"):
@@ -679,7 +683,7 @@ func emit_signal_remote(id : String, signal_name : String, params : Array) -> vo
 	signal_data.append_array(params)
 	object.callv("emit_signal", signal_data)
 
-func get_ping(client_id : int) -> float:
+func get_ping(client_id : int, remove_frame_latency : bool) -> float:
 	var rng : RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
 	var session_id : int = rng.randi()
@@ -689,7 +693,7 @@ func get_ping(client_id : int) -> float:
 	
 	for i in range(5):
 		var time : float = Time.get_ticks_msec()/1000.0
-		GDSync.call_func_on(client_id, ping_send, [GDSync.get_client_id(), session_id, time])
+		GDSync.call_func_on(client_id, ping_send, [GDSync.get_client_id(), session_id, time, remove_frame_latency])
 		await get_tree().create_timer(0.02).timeout
 	
 	for i in range(5):
@@ -697,17 +701,18 @@ func get_ping(client_id : int) -> float:
 		if session_data["count"] == 5: break
 	
 	ping_sessions.erase(session_id)
+	
 	if session_data["count"] == 0:
 		return -1
 	else:
 		return session_data["ping"]/float(session_data["count"])
 
-func ping_send(origin_client : int, session_id : int, time : float) -> void:
-	GDSync.call_func_on(origin_client, ping_return, [session_id, time])
+func ping_send(origin_client : int, session_id : int, time : float, remove_frame_latency : bool) -> void:
+	GDSync.call_func_on(origin_client, ping_return, [session_id, time+(1.0/Engine.get_frames_per_second()) if remove_frame_latency else time, remove_frame_latency])
 
-func ping_return(session_id : int, time : float) -> void:
+func ping_return(session_id : int, time : float, remove_frame_latency : bool) -> void:
 	if !ping_sessions.has(session_id): return
-	var ping : float = Time.get_ticks_msec()/1000.0 - time
+	var ping : float = Time.get_ticks_msec()/1000.0 - (time+(1.0/Engine.get_frames_per_second())) if remove_frame_latency else Time.get_ticks_msec()/1000.0 - time
 	var session_data : Dictionary = ping_sessions[session_id]
 	session_data["count"] = session_data["count"] + 1
 	session_data["ping"] = session_data["ping"] + ping

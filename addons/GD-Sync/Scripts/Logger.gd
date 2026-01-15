@@ -103,7 +103,8 @@ func _monitor_connection(client_id : int) -> void:
 	if GDSync.get_client_id() == client_id: return
 	
 	var ping : float = await GDSync.get_client_ping(client_id)
-	register_profiler_message("pingmeasured", [client_id, ping])
+	var perceived_ping : float = await GDSync.get_client_percieved_ping(client_id)
+	register_profiler_message("pingmeasured", [client_id, ping, perceived_ping])
 
 func _process_logs() -> void:
 	var current_time : float = Time.get_unix_time_from_system()

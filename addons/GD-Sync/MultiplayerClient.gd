@@ -266,10 +266,15 @@ func _manual_connect(address : String) -> void:
 func get_client_id() -> int:
 	return _connection_controller.client_id
 
-## Measures and returns the ping between this and another client. Useful to know how much latency there is between clients.
+## Measures and returns the ping between this client and another client. This only measures network travel time for the message. Useful for checking raw network latency between clients.
 ## If the returned float is -1, the ping calculation failed.
 func get_client_ping(client_id : int) -> float:
-	return await _session_controller.get_ping(client_id)
+	return await _session_controller.get_ping(client_id, true)
+
+## Measures and returns the perceived ping between this client and another client. This includes network travel time plus additional delay caused by frame timing. Useful for estimating player-visible latency..
+## If the returned float is -1, the ping calculation failed.
+func get_client_percieved_ping(client_id : int) -> float:
+	return await _session_controller.get_ping(client_id, false)
 
 ## Returns the Client ID of the last client to perform a remote function call on this client.
 ## Useful for knowing where a remote function call came from.
@@ -741,9 +746,13 @@ func lobby_get_player_count() -> int:
 func lobby_get_name() -> String:
 	return GDSync._session_controller.lobby_name
 
+## Get the current lobby visibility. Returns true if the lobby is publicly visible.
+func lobby_get_visibility() -> bool:
+	return _session_controller.get_lobby_visibility()
+
 ## Returns the player limit of the current lobby.
 func lobby_get_player_limit() -> int:
-	return _session_controller.get_player_limit()
+	return _session_controller.get_lobby_player_limit()
 
 ## Returns true if the current lobby has a password.
 func lobby_has_password() -> bool:
@@ -897,8 +906,6 @@ func player_set_username(name : String) -> void:
 func player_get_username(client_id : int = get_client_id(), default := "") -> String:
 	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, "Username", default)
-
-
 
 
 

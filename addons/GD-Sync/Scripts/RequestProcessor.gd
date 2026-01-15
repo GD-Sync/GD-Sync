@@ -191,6 +191,7 @@ func unpack_packet(bytes : PackedByteArray) -> void:
 			uncompressed_size_table[r] = uncompressed_size
 		
 		for r in requests:
+			if r == null: continue
 			var compressed_size_estimate : int = (uncompressed_size_table[r]/total_uncompressed_size)*compressed_packet_size
 			var origin_data : Dictionary = get_request_origin_data(r)
 			
