@@ -890,6 +890,14 @@ func player_set_username(name : String) -> void:
 	_request_processor.create_set_username_request(name)
 	_session_controller.set_player_data("Username", name)
 
+## Gets the username of the player with the given client ID. By default uses the ID of the local player.
+## [br]
+## [br][b]client_id -[/b] The ID of this client.
+## [br][b]default -[/b] The default value to return if the username was not found.
+func player_get_username(client_id : int = get_client_id(), default := "") -> String:
+	if !_connection_controller.valid_connection(): return default
+	return _session_controller.get_player_data(client_id, "Username", default)
+
 
 
 
