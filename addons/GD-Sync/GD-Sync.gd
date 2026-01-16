@@ -37,7 +37,7 @@ var load_balancers : PackedStringArray = [
 	"lb3.gd-sync.com",
 ]
 
-var version : String = "0.13"
+var version : String = "0.14"
 
 var debugger = GDSyncProfiler.new()
 
@@ -46,6 +46,11 @@ func _enable_plugin() -> void:
 	
 	print_rich("[color=#408EAB]	- Please visit our website for more info (https://www.gd-sync.com)[/color]")
 	print_rich("[color=#408EAB]	- The plugin configuration menu can be found under Project > Tools > GD-Sync.[/color]")
+	
+	show_message("[b]GD-Sync version "+version+" enabled.[/b]
+	
+Please visit our website for more info ([color=#408EAB][url=https://www.gd-sync.com]gd-sync.com[/url][/color])", 10.0)
+	
 
 var config_menu : Control
 func _enter_tree() -> void:
@@ -88,15 +93,15 @@ func enable_csharp_api() -> void:
 	
 	if result[1] == 200:
 		add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
-		print_rich("[color=#408EAB][b]GD-Sync C# API installed. Please restart and build your project.[/b][/color]")
+		show_message("[b]GD-Sync C# API installed. Please restart and build your project.[/b]")
 	else:
-		print_rich("[color=indianred][b]GD-Sync C# API failed to download. Please disable and enable C# support to try again.[/b][/color]")
+		show_message("[color=indianred][b]GD-Sync C# API failed to download. Please disable and enable C# support to try again.[/b][/color]")
 	
 	request.queue_free()
 
 func disable_csharp_api() -> void:
 	if !FileAccess.file_exists(CSHARP_PATH): return
-	print_rich("[color=#408EAB][b]GD-Sync C# API removed.[/b][/color]")
+	show_message("[b]GD-Sync C# API removed.[/b]")
 	
 	var dir : DirAccess = DirAccess.open(PLUGIN_PATH)
 	dir.remove("GDSync.cs")
@@ -124,10 +129,10 @@ func check_for_updates_and_news() -> void:
 		var new_version : String = data.get("version", version)
 		if is_version_newer(version, new_version):
 			config_menu.update_ready()
-			print("")
-			print_rich("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]")
-			print_rich("[color=#61ff71]	- You can upgrade to version "+new_version+" in the configuration menu (Project -> Tools -> GD-Sync).[/color]")
-			print_rich("[color=#61ff71]	- [url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]")
+			show_message("[color=#61ff71][b]A new version of GD-Sync is available.[/b][/color]
+[color=#61ff71]You can upgrade to version "+new_version+" in the configuration menu (Project -> Tools -> GD-Sync).[/color]
+
+[color=#61ff71][url=https://www.gd-sync.com/news]Click here for the patch notes.[/url][/color]", 10.0)
 		print("")
 		for news in data.get("news", []):
 			print_rich(news)
@@ -586,4 +591,42 @@ class GDSyncProfiler extends EditorDebuggerPlugin:
 		session.add_session_tab(profiler)
 		profilers[session_id] = profiler
 
+#endregion
+
+
+#region ToastMessages
+var message_count : int = 0
+
+func show_message(message : String, duration : float = 5.0) -> void:
+	var message_packed : PackedScene = load("res://addons/GD-Sync/UI/Messages/ToastMessage.tscn")
+	if message_packed == null: return
+	
+	var message_scene : Control = message_packed.instantiate()
+	message_scene.name = "GDSyncMessage"+str(message_count)
+	message_count += 1
+	
+	get_editor_interface().get_base_control().add_child(message_scene)
+	message_scene.set_message(message, true, duration)
+	message_scene.tree_exiting.connect(_on_message_destroyed)
+	
+	_update_all_message_positions()
+
+func _on_message_destroyed() -> void:
+	await get_tree().process_frame
+	_update_all_message_positions()
+
+func _update_all_message_positions() -> void:
+	var messages : Array = []
+	for child in get_editor_interface().get_base_control().get_children():
+		if "GDSyncMessage" in child.name and child.has_method("get_height"):
+			messages.append(child)
+	
+	var cumulative_height : float = 0.0
+	for i in range(messages.size() - 1, -1, -1):
+		var message = messages[i]
+		if i == messages.size()-1:
+			cumulative_height += message.get_height()*0.5
+		else:
+			cumulative_height += message.get_height()
+		message.update_position(cumulative_height)
 #endregion

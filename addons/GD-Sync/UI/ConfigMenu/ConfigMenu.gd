@@ -122,7 +122,6 @@ func _on_update_button_pressed() -> void:
 	$AnimationPlayer.play_backwards("Downloading")
 	
 	if result:
-		print("")
-		print_rich("[color=#61ff71][b]The newest version of GD-Sync has been installed. Please restart the engine to complete the update.[/b][/color]")
+		plugin.show_message("[color=#61ff71][b]The newest version of GD-Sync has been installed. Please restart the engine to complete the update.[/b][/color]", 10.0)
 	else:
-		print_rich("[color=indianred][b]GD-Sync failed to update. Please try downloading it from the Godot Asset Library instead.[/b][/color]")
+		plugin.show_message("[color=indianred][b]GD-Sync failed to update. Please try downloading it from the Godot Asset Library instead.[/b][/color]")

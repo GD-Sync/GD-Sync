@@ -1,6 +1,6 @@
-[gd_scene load_steps=52 format=3 uid="uid://1ho7vq1qum7y"]
+[gd_scene load_steps=51 format=3 uid="uid://1ho7vq1qum7y"]
 
-[ext_resource type="Script" uid="uid://dwivitqtoupai" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
 [ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
@@ -91,7 +91,7 @@ tracks/1/keys = {
 "times": PackedFloat32Array(0.1, 0.3),
 "transitions": PackedFloat32Array(1, 1),
 "update": 0,
-"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0.588235)]
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0.78431374)]
 }
 tracks/2/type = "value"
 tracks/2/imported = false
@@ -545,22 +545,6 @@ animations = [{
 "speed": 25.0
 }]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_xr6mm"]
-content_margin_left = 15.0
-content_margin_top = 8.0
-content_margin_right = 15.0
-content_margin_bottom = 8.0
-bg_color = Color(0.25098, 0.556863, 0.670588, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.380392, 1, 0.443137, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-
 [node name="ConfigMenu" type="Control"]
 visible = false
 layout_mode = 3
@@ -629,7 +613,7 @@ layout_mode = 0
 offset_left = -475.0
 offset_top = -275.0
 offset_right = 475.0
-offset_bottom = 325.0
+offset_bottom = 342.0
 theme = ExtResource("2_wd24h")
 
 [node name="DefaultPannel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
@@ -645,7 +629,7 @@ theme_type_variation = &"GDPanel"
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
-text = "Welcome to the GD-Sync configuration menu! Here you can find basic settings and links to official resources.
+text = "Welcome to the GD-Sync configuration menu. Here you can find basic settings and links to official resources.
 
 - [url=https://www.gd-sync.com]Official Website[/url]
 - [url=https://www.gd-sync.com/documentation]Documentation[/url]
@@ -673,10 +657,18 @@ text = "A new update for GD-Sync is available. Press the button below to automat
 - [url=https://www.gd-sync.com/documentation]Documentation[/url]
 - [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
 
-[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+clip_children = 1
+clip_contents = true
 layout_mode = 2
 size_flags_vertical = 8
-theme_override_styles/normal = SubResource("StyleBoxFlat_xr6mm")
+focus_mode = 2
+theme_type_variation = &"EmptyPanel"
+
+[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"UpdateButton"
 text = "Update"
 
 [node name="Panel2" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
@@ -882,18 +874,26 @@ bbcode_enabled = true
 text = "Script validation scans the script you are currently working on to detect possible mistakes and errors. If the plugin detects incorrect function usage or unexposed remote calls, a warning will be displayed in the Godot editor. This helps you catch common issues early, reducing debugging time and preventing runtime errors."
 fit_content = true
 
-[node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI"]
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+clip_children = 1
+clip_contents = true
 layout_mode = 0
 offset_left = -135.0
-offset_top = 270.0
+offset_top = 280.0
 offset_right = 115.0
-offset_bottom = 310.0
+offset_bottom = 320.0
+focus_mode = 2
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"EmptyPanel"
+
+[node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI/ButtonContainer"]
+layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Close"
 
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/DefaultPannel/Description" to="." method="_on_description_meta_clicked"]
 [connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/UpdatePanel/Description" to="." method="_on_description_meta_clicked"]
-[connection signal="pressed" from="CenterContainer/UIAnchor/UI/UpdatePanel/UpdateButton" to="." method="_on_update_button_pressed"]
+[connection signal="pressed" from="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer/UpdateButton" to="." method="_on_update_button_pressed"]
 [connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
 [connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/CSharpSupport" to="." method="_on_c_sharp_support_toggled"]
@@ -901,4 +901,4 @@ text = "Close"
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer/ScriptValidation" to="." method="_on_script_validation_toggled"]
-[connection signal="pressed" from="CenterContainer/UIAnchor/UI/Close" to="." method="close"]
+[connection signal="pressed" from="CenterContainer/UIAnchor/UI/ButtonContainer/Close" to="." method="close"]
