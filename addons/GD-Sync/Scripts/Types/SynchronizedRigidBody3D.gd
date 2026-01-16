@@ -30,37 +30,37 @@ class_name SynchronizedRigidBody3D
 ## How many times per second the body should be synchronized.
 @export var refresh_rate : int = 30
 
-func apply_central_impulse(impulse : Vector3) -> void:
+func apply_central_impulse_synced(impulse : Vector3) -> void:
 	super.apply_central_impulse(impulse)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
 		GDSync.set_gdsync_owner(self, GDSync.get_client_id())
 
-func apply_central_force(force : Vector3) -> void:
+func apply_central_force_synced(force : Vector3) -> void:
 	super.apply_central_force(force)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
 		GDSync.set_gdsync_owner(self, GDSync.get_client_id())
 
-func apply_impulse(impulse: Vector3, position: Vector3 = Vector3(0, 0, 0)) -> void:
+func apply_impulse_synced(impulse: Vector3, position: Vector3 = Vector3(0, 0, 0)) -> void:
 	super.apply_impulse(impulse, position)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
 		GDSync.set_gdsync_owner(self, GDSync.get_client_id())
 
-func apply_force(force: Vector3, position: Vector3 = Vector3(0, 0, 0)) -> void:
+func apply_force_synced(force: Vector3, position: Vector3 = Vector3(0, 0, 0)) -> void:
 	super.apply_force(force, position)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
 		GDSync.set_gdsync_owner(self, GDSync.get_client_id())
 
-func apply_torque(torque: Vector3) -> void:
+func apply_torque_synced(torque: Vector3) -> void:
 	super.apply_torque(torque)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
 		GDSync.set_gdsync_owner(self, GDSync.get_client_id())
 
-func apply_torque_impulse(impulse: Vector3) -> void:
+func apply_torque_impulse_synced(impulse: Vector3) -> void:
 	super.apply_torque_impulse(impulse)
 	await get_tree().physics_frame
 	if !GDSync.is_gdsync_owner(self):
