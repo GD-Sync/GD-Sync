@@ -197,14 +197,31 @@ var _logger
 
 func _init():
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
+	_request_processor.GDSync = self
+	
 	_connection_controller = preload("res://addons/GD-Sync/Scripts/ConnectionController.gd").new()
+	_connection_controller.GDSync = self
+	
 	_session_controller = preload("res://addons/GD-Sync/Scripts/SessionController.gd").new()
+	_session_controller.GDSync = self
+	
 	_https_controller = preload("res://addons/GD-Sync/Scripts/HTTPSController.gd").new()
+	_https_controller.GDSync = self
+	
 	_data_controller = preload("res://addons/GD-Sync/Scripts/DataController.gd").new()
+	_data_controller.GDSync = self
+	
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
+	_node_tracker.GDSync = self
+	
 	_local_server = preload("res://addons/GD-Sync/Scripts/LocalServer.gd").new()
+	_local_server.GDSync = self
+	
 	_steam = preload("res://addons/GD-Sync/Scripts/Steam.gd").new()
+	_steam.GDSync = self
+	
 	_logger = preload("res://addons/GD-Sync/Scripts/Logger.gd").new()
+	_logger.GDSync = self
 
 func _ready():
 	add_child(_request_processor)
