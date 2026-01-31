@@ -107,7 +107,7 @@ func handle_events(delta : float) -> void:
 	synced_time_cooldown -= delta
 	if synced_time_cooldown <= 0.0:
 		synced_time_cooldown = 30.0
-		GDSync.call_func(sync_timer, [synced_time])
+		GDSync.call_func(sync_timer, synced_time)
 
 func sync_timer(time : float) -> void:
 	remote_time = time
@@ -118,10 +118,10 @@ func sync_timer(time : float) -> void:
 	
 	for i in range(5):
 		await get_tree().process_frame
-		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, [GDSync.get_client_id(), Time.get_unix_time_from_system()])
+		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, GDSync.get_client_id(), Time.get_unix_time_from_system())
 
 func get_timer_latency(client : int, timestamp : float) -> void:
-	GDSync.call_func_on(client, timer_latency_callback, [timestamp])
+	GDSync.call_func_on(client, timer_latency_callback, timestamp)
 
 func timer_latency_callback(timestamp : float) -> void:
 	remote_time_counter += 1
@@ -138,7 +138,7 @@ func register_event(event_name : String, time : float, parameters : Array, local
 	})
 	
 	if local:
-		GDSync.call_func(register_event, [event_name, time, parameters])
+		GDSync.call_func(register_event, event_name, time, parameters)
 
 func client_id_changed(client_id : int) -> void:
 	var own_data = null
@@ -203,14 +203,14 @@ func client_joined(client_id : int) -> void:
 		synced_time_cooldown = 0.0
 		
 		for event in events:
-			GDSync.call_func_on(client_id, register_event, [
+			GDSync.call_func_on(client_id, register_event,
 				event["Name"],
 				event["Time"],
 				event["Parameters"]
-			])
+			)
 		
 		if active_scene_change != "":
-			GDSync.call_func(load_scene, [active_scene_change])
+			GDSync.call_func(load_scene, active_scene_change)
 
 func client_left(id : int) -> void:
 	if player_data.has(id): player_data.erase(id)
@@ -542,7 +542,7 @@ func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	node.disconnect("gdsync_owner_changed", callable)
 
 func change_scene(scene_path : String) -> void:
-	GDSync.call_func(load_scene, [scene_path])
+	GDSync.call_func(load_scene, scene_path)
 	load_scene(scene_path)
 
 func load_scene(scene_path : String) -> void:
@@ -565,7 +565,7 @@ func load_scene(scene_path : String) -> void:
 		return
 	
 	var own_id : int = GDSync.get_client_id()
-	GDSync.call_func(mark_scene_ready, [own_id])
+	GDSync.call_func(mark_scene_ready, own_id)
 	mark_scene_ready(own_id)
 	
 	await scene_ready
@@ -655,7 +655,7 @@ func emit_signal_on_clients(clients : Array, target_signal : Signal, params : Ar
 		if client == GDSync.get_client_id():
 			emit_signal_remote(id, signal_name, params)
 		else:
-			GDSync.call_func_on(client, emit_signal_remote, [id, signal_name, params])
+			GDSync.call_func_on(client, emit_signal_remote, id, signal_name, params)
 
 func emit_signal_remote(id : String, signal_name : String, params : Array) -> void:
 	var object : Object
@@ -694,7 +694,7 @@ func get_ping(client_id : int, remove_frame_latency : bool) -> float:
 	
 	for i in range(5):
 		var time : float = Time.get_ticks_msec()/1000.0
-		GDSync.call_func_on(client_id, ping_send, [GDSync.get_client_id(), session_id, time, remove_frame_latency])
+		GDSync.call_func_on(client_id, ping_send, GDSync.get_client_id(), session_id, time+(1.0/Engine.get_frames_per_second()) if remove_frame_latency else time, remove_frame_latency)
 		await get_tree().create_timer(0.02).timeout
 	
 	for i in range(5):
@@ -709,7 +709,7 @@ func get_ping(client_id : int, remove_frame_latency : bool) -> float:
 		return session_data["ping"]/float(session_data["count"])
 
 func ping_send(origin_client : int, session_id : int, time : float, remove_frame_latency : bool) -> void:
-	GDSync.call_func_on(origin_client, ping_return, [session_id, time+(1.0/Engine.get_frames_per_second()) if remove_frame_latency else time, remove_frame_latency])
+	GDSync.call_func_on(origin_client, ping_return, session_id, time+(1.0/Engine.get_frames_per_second()) if remove_frame_latency else time, remove_frame_latency)
 
 func ping_return(session_id : int, time : float, remove_frame_latency : bool) -> void:
 	if !ping_sessions.has(session_id): return

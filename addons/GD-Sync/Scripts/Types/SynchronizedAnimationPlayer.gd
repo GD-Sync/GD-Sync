@@ -80,12 +80,12 @@ func pause_synced() -> void:
 func stop_synced(keep_state : bool = false) -> void:
 	stop(keep_state)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_stop_remote, [keep_state])
+	GDSync.call_func(_stop_remote, keep_state)
 
 func queue_synced(name : StringName) -> void:
 	queue(name)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_queue_remote, [name])
+	GDSync.call_func(_queue_remote, name)
 
 func seek_synced(seconds : float, update : bool = false, update_only : bool = false) -> void:
 	seek(seconds, update, update_only)
@@ -113,7 +113,7 @@ func seek_synced(seconds : float, update : bool = false, update_only : bool = fa
 func advance_synced(delta : float) -> void:
 	advance(delta)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_advance_remote, [delta])
+	GDSync.call_func(_advance_remote, delta)
 
 
 
@@ -145,15 +145,15 @@ func _client_joined(client_id : int) -> void:
 	if is_playing():
 		GDSync.call_func_on(client_id, _stop_remote)
 		
-		GDSync.call_func_on(client_id, _play_remote, [
+		GDSync.call_func_on(client_id, _play_remote,
 			GDSync.get_multiplayer_time(),
 			current_animation,
 			-1,
 			_custom_speed,
 			_playing_backwards
-		])
+		)
 		
-		GDSync.call_func_on(client_id, _advance_remote, [current_animation_position/_custom_speed])
+		GDSync.call_func_on(client_id, _advance_remote, current_animation_position/_custom_speed)
 
 func _play_remote_cached(start_time : float = 0.0, name_index = 0, custom_blend : float = -1, custom_speed : float = 1.0, from_end : bool = false) -> void:
 	if !GDSync._session_controller.has_name_from_index(name_index): return

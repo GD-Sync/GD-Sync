@@ -138,7 +138,7 @@ func _update_inputs(inputs : Dictionary, forced : bool = false) -> void:
 			
 			if "/active" in input_name:
 				var request : String = input_name.replace("/active", "/request")
-				GDSync.call_func(set, [request, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE if new_value else AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT])
+				GDSync.call_func(set, request, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE if new_value else AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
 			else:
 				GDSync.sync_var(self, input_name)
 
@@ -150,7 +150,7 @@ func _update_state_machines(forced : bool = false) -> void:
 		
 		if forced or old_node != new_node:
 			_state_machine_inputs[state_machine] = new_node
-			GDSync.call_func(_travel_remote, [state_machine_path, new_node])
+			GDSync.call_func(_travel_remote, state_machine_path, new_node)
 
 func _travel_remote(state_machine_path : String, node_name : String) -> void:
 	var state_machine : AnimationNodeStateMachinePlayback = _state_machines[state_machine_path]

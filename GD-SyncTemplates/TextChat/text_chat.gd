@@ -45,12 +45,12 @@ func _ready():
 	enter_channel(_current_typing_channel)
 	
 #	Restore channels
-	for channel in GDSync.get_player_data(GDSync.get_client_id(), "TextChannels", []):
+	for channel in GDSync.player_get_data(GDSync.get_client_id(), "TextChannels", []):
 		enter_channel(channel)
 	
 #	Clear messages if lobby changed
-	if last_lobby != GDSync.get_lobby_name():
-		last_lobby = GDSync.get_lobby_name()
+	if last_lobby != GDSync.lobby_get_name():
+		last_lobby = GDSync.lobby_get_name()
 		saved_messages.clear()
 	
 #	Restore existing messages
@@ -84,14 +84,14 @@ func enter_channel(channel : int):
 	_listening_channels.append(channel)
 	
 #	Update listening channels on other clients
-	GDSync.set_player_data("TextChannels", _listening_channels)
+	GDSync.player_set_data("TextChannels", _listening_channels)
 
 func leave_channel(channel : int):
 	if !_listening_channels.has(channel): return
 	_listening_channels.erase(channel)
 	
 #	Update listening channels on other clients
-	GDSync.set_player_data("TextChannels", _listening_channels)
+	GDSync.player_set_data("TextChannels", _listening_channels)
 
 func _on_text_changed():
 	var text_edit : TextEdit = %TextEdit
@@ -112,15 +112,15 @@ func _send_message():
 #	Add the message to your own chat
 	_receive_message(text, _current_typing_channel, GDSync.get_client_id())
 	
-	for client_id in GDSync.get_all_clients():
+	for client_id in GDSync.lobby_get_all_clients():
 #		Filter out yourself
 		if client_id == GDSync.get_client_id(): continue
 		
 #		Check if the user is listening to this channel
-		if !GDSync.get_player_data(client_id, "TextChannels", []).has(_current_typing_channel): continue
+		if !GDSync.player_get_data(client_id, "TextChannels", []).has(_current_typing_channel): continue
 		
 #		Send the message to the specific client
-		GDSync.call_func_on(client_id, _receive_message, [text, _current_typing_channel, GDSync.get_client_id()])
+		GDSync.call_func_on(client_id, _receive_message, text, _current_typing_channel, GDSync.get_client_id())
 	
 	stop_typing()
 
@@ -140,9 +140,9 @@ func _receive_message(text : String, channel : int, from : int, from_save : bool
 	if show_channel_id: message += "["+str(channel)+"]"
 	if show_usernames:
 		if show_client_colors:
-			message += "[[color="+GDSync.get_player_data(from, "Color", Color.WHITE).to_html(false)+"]"+GDSync.get_player_data(from, "Username", "Unkown")+"[/color]]"
+			message += "[[color="+GDSync.player_get_data(from, "Color", Color.WHITE).to_html(false)+"]"+GDSync.player_get_data(from, "Username", "Unkown")+"[/color]]"
 		else:
-			message += "["+GDSync.get_player_data(from, "Username", "Unkown")+"]"
+			message += "["+GDSync.player_get_data(from, "Username", "Unkown")+"]"
 	if show_channel_id || show_usernames: message += " "
 	message += text
 	

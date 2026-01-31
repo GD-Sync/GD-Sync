@@ -38,7 +38,7 @@ var UNIQUE_USERNAMES : bool = false
 var PROTECTED : bool = true
 var USE_SENDER_ID : bool = false
 
-var client : MultiplayerPeer = ENetMultiplayerPeer.new()
+var client : PacketPeer = ENetMultiplayerPeer.new()
 var client_id : int = -1
 var status : int = ENUMS.CONNECTION_STATUS.DISABLED
 var host : int = -1
@@ -77,9 +77,6 @@ func _ready() -> void:
 	add_child(lb_request)
 	lb_request.timeout = 4.0
 	lb_request.request_completed.connect(lb_request_completed)
-	
-	if OS.has_feature("web"):
-		client = WebSocketMultiplayerPeer.new()
 	
 	if ProjectSettings.has_setting("GD-Sync/publicKey"):
 		_PUBLIC_KEY = ProjectSettings.get_setting("GD-Sync/publicKey")
@@ -143,31 +140,37 @@ func start_multiplayer() -> void:
 		return
 	
 	reset_multiplayer()
-	status = ENUMS.CONNECTION_STATUS.FINDING_LB
 	last_poll = Time.get_unix_time_from_system()
 	
-	logger.write_log("Requesting servers from load balancers.")
-	var load_balancers : Array = self.load_balancers.duplicate()
-	load_balancers.shuffle()
-	while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
-		var address : String = load_balancers[randi() % load_balancers.size()]
-		var complete_url : String = "https://"+address
-		https_controller.active_lb = complete_url
-		load_balancers.erase(address)
-		logger.write_log("Requesting servers from "+address)
+	if OS.has_feature("web"):
+		client = WebSocketPeer.new()
+		status = ENUMS.CONNECTION_STATUS.CONNECTING
+		connect_to_server("wss://ws1.gd-sync.com")
+	else:
+		status = ENUMS.CONNECTION_STATUS.FINDING_LB
 		
-		lb_request.request(
-			complete_url+"/connect",
-			[],
-			HTTPClient.METHOD_GET,
-			_PUBLIC_KEY)
-		await get_tree().create_timer(4.1).timeout
-		lb_request.cancel_request()
-	
-	if status == ENUMS.CONNECTION_STATUS.FINDING_LB:
-		logger.write_error("No response from load balancers.")
-		reset_multiplayer()
-		GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
+		logger.write_log("Requesting servers from load balancers.")
+		var load_balancers : Array = self.load_balancers.duplicate()
+		load_balancers.shuffle()
+		while load_balancers.size() > 0 and status == ENUMS.CONNECTION_STATUS.FINDING_LB:
+			var address : String = load_balancers[randi() % load_balancers.size()]
+			var complete_url : String = "https://"+address
+			https_controller.active_lb = complete_url
+			load_balancers.erase(address)
+			logger.write_log("Requesting servers from "+address)
+			
+			lb_request.request(
+				complete_url+"/connect",
+				[],
+				HTTPClient.METHOD_GET,
+				_PUBLIC_KEY)
+			await get_tree().create_timer(4.1).timeout
+			lb_request.cancel_request()
+		
+		if status == ENUMS.CONNECTION_STATUS.FINDING_LB:
+			logger.write_error("No response from load balancers.")
+			reset_multiplayer()
+			GDSync.connection_failed.emit(ENUMS.CONNECTION_FAILED.TIMEOUT)
 
 func start_local_multiplayer() -> void:
 	logger.write_log("Starting local multiplayer.")
@@ -272,9 +275,9 @@ func find_best_server(serverPings : Dictionary) -> void:
 
 func connect_to_server(server : String) -> void:
 	logger.write_log("Connecting to server. <"+server+">")
-	if client is WebSocketMultiplayerPeer:
+	if client is WebSocketPeer:
 		logger.write_log("Connecting using TCP.")
-		client.create_client("ws://"+server+":8090")
+		client.connect_to_url(server)
 	else:
 		logger.write_log("Connecting using UDP.")
 		client.create_client(server, 8080)
@@ -333,37 +336,62 @@ func _process(delta) -> void:
 			reset_multiplayer()
 		last_poll = current_time
 	
-	match(client.get_connection_status()):
-		MultiplayerPeer.CONNECTION_DISCONNECTED:
-			if !is_local() or in_local_lobby:
-				if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
-					logger.write_error("MultiplayerPeer lost its connection.")
-					reset_multiplayer()
-		MultiplayerPeer.CONNECTION_CONNECTING:
-			client.poll()
-		MultiplayerPeer.CONNECTION_CONNECTED:
-			client.poll()
-		
-			while client.get_available_packet_count() > 0:
-				var bytes : PackedByteArray = client.get_packet()
-				request_processor.unpack_packet(bytes)
+	if client is MultiplayerPeer:
+		match(client.get_connection_status()):
+			MultiplayerPeer.CONNECTION_DISCONNECTED:
+				if !is_local() or in_local_lobby:
+					if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
+						logger.write_error("MultiplayerPeer lost its connection.")
+						reset_multiplayer()
+			MultiplayerPeer.CONNECTION_CONNECTING:
+				client.poll()
+			MultiplayerPeer.CONNECTION_CONNECTED:
+				client.poll()
 			
-			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SETUP):
-				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-				client.transfer_channel = 0
-				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SETUP))
-			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SERVER):
-				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-				client.transfer_channel = 0
-				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SERVER))
-			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.RELIABLE):
-				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-				client.transfer_channel = 0
-				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.RELIABLE))
-			if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
-				client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
-				client.transfer_channel = 1
-				client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
+				while client.get_available_packet_count() > 0:
+					var bytes : PackedByteArray = client.get_packet()
+					request_processor.unpack_packet(bytes)
+				
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SETUP):
+					client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+					client.transfer_channel = 0
+					client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SETUP))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SERVER):
+					client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+					client.transfer_channel = 0
+					client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SERVER))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.RELIABLE):
+					client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+					client.transfer_channel = 0
+					client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.RELIABLE))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
+					client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
+					client.transfer_channel = 1
+					client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
+	elif client is WebSocketPeer:
+		match(client.get_ready_state()):
+			WebSocketPeer.STATE_CLOSED:
+				if !is_local() or in_local_lobby:
+					if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
+						logger.write_error("WebSocketPeer lost its connection.")
+						reset_multiplayer()
+			WebSocketPeer.STATE_CONNECTING:
+				client.poll()
+			WebSocketPeer.STATE_OPEN:
+				client.poll()
+			
+				while client.get_available_packet_count() > 0:
+					var bytes : PackedByteArray = client.get_packet()
+					request_processor.unpack_packet(bytes)
+				
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SETUP):
+					client.send(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SETUP))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SERVER):
+					client.send(request_processor.package_requests(ENUMS.PACKET_CHANNEL.SERVER))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.RELIABLE):
+					client.send(request_processor.package_requests(ENUMS.PACKET_CHANNEL.RELIABLE))
+				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
+					client.send(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
 
 func set_client_id(client_id : int) -> void:
 	logger.write_log("Client id received from server. <"+str(client_id)+">")

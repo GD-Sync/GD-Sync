@@ -35,12 +35,12 @@ func synchronize(forced : bool = true, force_reliable : bool = false) -> void:
 		var property_data : Dictionary = _property_lookup[property_name]
 		var new_property = node.get(property_name)
 		if _check_property_changed(property_data, new_property):
-			GDSync.call_func(_sync_received, [property_name, new_property, GDSync.get_multiplayer_time()], reliable || force_reliable)
+			GDSync.call_func(_sync_received, property_name, new_property, GDSync.get_multiplayer_time())
 
 ## Temporarily pauses interpolation for [param seconds]. Useful when teleporting a Node from one spot to another to prevent it from gliding there.
 func pause_interpolation(seconds : float) -> void:
 	_pause_interpolation_remote(seconds)
-	GDSync.call_func(_pause_interpolation_remote, [seconds])
+	GDSync.call_func(_pause_interpolation_remote, seconds)
 
 
 

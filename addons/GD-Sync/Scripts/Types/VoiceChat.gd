@@ -130,7 +130,7 @@ func _process(delta: float) -> void:
 			max_amp = max(abs(data[i]), max_amp)
 		
 		if max_amp > input_volume_threshold:
-			GDSync.call_func(_process_audio, [data, sr])
+			GDSync.call_func(_process_audio, data, sr)
 
 func _process_audio(audio : PackedFloat32Array, mixrate : float) -> void:
 	if _output_stream.mix_rate != mixrate: _output_stream.mix_rate = mixrate

@@ -78,13 +78,13 @@ func client_joined(client_id : int) -> void:
 func create_instantiators(client_id : int) -> void:
 	for settings_key in instantiator_lib:
 		var instantiator = instantiator_lib[settings_key]
-		GDSync.call_func_on(client_id, create_instantiator_remote, [
+		GDSync.call_func_on(client_id, create_instantiator_remote,
 			instantiator.scene.resource_path,
 			str(instantiator.target.get_path()),
 			instantiator.sync_starting_changes,
 			instantiator.excluded_properties,
 			instantiator.replicate_on_join
-		])
+		)
 
 func broadcast_replication(client_id : int) -> void:
 	for instantiator_path in replication_cache:
@@ -138,10 +138,10 @@ func create_replication_requests(client_id : int, instantiator_path : String, no
 		
 		replication_data.append([id, changed_properties])
 	
-	GDSync.call_func_on(client_id, replicate_remote, [
+	GDSync.call_func_on(client_id, replicate_remote,
 		settings,
 		replication_data
-	])
+	)
 
 func replicate_remote(settings : Array, replication_data : Array) -> void:
 	var instantiator : Node = get_node_or_null(settings[ENUMS.NODE_REPLICATION_SETTINGS.INSTANTIATOR])
@@ -219,13 +219,13 @@ func multiplayer_instantiate(
 		
 		instantiator_lib[settings_key] = instantiator
 		
-		GDSync.call_func(create_instantiator_remote, [
+		GDSync.call_func(create_instantiator_remote,
 			scene.resource_path,
 			str(parent.get_path()),
 			sync_starting_changes,
 			excluded_properties,
 			replicate_on_join
-		])
+		)
 	else:
 		instantiator = instantiator_lib[settings_key]
 		logger.write_log("Using existing Instantiator.", "[NodeTracker]")
@@ -233,7 +233,7 @@ func multiplayer_instantiate(
 	instantiator.target = parent
 	instantiator.target_path = str(parent.get_path())
 	
-	GDSync.call_func(instantiator._set_target_remote, [instantiator.target_path])
+	GDSync.call_func(instantiator._set_target_remote, instantiator.target_path)
 	
 	return instantiator.instantiate_node()
 
@@ -293,7 +293,7 @@ func multiplayer_queue_free(node : Node) -> void:
 	node.queue_free()
 	
 	logger.write_log("Creating remote free request. <"+str(node.get_path())+">", "[NodeTracker]")
-	GDSync.call_func(multiplayer_queue_free_remote, [node.get_path()])
+	GDSync.call_func(multiplayer_queue_free_remote, node.get_path())
 
 func multiplayer_queue_free_remote(node_path : NodePath) -> void:
 	var node : Node = get_node_or_null(node_path)

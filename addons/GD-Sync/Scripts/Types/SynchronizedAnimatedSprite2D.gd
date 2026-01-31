@@ -61,10 +61,10 @@ func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bo
 		GDSync.call_func(_play_remote, parameters)
 
 func play_backwards_synced(name: StringName = &"") -> void:
-	GDSync.call_func(_play_backwards_remote, [name])
+	GDSync.call_func(_play_backwards_remote, name)
 
 func set_frame_and_progress_synced(frame: int, progress: float) -> void:
-	GDSync.call_func(_set_frame_and_progress_remote, [frame, progress])
+	GDSync.call_func(_set_frame_and_progress_remote, frame, progress)
 
 func stop_synced() -> void:
 	GDSync.call_func(_stop_remote)

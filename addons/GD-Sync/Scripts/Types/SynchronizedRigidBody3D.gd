@@ -172,11 +172,11 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		if _pending_sync:
 			_pending_sync = false
 			GDSync.call_func(_sync_received, 
-				[GDSync.get_multiplayer_time(),
+				GDSync.get_multiplayer_time(),
 				state.linear_velocity,
 				state.angular_velocity,
 				state.transform.origin,
-				state.transform.basis.get_euler()]
+				state.transform.basis.get_euler()
 			)
 			_sync_received(GDSync.get_multiplayer_time(),
 				state.linear_velocity,

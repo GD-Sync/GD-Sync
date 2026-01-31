@@ -340,43 +340,69 @@ func sync_var(object : Object, variable_name : String, reliable : bool = true) -
 func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
 
-## Calls a function on a Node or Resource on all other clients in the current lobby, excluding yourself.
+## Calls a function on a Node or Resource on all other clients in the current lobby, excluding yourself. If the request fails to deliver it will reattempt until successful.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function that you want to call.
-## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
-## This may introduce more latency. Use unreliable if the function call is non-essential.
-func call_func(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
-	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func(callable : Callable, ...parameters : Array) -> void:
+	_request_processor.create_function_call_request(callable, parameters, -1, true)
 
-## Calls a function on a Node or Resource on a specific client in the current lobby.
+## Calls a function on a Node or Resource on all other clients in the current lobby, excluding yourself. If the request fails to deliver it will not reattempt, may result in lower latency compared to the regular version.
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_unreliable(callable : Callable, ...parameters : Array) -> void:
+	_request_processor.create_function_call_request(callable, parameters, -1, false)
+
+## Calls a function on a Node or Resource on a specific client in the current lobby. If the request fails to deliver it will reattempt until successful.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
 ## [br][b]callable -[/b] The function that you want to call.
-## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
-## This may introduce more latency. Use unreliable if the function call is non-essential.
-func call_func_on(client_id : int, callable : Callable, parameters : Array = [], reliable  : bool = true) -> void:
-	_request_processor.create_function_call_request(callable, parameters, client_id, reliable)
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_on(client_id : int, callable : Callable, ...parameters : Array) -> void:
+	_request_processor.create_function_call_request(callable, parameters, client_id, true)
 
-## Calls a function on a Node or Resource on all clients in the current lobby, including yourself.
+## Calls a function on a Node or Resource on a specific client in the current lobby. If the request fails to deliver it will not reattempt, may result in lower latency compared to the regular version.
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] Optional parameters.
+func call_func_on_unreliable(client_id : int, callable : Callable, ...parameters : Array) -> void:
+	_request_processor.create_function_call_request(callable, parameters, client_id, false)
+
+## Calls a function on a Node or Resource on all clients in the current lobby, including yourself. If the request fails to deliver it will reattempt until successful.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function that you want to call.
-## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
-## This may introduce more latency. Use unreliable if the function call is non-essential.
-func call_func_all(callable : Callable, parameters : Array = [], reliable : bool = true) -> void:
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_all(callable : Callable, ...parameters : Array) -> void:
 	callable.callv(parameters)
-	_request_processor.create_function_call_request(callable, parameters, -1, reliable)
+	_request_processor.create_function_call_request(callable, parameters, -1, true)
+
+## Calls a function on a Node or Resource on all clients in the current lobby, including yourself. If the request fails to deliver it will not reattempt, may result in lower latency compared to the regular version.
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_all_unreliable(callable : Callable, ...parameters : Array) -> void:
+	callable.callv(parameters)
+	_request_processor.create_function_call_request(callable, parameters, -1, false)
 
 ## Emits a signal on a Node or Resource on all other clients in the current lobby, excluding yourself.
 ## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
@@ -385,16 +411,33 @@ func call_func_all(callable : Callable, parameters : Array = [], reliable : bool
 ## [br]
 ## [br][b]object -[/b] The object on which you want to emit the signal.
 ## [br][b]signal_name -[/b] The name of the signal.
-## [br][b]parameters -[/b] Optional parameters. Parameters must be passed in an array, [12, "Woohoo!"].
-func emit_signal_remote(target_signal : Signal, parameters : Array = []) -> void:
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote(target_signal : Signal, ...parameters : Array) -> void:
 	var clients : Array = lobby_get_all_clients()
 	clients.erase(get_client_id())
 	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
 
-func emit_signal_remote_on(client_id : int, target_signal : Signal, parameters : Array = []) -> void:
+## Emits a signal on a Node or Resource on specific client in the current lobby.
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to emit the signal on.
+## [br][b]object -[/b] The object on which you want to emit the signal.
+## [br][b]signal_name -[/b] The name of the signal.
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote_on(client_id : int, target_signal : Signal, ...parameters : Array) -> void:
 	_session_controller.emit_signal_on_clients([client_id], target_signal, parameters)
 
-func emit_signal_remote_all(target_signal : Signal, parameters : Array = []) -> void:
+## Emits a signal on a Node or Resource on all other clients in the current lobby, including yourself.
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]object -[/b] The object on which you want to emit the signal.
+## [br][b]signal_name -[/b] The name of the signal.
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote_all(target_signal : Signal, ...parameters : Array) -> void:
 	var clients : Array = lobby_get_all_clients()
 	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
 

@@ -29,7 +29,7 @@ class_name SynchronizedAudioStreamPlayer
 func play_synced(from_position : float = 0.0) -> void:
 	GDSync.sync_var(self, "volume_db")
 	GDSync.sync_var(self, "pitch_scale")
-	GDSync.call_func_all(_play_remote, [from_position])
+	GDSync.call_func_all(_play_remote, from_position)
 
 func stop_synced() -> void:
 	GDSync.call_func_all(_stop_remote)
