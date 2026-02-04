@@ -304,6 +304,15 @@ func _interpolate(delta : float) -> void:
 			
 			node.scale = scale
 			value_changed.emit(property_name, lerped_value)
+		elif "rotation" in property_name.to_lower() and property_data["Type"] in [TYPE_VECTOR2, TYPE_VECTOR3]:
+			var weight := delta*interpolation_speed
+			var lerped_value: Vector3
+			lerped_value.x = lerp_angle(current_value.x, target_value.x, weight)
+			lerped_value.y = lerp_angle(current_value.y, target_value.y, weight)
+			if property_data["Type"] == TYPE_VECTOR3:
+				lerped_value.z = lerp_angle(current_value.z, target_value.z, weight)
+			node.set(property_name, lerped_value)
+			value_changed.emit(property_name, lerped_value)
 		else:
 			var lerped_value = lerp(current_value, target_value, delta*interpolation_speed)
 			node.set(property_name, lerped_value)
