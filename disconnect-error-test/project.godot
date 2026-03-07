@@ -1,0 +1,35 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[GD-Sync]
+
+version="0.14"
+publicKey="21af440a4b2aa37c"
+privateKey="ce4f58b047b3bebb"
+scriptValidation=false
+
+[application]
+
+config/name="GDSync Test"
+run/main_scene="uid://dlnq6jfja0eew"
+config/features=PackedStringArray("4.5", "Forward Plus")
+config/icon="res://icon.svg"
+
+[autoload]
+
+GDSync="*res://addons/GD-Sync/MultiplayerClient.gd"
+
+[dotnet]
+
+project/assembly_name="GDSync Test"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/GD-Sync/plugin.cfg")

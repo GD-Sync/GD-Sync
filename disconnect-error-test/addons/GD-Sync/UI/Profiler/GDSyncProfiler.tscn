@@ -1,0 +1,794 @@
+[gd_scene load_steps=6 format=3 uid="uid://c3udn6jwoy6an"]
+
+[ext_resource type="Script" uid="uid://c00gfpya5uiw0" path="res://addons/GD-Sync/UI/Profiler/GDSyncProfiler.gd" id="1_ysct5"]
+[ext_resource type="Script" uid="uid://b3p26nyamgl8j" path="res://addons/GD-Sync/UI/Profiler/ProfilerLabel.gd" id="2_5m75r"]
+[ext_resource type="Script" uid="uid://8618gttywoy6" path="res://addons/GD-Sync/UI/Profiler/ProfilerGraph.gd" id="3_hrjsf"]
+[ext_resource type="Script" uid="uid://4b1i1ihfsqdf" path="res://addons/GD-Sync/UI/Profiler/ProfilerDetailsDisplay.gd" id="4_bk6j0"]
+[ext_resource type="Script" uid="uid://frgb8qcxxcoj" path="res://addons/GD-Sync/UI/Profiler/ProfilerConnectionMonitor.gd" id="4_gnjya"]
+
+[node name="GDSyncProfiler" type="Control" node_paths=PackedStringArray("start_button", "stop_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ysct5")
+start_button = NodePath("VBoxContainer/HBoxContainer/Start")
+stop_button = NodePath("VBoxContainer/HBoxContainer/Stop")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "GD-Sync Network Profiler"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="Start" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+disabled = true
+text = "Start Profiler"
+
+[node name="Stop" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+disabled = true
+text = "Stop Profiler"
+
+[node name="Clear" type="Button" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Clear Profiler"
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="AutoStart" type="CheckButton" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+text = "Auto Start"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+current_tab = 1
+
+[node name="General" type="TabBar" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 0
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/General"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Incoming" type="Label" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Incoming:"
+
+[node name="Label1" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "The total amount of bytes that have been received from both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Total Bytes Received: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "down"
+decimal_places = 2
+suffix = ""
+label_text = "Total Bytes Received"
+
+[node name="Label2" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "The total amount of messages that have been received from both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Total Messages Received: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "pkts_down"
+is_bytes = false
+decimal_places = 0
+suffix = ""
+label_text = "Total Messages Received"
+
+[node name="Label3" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "The total amount of bytes that are being received per second from both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Bytes Received Per Second: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "down_sec"
+decimal_places = 2
+label_text = "Bytes Received Per Second"
+
+[node name="Label4" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "The total amount of messages that are being received per second from both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Messages Received Per Second: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "pkts_down_sec"
+is_bytes = false
+decimal_places = 0
+label_text = "Messages Received Per Second"
+
+[node name="Label5" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "The average size of all received messages."
+bbcode_enabled = true
+text = "[color=#ffffff]Average Message Size: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "avg_msg_down"
+suffix = ""
+label_text = "Average Message Size"
+
+[node name="VBoxContainer3" type="VBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Outgoing" type="Label" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3"]
+layout_mode = 2
+text = "Outgoing:"
+
+[node name="Label1" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The total amount of bytes that have been sent to both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Total Bytes Sent: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "up"
+decimal_places = 2
+suffix = ""
+label_text = "Total Bytes Sent"
+
+[node name="Label2" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The total amount of messages that have been sent to both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Total Messages Sent: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "pkts_up"
+is_bytes = false
+decimal_places = 0
+suffix = ""
+label_text = "Total Messages Sent"
+
+[node name="Label3" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The total amount of bytes that are being sent per second to both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Bytes Sent Per Second: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+decimal_places = 2
+label_text = "Bytes Sent Per Second"
+
+[node name="Label4" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The total amount of messages that are being sent per second to both the server and other clients."
+bbcode_enabled = true
+text = "[color=#ffffff]Messages Sent Per Second: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "pkts_up_sec"
+is_bytes = false
+decimal_places = 0
+label_text = "Messages Sent Per Second"
+
+[node name="Label5" type="RichTextLabel" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The average size of all sent messages."
+bbcode_enabled = true
+text = "[color=#ffffff]Average Message Size: ...[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../../../..")
+stat_key = "avg_msg_up"
+suffix = ""
+label_text = "Average Message Size"
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Graph" type="Control" parent="VBoxContainer/TabContainer/General/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/VBoxContainer2" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+size_flags_vertical = 3
+script = ExtResource("3_hrjsf")
+profiler = NodePath("../../../../../../../../..")
+series = Array[Dictionary]([{
+"color": Color(0.290196, 0.870588, 0.501961, 1),
+"key": "down_sec",
+"label": "Incoming"
+}, {
+"color": Color(0.376471, 0.647059, 0.980392, 1),
+"key": "up_sec",
+"label": "Outgoing"
+}, {
+"color": Color(0.574867, 0.498099, 0.980392, 1),
+"key": "total_sec",
+"label": "Total"
+}])
+
+[node name="Connections" type="TabBar" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+metadata/_tab_index = 1
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Connections"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer" node_paths=PackedStringArray("profiler", "button_template", "latency_graph_template", "jitter_graph_template")]
+layout_mode = 2
+script = ExtResource("4_gnjya")
+profiler = NodePath("../../../../../..")
+button_template = NodePath("HBoxContainer/HBoxContainer/VBoxContainer/ButtonTemplate")
+latency_graph_template = NodePath("HBoxContainer/VBoxContainer2/LatencyGraph")
+jitter_graph_template = NodePath("HBoxContainer/VBoxContainer3/JitterGraph")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MonitorButton" type="CheckButton" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+tooltip_text = "Start monitoring the connections between clients. This will measure the ping and jitter and slightly increase transfer usage will enabled."
+text = "Monitor Connections"
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="ButtonTemplate" type="Button" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer"]
+visible = false
+layout_mode = 2
+tooltip_text = "Press to show the latency and jitter to this client."
+text = "Client: 123"
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LatencyGraph" type="Control" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/VBoxContainer2" node_paths=PackedStringArray("profiler")]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+tooltip_text = "Latency is the raw network round-trip time in milliseconds: the time for a message to go to the other client and return.
+
+Perceived latency is the same trip, plus extra delay from frame timing and message handling, representing what the player actually experiences."
+script = ExtResource("3_hrjsf")
+profiler = NodePath("../../..")
+series = Array[Dictionary]([{
+"color": Color(0.376471, 0.647059, 0.980392, 1),
+"key": "latency",
+"label": "Latency"
+}, {
+"color": Color(0.6431373, 1, 0.76932174, 1),
+"key": "perceived_latency",
+"label": "Perceived Latency"
+}])
+display_mode = 1
+
+[node name="VBoxContainer3" type="VBoxContainer" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="JitterGraph" type="Control" parent="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+tooltip_text = "The jitter between this and the selected client. Jitter is the difference between latency between now and last second.
+
+High jitter indicates an unstable connection. Little to no jitter indicates a stable connection."
+script = ExtResource("3_hrjsf")
+profiler = NodePath("../../..")
+series = Array[Dictionary]([{
+"color": Color(0.952941, 0.545098, 0.658824, 1),
+"key": "jitter",
+"label": "Jitter"
+}])
+display_mode = 1
+
+[node name="Session" type="TabBar" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Session"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Session Information"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label1" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2/VBoxContainer" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The Client ID that is assigned to this session."
+bbcode_enabled = true
+text = "[color=#ffffff]Client ID: N/A[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../..")
+stat_key = "client_id"
+is_bytes = false
+suffix = ""
+label_text = "Client ID"
+use_custom_data = true
+
+[node name="Label2" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2/VBoxContainer" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "If the client in this session is the host of the current lobby or not."
+bbcode_enabled = true
+text = "[color=#ffffff]Is Host: N/A[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../..")
+stat_key = "is_host"
+is_bytes = false
+suffix = ""
+label_text = "Is Host"
+use_custom_data = true
+
+[node name="Label3" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2/VBoxContainer" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "If the client in this session is the host of the current lobby or not."
+bbcode_enabled = true
+text = "[color=#ffffff]Host ID: N/A[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../..")
+stat_key = "host"
+is_bytes = false
+suffix = ""
+label_text = "Host ID"
+use_custom_data = true
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Label3" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2/VBoxContainer2" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The name of the lobby the client of this session is currently in."
+bbcode_enabled = true
+text = "[color=#ffffff]Lobby Name: N/A[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../..")
+stat_key = "lobby_name"
+is_bytes = false
+suffix = ""
+label_text = "Lobby Name"
+use_custom_data = true
+
+[node name="Label4" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer2/VBoxContainer2" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+tooltip_text = "The password of the lobby the client of this session is currently in."
+bbcode_enabled = true
+text = "[color=#ffffff]Lobby Password: N/A[/color]"
+fit_content = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../../..")
+stat_key = "lobby_password"
+is_bytes = false
+suffix = ""
+label_text = "Lobby Password"
+use_custom_data = true
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+text = "Player Data"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label1" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 2
+bbcode_enabled = true
+text = "[color=#ffffff]{}[/color]"
+selection_enabled = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../..")
+stat_key = "player_data"
+is_bytes = false
+suffix = ""
+label_text = "Player Data"
+show_label_text = false
+use_custom_data = true
+missing_text = "{}"
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="VBoxContainer3" type="VBoxContainer" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer3"]
+layout_mode = 2
+text = "Lobby Data"
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer3"]
+layout_mode = 2
+
+[node name="Label1" type="RichTextLabel" parent="VBoxContainer/TabContainer/Session/ScrollContainer/HBoxContainer/VBoxContainer3" node_paths=PackedStringArray("profiler")]
+layout_mode = 2
+size_flags_vertical = 3
+focus_mode = 2
+bbcode_enabled = true
+text = "[color=#ffffff]{}[/color]"
+selection_enabled = true
+script = ExtResource("2_5m75r")
+profiler = NodePath("../../../../../../..")
+stat_key = "lobby_data"
+is_bytes = false
+suffix = ""
+label_text = "Player Data"
+show_label_text = false
+use_custom_data = true
+missing_text = "{}"
+
+[node name="Incoming Details" type="TabBar" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 3
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Incoming Details"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Incoming Usage Details"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Label" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Type"
+
+[node name="Label2" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Object"
+
+[node name="Label3" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Target"
+
+[node name="Label4" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Count"
+
+[node name="Label5" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Total Bytes (descending)"
+
+[node name="Label6" type="Button" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Percent"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2" node_paths=PackedStringArray("type_sort_button", "object_sort_button", "target_sort_button", "count_sort_button", "usage_sort_button", "percent_sort_button", "profiler", "label_template")]
+layout_mode = 2
+script = ExtResource("4_bk6j0")
+type_sort_button = NodePath("../HBoxContainer/Label")
+object_sort_button = NodePath("../HBoxContainer/Label2")
+target_sort_button = NodePath("../HBoxContainer/Label3")
+count_sort_button = NodePath("../HBoxContainer/Label4")
+usage_sort_button = NodePath("../HBoxContainer/Label5")
+percent_sort_button = NodePath("../HBoxContainer/Label6")
+listen_key = "down"
+profiler = NodePath("../../../../../../../..")
+label_template = NodePath("PanelContainer")
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer"]
+visible = false
+self_modulate = Color(0.734375, 0.734375, 0.734375, 1)
+layout_mode = 2
+
+[node name="Data" type="HBoxContainer" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="Type" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Sync Var"
+fit_content = true
+
+[node name="Object" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Node123"
+fit_content = true
+
+[node name="Target" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Property Name"
+fit_content = true
+
+[node name="Count" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0"
+fit_content = true
+
+[node name="Usage" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0B"
+fit_content = true
+
+[node name="Percentage" type="RichTextLabel" parent="VBoxContainer/TabContainer/Incoming Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0%"
+fit_content = true
+
+[node name="Outgoing Details" type="TabBar" parent="VBoxContainer/TabContainer"]
+visible = false
+layout_mode = 2
+metadata/_tab_index = 4
+
+[node name="ScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Outgoing Details"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Label" type="Label" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+text = "Incoming Usage Details"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2"]
+layout_mode = 2
+
+[node name="Label" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Type"
+
+[node name="Label2" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Object"
+
+[node name="Label3" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Target"
+
+[node name="Label4" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Count"
+
+[node name="Label5" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Total Bytes (descending)"
+
+[node name="Label6" type="Button" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Percent"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2" node_paths=PackedStringArray("type_sort_button", "object_sort_button", "target_sort_button", "count_sort_button", "usage_sort_button", "percent_sort_button", "profiler", "label_template")]
+layout_mode = 2
+script = ExtResource("4_bk6j0")
+type_sort_button = NodePath("../HBoxContainer/Label")
+object_sort_button = NodePath("../HBoxContainer/Label2")
+target_sort_button = NodePath("../HBoxContainer/Label3")
+count_sort_button = NodePath("../HBoxContainer/Label4")
+usage_sort_button = NodePath("../HBoxContainer/Label5")
+percent_sort_button = NodePath("../HBoxContainer/Label6")
+profiler = NodePath("../../../../../../../..")
+label_template = NodePath("PanelContainer")
+
+[node name="PanelContainer" type="PanelContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer"]
+visible = false
+self_modulate = Color(0.734375, 0.734375, 0.734375, 1)
+layout_mode = 2
+
+[node name="Data" type="HBoxContainer" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="Type" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Sync Var"
+fit_content = true
+
+[node name="Object" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Node123"
+fit_content = true
+
+[node name="Target" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "Property Name"
+fit_content = true
+
+[node name="Count" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0"
+fit_content = true
+
+[node name="Usage" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0B"
+fit_content = true
+
+[node name="Percentage" type="RichTextLabel" parent="VBoxContainer/TabContainer/Outgoing Details/ScrollContainer/VBoxContainer/HBoxContainer/VBoxContainer2/VBoxContainer/PanelContainer/Data"]
+layout_mode = 2
+size_flags_horizontal = 3
+bbcode_enabled = true
+text = "0%"
+fit_content = true
+
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/Start" to="." method="start"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/Stop" to="." method="stop"]
+[connection signal="pressed" from="VBoxContainer/HBoxContainer/Clear" to="." method="clear"]
+[connection signal="toggled" from="VBoxContainer/HBoxContainer/AutoStart" to="." method="_on_auto_start_toggled"]
+[connection signal="toggled" from="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer/MonitorButton" to="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer" method="_on_monitor_button_toggled"]

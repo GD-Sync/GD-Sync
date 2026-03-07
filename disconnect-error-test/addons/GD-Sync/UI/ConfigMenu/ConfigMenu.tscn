@@ -1,0 +1,904 @@
+[gd_scene load_steps=51 format=3 uid="uid://1ho7vq1qum7y"]
+
+[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
+[ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
+[ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
+
+[sub_resource type="Animation" id="Animation_p5x7e"]
+resource_name = "Downloading"
+length = 1.8
+tracks/0/type = "bezier"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:position:y")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(-350, -0.25, 0, 0.25, 0, 0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/1/type = "bezier"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:x")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0.5, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/2/type = "bezier"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:y")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0.5, -0.25, 0, 0.25, 0, 1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0, 1)
+}
+tracks/3/type = "value"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/UIAnchor:modulate")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"times": PackedFloat32Array(0.0333333, 0.366667),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 1), Color(1, 1, 1, 0)]
+}
+tracks/4/type = "value"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoAnchor/Logo/LoadIcon:modulate")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"times": PackedFloat32Array(0, 1, 1.76667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_x05bw"]
+resource_name = "Open"
+length = 1.8
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1),
+"transitions": PackedFloat32Array(1, 1),
+"update": 1,
+"values": [false, true]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Background:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0.1, 0.3),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(0, 0, 0, 0), Color(0, 0, 0, 0.78431374)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoAnchor:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0.2, 0.5),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+tracks/3/type = "bezier"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:position:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.25, 0, -350, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/4/type = "bezier"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:x")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0, 0.5, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/5/type = "bezier"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:y")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"handle_modes": PackedInt32Array(0, 0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0, 0.5, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(1, 1.5)
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("CenterContainer/UIAnchor:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(1.3, 1.8),
+"transitions": PackedFloat32Array(1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_qx43o"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath(".:visible")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 1,
+"values": [false]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("Background:modulate")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(0, 0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("CenterContainer/LogoAnchor:modulate")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/3/type = "bezier"
+tracks/3/imported = false
+tracks/3/enabled = true
+tracks/3/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:position:y")
+tracks/3/interp = 1
+tracks/3/loop_wrap = true
+tracks/3/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(0, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/4/type = "bezier"
+tracks/4/imported = false
+tracks/4/enabled = true
+tracks/4/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:x")
+tracks/4/interp = 1
+tracks/4/loop_wrap = true
+tracks/4/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/5/type = "bezier"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("CenterContainer/LogoAnchor/Logo/Logo:scale:y")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"handle_modes": PackedInt32Array(0),
+"points": PackedFloat32Array(1, -0.25, 0, 0.25, 0),
+"times": PackedFloat32Array(0)
+}
+tracks/6/type = "value"
+tracks/6/imported = false
+tracks/6/enabled = true
+tracks/6/path = NodePath("CenterContainer/UIAnchor:modulate")
+tracks/6/interp = 1
+tracks/6/loop_wrap = true
+tracks/6/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/7/type = "value"
+tracks/7/imported = false
+tracks/7/enabled = true
+tracks/7/path = NodePath("CenterContainer/LogoAnchor/Logo/LoadIcon:modulate")
+tracks/7/interp = 1
+tracks/7/loop_wrap = true
+tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_d74rd"]
+_data = {
+&"Downloading": SubResource("Animation_p5x7e"),
+&"Open": SubResource("Animation_x05bw"),
+&"RESET": SubResource("Animation_qx43o")
+}
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_gw5my"]
+bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_7n4q8"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cpyqf"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_xrhuh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_yg1kq"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_q6pvr"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 0, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_dr3eh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_l308m"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bo1b1"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qnxdd"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1m25y"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 166, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_3ir2b"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_psoh2"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_f7j2m"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ucpbx"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_nbmvf"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 332, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_38ar6"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_h5tbl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ijnjl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_u7mul"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_vpehh"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 498, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_4max4"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ud1gk"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1qysi"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_1ygi4"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_qtqjo"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 664, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bcmcd"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_ukgla"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_5m3dn"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_pgi17"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_o14da"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 830, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wnnec"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wm8ux"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_fa2em"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_2dq2p"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_p0gcl"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 996, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hd6io"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(0, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_hrq83"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(166, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_gvthg"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(332, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_wkeq8"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(498, 1162, 166, 166)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_oxpxj"]
+atlas = ExtResource("3_k7k3v")
+region = Rect2(664, 1162, 166, 166)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_m25b5"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_7n4q8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cpyqf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_xrhuh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_yg1kq")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_q6pvr")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_dr3eh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_l308m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bo1b1")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qnxdd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1m25y")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_3ir2b")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_psoh2")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_f7j2m")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ucpbx")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_nbmvf")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_38ar6")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_h5tbl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ijnjl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_u7mul")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_vpehh")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_4max4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ud1gk")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1qysi")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_1ygi4")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_qtqjo")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bcmcd")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_ukgla")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_5m3dn")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_pgi17")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_o14da")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wnnec")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wm8ux")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_fa2em")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_2dq2p")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_p0gcl")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hd6io")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_hrq83")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_gvthg")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_wkeq8")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_oxpxj")
+}],
+"loop": true,
+"name": &"default",
+"speed": 25.0
+}]
+
+[node name="ConfigMenu" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+&"": SubResource("AnimationLibrary_d74rd")
+}
+speed_scale = 2.0
+
+[node name="Background" type="PanelContainer" parent="."]
+modulate = Color(0, 0, 0, 0)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_gw5my")
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="LogoAnchor" type="Control" parent="CenterContainer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="Logo" type="Control" parent="CenterContainer/LogoAnchor"]
+anchors_preset = 0
+
+[node name="Logo" type="Sprite2D" parent="CenterContainer/LogoAnchor/Logo"]
+unique_name_in_owner = true
+texture = ExtResource("3_eccmp")
+
+[node name="LoadIcon" type="AnimatedSprite2D" parent="CenterContainer/LogoAnchor/Logo"]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+position = Vector2(0, 172.975)
+scale = Vector2(0.5, 0.5)
+sprite_frames = SubResource("SpriteFrames_m25b5")
+autoplay = "default"
+frame_progress = 0.471284
+
+[node name="UIAnchor" type="Control" parent="CenterContainer"]
+modulate = Color(1, 1, 1, 0)
+layout_mode = 2
+
+[node name="UI" type="Control" parent="CenterContainer/UIAnchor"]
+anchors_preset = 0
+
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+layout_mode = 0
+offset_left = -475.0
+offset_top = -275.0
+offset_right = 475.0
+offset_bottom = 342.0
+theme = ExtResource("2_wd24h")
+
+[node name="DefaultPannel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = -450.0
+offset_top = -250.0
+offset_right = -50.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/DefaultPannel"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Welcome to the GD-Sync configuration menu. Here you can find basic settings and links to official resources.
+
+- [url=https://www.gd-sync.com]Official Website[/url]
+- [url=https://www.gd-sync.com/documentation]Documentation[/url]
+- [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]
+
+- [url=log]Log Directory[/url]"
+
+[node name="UpdatePanel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 0
+offset_left = -450.0
+offset_top = -250.0
+offset_right = -50.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "A new update for GD-Sync is available. Press the button below to automatically update to the newest version.
+
+- [url=https://www.gd-sync.com]Official Website[/url]
+- [url=https://www.gd-sync.com/documentation]Documentation[/url]
+- [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
+
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+clip_children = 1
+clip_contents = true
+layout_mode = 2
+size_flags_vertical = 8
+focus_mode = 2
+theme_type_variation = &"EmptyPanel"
+
+[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer"]
+layout_mode = 2
+size_flags_vertical = 8
+theme_type_variation = &"UpdateButton"
+text = "Update"
+
+[node name="Panel2" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+layout_mode = 0
+offset_left = -450.0
+offset_top = 25.0
+offset_right = -50.0
+offset_bottom = 250.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Panel2"]
+layout_mode = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Please fill in an API Key so the engine may connect to the GD-Sync network."
+fit_content = true
+
+[node name="PublicLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Public Key"
+
+[node name="PublicKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+caret_blink = true
+
+[node name="PrivateLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Private Key"
+
+[node name="PrivateKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+caret_blink = true
+
+[node name="Settings" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+layout_mode = 0
+offset_left = 50.0
+offset_top = -250.0
+offset_right = 450.0
+offset_bottom = 250.0
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"GDPanel"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/UIAnchor/UI/Settings"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+layout_mode = 2
+
+[node name="CSharpSupport" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "C# Support"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+custom_minimum_size = Vector2(0, 125)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "If enabled, the C# API of the GD-Sync plugin will be installed and enabled.
+
+After enabling you need to restart and build your project."
+fit_content = true
+
+[node name="Spacing1" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="ProtectionMode" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+layout_mode = 2
+
+[node name="Protected" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+button_pressed = true
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Protected Mode"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_func()[/color] and [color=#408eab]GDSync.expose_var()[/color] to allow the plugin to access Nodes remotely.
+
+[color=indianred]WARNING: Disabling this will allow other clients to call any function on any Node. Use at your own risk and only during testing."
+fit_content = true
+
+[node name="Spacing2" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="UniqueUsernames" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
+layout_mode = 2
+
+[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Unique Usernames"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Tells the server whether it should allow duplicate usernames when joining a lobby. If enabled, a username can only appear once inside a lobby.
+
+Usernames can be set using [color=#408eab]GDSync.player_set_username()[/color]."
+fit_content = true
+
+[node name="Spacing3" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="SenderID" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+layout_mode = 2
+
+[node name="SenderID" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Sender ID"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Tells the server whether it should append extra data to each remote function call that includes the sender ID. This allows you to see which client a remote function call came from, at the cost of using slightly more data.
+
+Retrieving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
+fit_content = true
+
+[node name="Spacing4" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 35)
+layout_mode = 2
+
+[node name="ScriptValidation" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+layout_mode = 2
+
+[node name="ScriptValidation" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+button_pressed = true
+
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Script Validation"
+
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+bbcode_enabled = true
+text = "Script validation scans the script you are currently working on to detect possible mistakes and errors. If the plugin detects incorrect function usage or unexposed remote calls, a warning will be displayed in the Godot editor. This helps you catch common issues early, reducing debugging time and preventing runtime errors."
+fit_content = true
+
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+clip_children = 1
+clip_contents = true
+layout_mode = 0
+offset_left = -135.0
+offset_top = 280.0
+offset_right = 115.0
+offset_bottom = 320.0
+focus_mode = 2
+theme = ExtResource("2_wd24h")
+theme_type_variation = &"EmptyPanel"
+
+[node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI/ButtonContainer"]
+layout_mode = 2
+theme = ExtResource("2_wd24h")
+text = "Close"
+
+[connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/DefaultPannel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="meta_clicked" from="CenterContainer/UIAnchor/UI/UpdatePanel/Description" to="." method="_on_description_meta_clicked"]
+[connection signal="pressed" from="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer/UpdateButton" to="." method="_on_update_button_pressed"]
+[connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PublicKey" to="." method="_on_PublicKey_text_changed"]
+[connection signal="text_changed" from="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer/PrivateKey" to="." method="_on_PrivateKey_text_changed"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/CSharpSupport" to="." method="_on_c_sharp_support_toggled"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
+[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer/ScriptValidation" to="." method="_on_script_validation_toggled"]
+[connection signal="pressed" from="CenterContainer/UIAnchor/UI/ButtonContainer/Close" to="." method="close"]
