@@ -1,6 +1,6 @@
-[gd_scene load_steps=51 format=3 uid="uid://1ho7vq1qum7y"]
+[gd_scene format=3 uid="uid://1ho7vq1qum7y"]
 
-[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Script" uid="uid://6g0xlogc3ewd" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
 [ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
@@ -545,7 +545,7 @@ animations = [{
 "speed": 25.0
 }]
 
-[node name="ConfigMenu" type="Control"]
+[node name="ConfigMenu" type="Control" unique_id=1575433482]
 visible = false
 layout_mode = 3
 anchors_preset = 15
@@ -556,13 +556,11 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
-libraries = {
-&"": SubResource("AnimationLibrary_d74rd")
-}
+[node name="AnimationPlayer" type="AnimationPlayer" parent="." unique_id=1828917672]
+libraries/ = SubResource("AnimationLibrary_d74rd")
 speed_scale = 2.0
 
-[node name="Background" type="PanelContainer" parent="."]
+[node name="Background" type="PanelContainer" parent="." unique_id=981966733]
 modulate = Color(0, 0, 0, 0)
 layout_mode = 1
 anchors_preset = 15
@@ -573,7 +571,7 @@ grow_vertical = 2
 mouse_filter = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_gw5my")
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
+[node name="CenterContainer" type="CenterContainer" parent="." unique_id=776130872]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -581,18 +579,18 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="LogoAnchor" type="Control" parent="CenterContainer"]
+[node name="LogoAnchor" type="Control" parent="CenterContainer" unique_id=802190337]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 
-[node name="Logo" type="Control" parent="CenterContainer/LogoAnchor"]
+[node name="Logo" type="Control" parent="CenterContainer/LogoAnchor" unique_id=169430659]
 anchors_preset = 0
 
-[node name="Logo" type="Sprite2D" parent="CenterContainer/LogoAnchor/Logo"]
+[node name="Logo" type="Sprite2D" parent="CenterContainer/LogoAnchor/Logo" unique_id=1768483165]
 unique_name_in_owner = true
 texture = ExtResource("3_eccmp")
 
-[node name="LoadIcon" type="AnimatedSprite2D" parent="CenterContainer/LogoAnchor/Logo"]
+[node name="LoadIcon" type="AnimatedSprite2D" parent="CenterContainer/LogoAnchor/Logo" unique_id=981153261]
 unique_name_in_owner = true
 modulate = Color(1, 1, 1, 0)
 position = Vector2(0, 172.975)
@@ -601,14 +599,14 @@ sprite_frames = SubResource("SpriteFrames_m25b5")
 autoplay = "default"
 frame_progress = 0.471284
 
-[node name="UIAnchor" type="Control" parent="CenterContainer"]
+[node name="UIAnchor" type="Control" parent="CenterContainer" unique_id=72271274]
 modulate = Color(1, 1, 1, 0)
 layout_mode = 2
 
-[node name="UI" type="Control" parent="CenterContainer/UIAnchor"]
+[node name="UI" type="Control" parent="CenterContainer/UIAnchor" unique_id=1371490478]
 anchors_preset = 0
 
-[node name="PanelContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="PanelContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=2130273074]
 layout_mode = 0
 offset_left = -475.0
 offset_top = -275.0
@@ -616,7 +614,7 @@ offset_right = 475.0
 offset_bottom = 342.0
 theme = ExtResource("2_wd24h")
 
-[node name="DefaultPannel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="DefaultPannel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=649474670]
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = -450.0
@@ -625,7 +623,7 @@ offset_right = -50.0
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"GDPanel"
 
-[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/DefaultPannel"]
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/DefaultPannel" unique_id=644519758]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
@@ -637,7 +635,7 @@ text = "Welcome to the GD-Sync configuration menu. Here you can find basic setti
 
 - [url=log]Log Directory[/url]"
 
-[node name="UpdatePanel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="UpdatePanel" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=162433719]
 unique_name_in_owner = true
 visible = false
 layout_mode = 0
@@ -647,7 +645,7 @@ offset_right = -50.0
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"GDPanel"
 
-[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+[node name="Description" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/UpdatePanel" unique_id=1740086594]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 bbcode_enabled = true
@@ -657,7 +655,7 @@ text = "A new update for GD-Sync is available. Press the button below to automat
 - [url=https://www.gd-sync.com/documentation]Documentation[/url]
 - [url=https://www.gd-sync.com/app/api-keys-settings]API Key Generation[/url]"
 
-[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI/UpdatePanel"]
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI/UpdatePanel" unique_id=965317605]
 clip_children = 1
 clip_contents = true
 layout_mode = 2
@@ -665,13 +663,13 @@ size_flags_vertical = 8
 focus_mode = 2
 theme_type_variation = &"EmptyPanel"
 
-[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer"]
+[node name="UpdateButton" type="Button" parent="CenterContainer/UIAnchor/UI/UpdatePanel/ButtonContainer" unique_id=1679435974]
 layout_mode = 2
 size_flags_vertical = 8
 theme_type_variation = &"UpdateButton"
 text = "Update"
 
-[node name="Panel2" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="Panel2" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=221407985]
 layout_mode = 0
 offset_left = -450.0
 offset_top = 25.0
@@ -680,38 +678,38 @@ offset_bottom = 250.0
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"GDPanel"
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Panel2"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Panel2" unique_id=196865433]
 layout_mode = 2
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer" unique_id=437873018]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Please fill in an API Key so the engine may connect to the GD-Sync network."
 fit_content = true
 
-[node name="PublicLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+[node name="PublicLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer" unique_id=44499523]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Public Key"
 
-[node name="PublicKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+[node name="PublicKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer" unique_id=372373993]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 caret_blink = true
 
-[node name="PrivateLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+[node name="PrivateLabel" type="Label" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer" unique_id=206925556]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Private Key"
 
-[node name="PrivateKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer"]
+[node name="PrivateKey" type="LineEdit" parent="CenterContainer/UIAnchor/UI/Panel2/VBoxContainer" unique_id=1449264830]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 caret_blink = true
 
-[node name="Settings" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="Settings" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=1034112752]
 layout_mode = 0
 offset_left = 50.0
 offset_top = -250.0
@@ -720,31 +718,31 @@ offset_bottom = 250.0
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"GDPanel"
 
-[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/UIAnchor/UI/Settings"]
+[node name="ScrollContainer" type="ScrollContainer" parent="CenterContainer/UIAnchor/UI/Settings" unique_id=453237216]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer" unique_id=1339546343]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="ProtectionMode2" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=596699874]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2" unique_id=1142965809]
 layout_mode = 2
 
-[node name="CSharpSupport" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+[node name="CSharpSupport" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer" unique_id=1143148508]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer" unique_id=2048167211]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "C# Support"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2" unique_id=2131636992]
 custom_minimum_size = Vector2(0, 125)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -754,28 +752,28 @@ text = "If enabled, the C# API of the GD-Sync plugin will be installed and enabl
 After enabling you need to restart and build your project."
 fit_content = true
 
-[node name="Spacing1" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing1" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=1495858133]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="ProtectionMode" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="ProtectionMode" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=951164412]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode" unique_id=2007314682]
 layout_mode = 2
 
-[node name="Protected" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+[node name="Protected" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer" unique_id=1544686272]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 button_pressed = true
 
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer" unique_id=935600713]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Protected Mode"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode" unique_id=471701220]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -785,27 +783,27 @@ text = "Blocks remote calls on Nodes. Use [color=#408eab]GDSync.expose_func()[/c
 [color=indianred]WARNING: Disabling this will allow other clients to call any function on any Node. Use at your own risk and only during testing."
 fit_content = true
 
-[node name="Spacing2" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing2" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=1664573910]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="UniqueUsernames" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="UniqueUsernames" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=779527313]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames" unique_id=860810844]
 layout_mode = 2
 
-[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
+[node name="UniqueUsernames" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer" unique_id=1468164783]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer" unique_id=73397071]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Unique Usernames"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames" unique_id=134873602]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -815,27 +813,27 @@ text = "Tells the server whether it should allow duplicate usernames when joinin
 Usernames can be set using [color=#408eab]GDSync.player_set_username()[/color]."
 fit_content = true
 
-[node name="Spacing3" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing3" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=688157772]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="SenderID" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="SenderID" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=375885224]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID" unique_id=1951844257]
 layout_mode = 2
 
-[node name="SenderID" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+[node name="SenderID" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer" unique_id=353236050]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer" unique_id=509645996]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Sender ID"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID" unique_id=368252836]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -845,28 +843,28 @@ text = "Tells the server whether it should append extra data to each remote func
 Retrieving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
 fit_content = true
 
-[node name="Spacing4" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="Spacing4" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=573908170]
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="ScriptValidation" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer"]
+[node name="ScriptValidation" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=1790531497]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation" unique_id=1585099442]
 layout_mode = 2
 
-[node name="ScriptValidation" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+[node name="ScriptValidation" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer" unique_id=1439107572]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 button_pressed = true
 
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer"]
+[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer" unique_id=1198682568]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Script Validation"
 
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation"]
+[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation" unique_id=2054963013]
 custom_minimum_size = Vector2(0, 100)
 layout_mode = 2
 theme = ExtResource("2_wd24h")
@@ -874,7 +872,7 @@ bbcode_enabled = true
 text = "Script validation scans the script you are currently working on to detect possible mistakes and errors. If the plugin detects incorrect function usage or unexposed remote calls, a warning will be displayed in the Godot editor. This helps you catch common issues early, reducing debugging time and preventing runtime errors."
 fit_content = true
 
-[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI"]
+[node name="ButtonContainer" type="PanelContainer" parent="CenterContainer/UIAnchor/UI" unique_id=1736452814]
 clip_children = 1
 clip_contents = true
 layout_mode = 0
@@ -886,7 +884,7 @@ focus_mode = 2
 theme = ExtResource("2_wd24h")
 theme_type_variation = &"EmptyPanel"
 
-[node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI/ButtonContainer"]
+[node name="Close" type="Button" parent="CenterContainer/UIAnchor/UI/ButtonContainer" unique_id=1256304310]
 layout_mode = 2
 theme = ExtResource("2_wd24h")
 text = "Close"

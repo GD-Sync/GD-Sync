@@ -47,6 +47,7 @@ var connection_i : int = 0
 var last_poll : float = 0.0
 var in_local_lobby : bool = false
 var attempt_tcp : bool = false
+var is_web_export : bool = false
 
 var server_ip : String = ""
 var encryptor : AESContext = AESContext.new()
@@ -72,6 +73,7 @@ func _ready() -> void:
 	https_controller = GDSync._https_controller
 	local_server = GDSync._local_server
 	logger = GDSync._logger
+	is_web_export = OS.has_feature("web")
 	
 	lb_request = HTTPRequest.new()
 	add_child(lb_request)
@@ -142,7 +144,7 @@ func start_multiplayer() -> void:
 	reset_multiplayer()
 	last_poll = Time.get_unix_time_from_system()
 	
-	if OS.has_feature("web"):
+	if is_web_export:
 		client = WebSocketPeer.new()
 		status = ENUMS.CONNECTION_STATUS.CONNECTING
 		connect_to_server("wss://ws1.gd-sync.com")
@@ -295,7 +297,7 @@ func connect_to_server(server : String) -> void:
 			if status >= ENUMS.CONNECTION_STATUS.CONNECTING:
 				logger.write_error("Connection timeout, server did not respond.")
 				
-				if !OS.has_feature("web") and !is_local():
+				if !is_web_export and !is_local():
 					if !attempt_tcp:
 						attempt_tcp = true
 						client.close()
@@ -329,10 +331,10 @@ func external_lobby_switch(server : String) -> void:
 	connect_to_server(server)
 
 func _process(delta) -> void:
-	if status >= ENUMS.CONNECTION_STATUS.CONNECTED and !is_local():
+	if status >= ENUMS.CONNECTION_STATUS.CONNECTED and !is_local() and !is_web_export:
 		var current_time : float = Time.get_unix_time_from_system()
-		if current_time - last_poll >= 5:
-			logger.write_error("Client did not poll for over 5 seconds, disconnect.")
+		if current_time - last_poll >= 10:
+			logger.write_error("Client did not poll for over 10 seconds, disconnect.")
 			reset_multiplayer()
 		last_poll = current_time
 	
@@ -368,6 +370,7 @@ func _process(delta) -> void:
 					client.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
 					client.transfer_channel = 1
 					client.put_packet(request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE))
+	
 	elif client is WebSocketPeer:
 		match(client.get_ready_state()):
 			WebSocketPeer.STATE_CLOSED:
@@ -375,6 +378,8 @@ func _process(delta) -> void:
 					if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
 						logger.write_error("WebSocketPeer lost its connection.")
 						reset_multiplayer()
+			WebSocketPeer.STATE_CLOSING:
+				client.poll()
 			WebSocketPeer.STATE_CONNECTING:
 				client.poll()
 			WebSocketPeer.STATE_OPEN:

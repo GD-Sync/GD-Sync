@@ -608,31 +608,37 @@ func switch_scene_failed() -> void:
 	active_scene_change = ""
 
 func load_resource_threaded(tree : SceneTree, path : String) -> Resource:
-	if ResourceLoader.load_threaded_request(path) == OK:
-		while ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_IN_PROGRESS:
-			await tree.create_timer(0.05).timeout
-		
-		if ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_LOADED:
-			return ResourceLoader.load_threaded_get(path)
+	if connection_controller.is_web_export:
+		return load(path)
+	else:
+		if ResourceLoader.load_threaded_request(path) == OK:
+			while ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_IN_PROGRESS:
+				await tree.create_timer(0.05).timeout
+			
+			if ResourceLoader.load_threaded_get_status(path) == ResourceLoader.ThreadLoadStatus.THREAD_LOAD_LOADED:
+				return ResourceLoader.load_threaded_get(path)
 	
 	return null
 
 func instantiate_threaded(tree : SceneTree, packed_scene : PackedScene) -> Node:
 	if packed_scene == null: return null
 	
-	var thread : Thread = Thread.new()
-	
-	var callable : Callable = func instantiate(packed_scene : PackedScene):
+	if connection_controller.is_web_export:
 		return packed_scene.instantiate()
-	
-	thread.start(
-		callable.bind(packed_scene)
-	)
-	
-	while thread.is_alive():
-		await tree.create_timer(0.02).timeout
-	
-	return thread.wait_to_finish()
+	else:
+		var thread : Thread = Thread.new()
+		
+		var callable : Callable = func instantiate(packed_scene : PackedScene):
+			return packed_scene.instantiate()
+		
+		thread.start(
+			callable.bind(packed_scene)
+		)
+		
+		while thread.is_alive():
+			await tree.create_timer(0.02).timeout
+		
+		return thread.wait_to_finish()
 
 func emit_signal_on_clients(clients : Array, target_signal : Signal, params : Array) -> void:
 	var id : String

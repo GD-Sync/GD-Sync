@@ -44,7 +44,7 @@ class_name MultiplayerClient
 ## If this is emitted it means you can use all other multiplayer functions.
 signal connected()
 
-## Emitted if the connection handshake failes. This signal is emitted after using [method start_multiplayer].
+## Emitted if the connection handshake fails. This signal is emitted after using [method start_multiplayer].
 ## [br]
 ## [br][b]error -[/b] The reason behind the failed connection attempt. See [constant ENUMS.CONNECTION_ERROR] for possible errors.
 signal connection_failed(error : int)
@@ -54,7 +54,7 @@ signal connection_failed(error : int)
 ## [br][b]IMPORTANT: The plugin does not automatically try to reconnect when a disconnect occurs.[/b]
 signal disconnected()
 
-## Emitted when the Client ID changes. This happens when using [method start_mutliplayer] and might happen
+## Emitted when the Client ID changes. This happens when using [method start_multiplayer] and might happen
 ## when using [method lobby_join]. This will NEVER happen while inside a lobby, so don't worry when
 ## using methods such as [method set_gdsync_owner], [method call_func_on], etc.
 signal client_id_changed(own_id : int)
@@ -64,7 +64,7 @@ signal client_id_changed(own_id : int)
 ## [br][b]lobby_name -[/b] The name of the lobby that was created.
 signal lobby_created(lobby_name : String)
 
-## Emitted if [method lobby_create] failes.
+## Emitted if [method lobby_create] fails.
 ## [br]
 ## [br][b]lobby_name -[/b] The name of the lobby that failed to create.
 ## [br][b]error -[/b] The reason why the creation failed.
@@ -76,7 +76,7 @@ signal lobby_creation_failed(lobby_name : String, error : int)
 ## [br][b]lobby_name -[/b] The new lobby name.
 signal lobby_name_changed(lobby_name : String)
 
-## Emitted if [method lobby_change_name] failes.
+## Emitted if [method lobby_change_name] fails.
 ## [br]
 ## [br][b]lobby_name -[/b] The new lobby name that failed.
 ## [br][b]error -[/b] The reason why the name change failed.
@@ -290,7 +290,7 @@ func get_client_ping(client_id : int) -> float:
 
 ## Measures and returns the perceived ping between this client and another client. This includes network travel time plus additional delay caused by frame timing. Useful for estimating player-visible latency..
 ## If the returned float is -1, the ping calculation failed.
-func get_client_percieved_ping(client_id : int) -> float:
+func get_client_perceived_ping(client_id : int) -> float:
 	return await _session_controller.get_ping(client_id, false)
 
 ## Returns the Client ID of the last client to perform a remote function call on this client.
@@ -509,7 +509,7 @@ func change_scene(scene_path : String) -> void:
 ## may be accessed remotely. This setting can also be found in the configuration menu.
 ## [br]
 ## [br]
-## We STRONGLY recommendd keeping this enabled at all times. Disabling it may introduce security risks.
+## We STRONGLY recommended keeping this enabled at all times. Disabling it may introduce security risks.
 ## [br]
 ## [br][b]protected -[/b] If protected mode should be enabled or disabled.
 func set_protection_mode(protected : bool) -> void:
@@ -804,7 +804,7 @@ func lobby_get_player_count() -> int:
 
 ## Get the current lobby name
 func lobby_get_name() -> String:
-	return GDSync._session_controller.lobby_name
+	return _session_controller.lobby_name
 
 ## Get the current lobby visibility. Returns true if the lobby is publicly visible.
 func lobby_get_visibility() -> bool:
@@ -932,7 +932,7 @@ func player_erase_data(key : String) -> void:
 	_session_controller.erase_player_data(key)
 	_request_processor.create_erase_player_data_request(key)
 
-## Gets data from a specific client. If you want to retreive your own data you can input your own id.
+## Gets data from a specific client. If you want to retrieve your own data you can input your own id.
 ## You can get your own id using [method get_client_id].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
@@ -942,7 +942,7 @@ func player_get_data(client_id : int, key : String, default = null):
 	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, key, default)
 
-## Gets all data from a specific client. If you want to retreive your own data you can input your own id.
+## Gets all data from a specific client. If you want to retrieve your own data you can input your own id.
 ## You can get your own id using [method get_client_id].
 ## [br]
 ## [br][b]client_id -[/b] The Client ID of which client you would like to get the data from.
@@ -1451,7 +1451,7 @@ func leaderboard_delete_score(leaderboard : String) -> int:
 func steam_integration_enabled() -> bool:
 	return _steam.steam_integration_enabled
 
-## Links your GD-Sync account with your Steam account. Thiw will allow you to log into your GD-Sync account
+## Links your GD-Sync account with your Steam account. This will allow you to log into your GD-Sync account
 ## using your active Steam session.
 ## [br][br]Returns the result of the request as [constant ENUMS.LINK_STEAM_ACCOUNT_RESPONSE_CODE].
 func steam_link_account() -> int:

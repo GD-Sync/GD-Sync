@@ -31,13 +31,7 @@ const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCS
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
 
-var load_balancers : PackedStringArray = [
-	"lb1.gd-sync.com",
-	"lb2.gd-sync.com",
-	"lb3.gd-sync.com",
-]
-
-var version : String = "0.14"
+var version : String = "1.0"
 
 var debugger = GDSyncProfiler.new()
 
@@ -152,16 +146,17 @@ func extract_data_from_html(html: String) -> Dictionary:
 	return {}
 
 func is_version_newer(current_version: String, new_version: String) -> bool:
-	var current_nums : PackedStringArray = current_version.split(".")
-	var new_nums : PackedStringArray = new_version.split(".")
-	for i in range(new_nums.size()):
-		var new : int = int(new_nums[i])
-		var current : int = 0 if i >= current_nums.size() else int(current_nums[i])
-		if new > current:
+	var current_nums: PackedStringArray = current_version.split(".")
+	var new_nums: PackedStringArray = new_version.split(".")
+	var len: int = maxi(current_nums.size(), new_nums.size())
+	for i in range(len):
+		var new_num: int = 0 if i >= new_nums.size() else int(new_nums[i])
+		var current_num: int = 0 if i >= current_nums.size() else int(current_nums[i])
+		if new_num > current_num:
 			return true
-	
+		if new_num < current_num:
+			return false
 	return false
-
 
 func _disable_plugin() -> void:
 	_disable_remote_call_validator()

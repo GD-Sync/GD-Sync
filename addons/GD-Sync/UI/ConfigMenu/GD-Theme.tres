@@ -1,43 +1,41 @@
-[gd_resource type="Theme" load_steps=31 format=3 uid="uid://5whm1igkt23h"]
+[gd_resource type="Theme" format=3 uid="uid://5whm1igkt23h"]
 
 [ext_resource type="FontFile" uid="uid://bnjmhin4fqi2u" path="res://addons/GD-Sync/UI/Fonts/Outfit-Regular.ttf" id="1_15q4e"]
 
-[sub_resource type="Gradient" id="Gradient_g3h2g"]
-offsets = PackedFloat32Array(0, 0.99579126)
-colors = PackedColorArray(0.09411765, 0.49803922, 0.68235296, 1, 0.023529412, 0.67058825, 0.69411767, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_0vk81"]
+bg_color = Color(0.18431373, 0.18431373, 0.18431373, 0)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.3125, 0.3125, 0.3125, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_d26q0"]
-gradient = SubResource("Gradient_g3h2g")
-fill_from = Vector2(0, 1)
-fill_to = Vector2(0, 0)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ywbrc"]
+bg_color = Color(0.2509804, 0.5568628, 0.67058825, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_ywbrc"]
-texture = SubResource("GradientTexture2D_d26q0")
-modulate_color = Color(0.79870105, 0.79870105, 0.79870105, 1)
-
-[sub_resource type="Gradient" id="Gradient_ewqky"]
-offsets = PackedFloat32Array(0, 0.99579126)
-colors = PackedColorArray(0.09411765, 0.49803922, 0.68235296, 1, 0.023529412, 0.67058825, 0.69411767, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_15q4e"]
-gradient = SubResource("Gradient_ewqky")
-fill_from = Vector2(0, 1)
-fill_to = Vector2(0, 0)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_g3h2g"]
-texture = SubResource("GradientTexture2D_15q4e")
-
-[sub_resource type="Gradient" id="Gradient_15q4e"]
-offsets = PackedFloat32Array(0, 0.99579126)
-colors = PackedColorArray(0.11992867, 0.5735881, 0.7805979, 1, 0.040200993, 0.80265594, 0.83038145, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_g3h2g"]
-gradient = SubResource("Gradient_15q4e")
-fill_from = Vector2(0, 1)
-fill_to = Vector2(0, 0)
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_d26q0"]
-texture = SubResource("GradientTexture2D_g3h2g")
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_g3h2g"]
+bg_color = Color(0.2509804, 0.5568628, 0.67058825, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.2509804, 0.5568628, 0.67058825, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_egfui"]
 
@@ -63,7 +61,7 @@ content_margin_left = 15.0
 content_margin_top = 15.0
 content_margin_right = 15.0
 content_margin_bottom = 15.0
-bg_color = Color(0.14509805, 0.14509805, 0.14901961, 1)
+bg_color = Color(0.08235294, 0.08235294, 0.08235294, 1)
 corner_radius_top_left = 20
 corner_radius_top_right = 20
 corner_radius_bottom_right = 20
@@ -74,7 +72,7 @@ content_margin_left = 15.0
 content_margin_top = 8.0
 content_margin_right = 15.0
 content_margin_bottom = 8.0
-bg_color = Color(0.192157, 0.192157, 0.2, 1)
+bg_color = Color(0.18028846, 0.18028846, 0.1875, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -90,7 +88,7 @@ content_margin_left = 15.0
 content_margin_top = 8.0
 content_margin_right = 15.0
 content_margin_bottom = 8.0
-bg_color = Color(0.145098, 0.145098, 0.14902, 1)
+bg_color = Color(0.13719513, 0.13719513, 0.140625, 1)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
@@ -123,10 +121,10 @@ content_margin_top = 15.0
 content_margin_right = 15.0
 content_margin_bottom = 15.0
 bg_color = Color(0.10980392, 0.10980392, 0.11372549, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
 border_color = Color(0.25098, 0.556863, 0.670588, 1)
 corner_radius_top_left = 20
 corner_radius_top_right = 20
@@ -168,15 +166,14 @@ texture = SubResource("GradientTexture2D_jlle7")
 [resource]
 default_font = ExtResource("1_15q4e")
 default_font_size = 16
-Button/colors/font_color = Color(1, 1, 1, 1)
+Button/colors/font_color = Color(0.87723213, 0.87723213, 0.87723213, 1)
 Button/colors/font_focus_color = Color(1, 1, 1, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
 Button/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
-Button/styles/disabled = SubResource("StyleBoxTexture_ywbrc")
-Button/styles/focus = SubResource("StyleBoxTexture_g3h2g")
-Button/styles/hover = SubResource("StyleBoxTexture_d26q0")
-Button/styles/normal = SubResource("StyleBoxTexture_g3h2g")
-Button/styles/pressed = SubResource("StyleBoxTexture_g3h2g")
+Button/styles/disabled = SubResource("StyleBoxFlat_0vk81")
+Button/styles/hover = SubResource("StyleBoxFlat_ywbrc")
+Button/styles/normal = SubResource("StyleBoxFlat_g3h2g")
+Button/styles/pressed = SubResource("StyleBoxFlat_g3h2g")
 CheckButton/styles/disabled = SubResource("StyleBoxEmpty_egfui")
 CheckButton/styles/focus = SubResource("StyleBoxEmpty_ltv7d")
 CheckButton/styles/hover = SubResource("StyleBoxEmpty_nr1xf")
