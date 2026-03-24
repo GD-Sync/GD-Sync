@@ -55,10 +55,12 @@ func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bo
 			parameters.push_front(actual)
 	
 	if name_cached:
-		GDSync.call_func(_play_remote_cached, parameters)
+		parameters.push_front(_play_remote_cached)
+		GDSync.call_func.callv(parameters)
 	else:
 		if use_name:GDSync._request_processor.create_name_cache("", name)
-		GDSync.call_func(_play_remote, parameters)
+		parameters.push_front(_play_remote)
+		GDSync.call_func.callv(parameters)
 
 func play_backwards_synced(name: StringName = &"") -> void:
 	GDSync.call_func(_play_backwards_remote, name)

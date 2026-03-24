@@ -64,10 +64,12 @@ func play_synced(name: StringName = &"", custom_blend: float = -1, custom_speed:
 	parameters.push_front(GDSync.get_multiplayer_time())
 	
 	if name_cached:
-		GDSync.call_func(_play_remote_cached, parameters)
+		parameters.push_front(_play_remote_cached)
+		GDSync.call_func.callv(parameters)
 	else:
 		if use_name:GDSync._request_processor.create_name_cache("", name)
-		GDSync.call_func(_play_remote, parameters)
+		parameters.push_front(_play_remote)
+		GDSync.call_func.callv(parameters)
 
 func play_backwards_synced(name: StringName = &"", custom_blend: float = -1) -> void:
 	self.play(name, custom_blend, -1.0, true)
@@ -108,7 +110,8 @@ func seek_synced(seconds : float, update : bool = false, update_only : bool = fa
 	
 	parameters.push_front(seconds)
 	parameters.push_front(GDSync.get_multiplayer_time())
-	GDSync.call_func(_seek_remote, parameters)
+	parameters.push_front(_seek_remote)
+	GDSync.call_func.callv(parameters)
 
 func advance_synced(delta : float) -> void:
 	advance(delta)
