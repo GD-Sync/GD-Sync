@@ -19,6 +19,9 @@ Delve into our extensive [Documentation](https://www.gd-sync.com/documentation) 
 ## About GD-Sync
 Born from the challenges of multiplayer game development, GD-Sync is a solution by game developers, for game developers. We provide a robust infrastructure that scales from indie projects to globally successful multiplayer games. Learn more about our journey and vision [here](https://www.gd-sync.com).
 
+<p align="center">
+	<img src="https://cdn.prod.website-files.com/6446f1fc3506fe60c40890e9/69efaed8bd3adc4ec4c537e7_GDSyncThumbnail.avif" width="80%" />
+</p>
 
 ---
 
