@@ -22,6 +22,6 @@ Born from the challenges of multiplayer game development, GD-Sync is a solution 
 
 ---
 
-© 2025 GD-Sync. All rights reserved.
+© 2026 GD-Sync. All rights reserved.
 - [Terms of Service](https://www.gd-sync.com/terms)
 - [Privacy Policy](https://www.gd-sync.com/privacy-policy)
