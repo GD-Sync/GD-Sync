@@ -99,7 +99,9 @@ func _ready() -> void:
 		
 		If you are using local multiplayer only, you can ignore this error."
 		)
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func is_active() -> bool:
 	return status >= ENUMS.CONNECTION_STATUS.CONNECTING
 
