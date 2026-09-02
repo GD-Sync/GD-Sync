@@ -48,7 +48,9 @@ func _ready() -> void:
 		DirAccess.make_dir_absolute("user://GD-Sync")
 	
 	load_config()
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func _process(delta: float) -> void:
 	if logged_in:
 		status_ping_timer -= delta

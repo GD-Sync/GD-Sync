@@ -81,7 +81,9 @@ func _ready() -> void:
 		for i in range(files.size()-4):
 			var log_time : int = keys[i]
 			DirAccess.remove_absolute(LOG_PATH+"/"+file_times[log_time])
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func _process(delta: float) -> void:
 	log_timer -= delta
 	_process_logs()

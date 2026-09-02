@@ -88,7 +88,9 @@ func _ready() -> void:
 	
 	randomize()
 	synced_time = randf_range(0, 1000)
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func _process(delta):
 	if !GDSync.is_active(): return
 	handle_events(delta)
