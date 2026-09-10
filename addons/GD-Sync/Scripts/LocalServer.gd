@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -51,6 +51,7 @@ var found_lobbies : Dictionary = {}
 
 var peer_client_table : Dictionary = {}
 var lobby_client_table : Dictionary = {}
+var _lobby_host_id : int = -1
 
 class Client extends RefCounted:
 	var valid : bool = false
@@ -90,9 +91,7 @@ func _ready() -> void:
 	add_child(local_lobby_timer)
 	
 	set_process(false)
-	
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	
+
 func reset_multiplayer() -> void:
 	logger.write_log("Closing local multiplayer.", "[LocalServer]")
 	local_peer.close()
@@ -113,6 +112,7 @@ func clear_lobby_data() -> void:
 	local_owner_cache.clear()
 	peer_client_table.clear()
 	lobby_client_table.clear()
+	_lobby_host_id = -1
 	local_server.close()
 
 func start_local_peer() -> bool:
@@ -153,6 +153,9 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 		var lobby_dict : Dictionary = get_lobby_dictionary()
 		lobby_dict["IP"] = "127.0.0.1"
 		found_lobbies[local_lobby_name] = lobby_dict
+		
+		_lobby_host_id = GDSync.get_client_id()
+		connection_controller.set_host(_lobby_host_id)
 		
 		set_process(true)
 		GDSync.lobby_created.emit.call_deferred(name)
@@ -322,33 +325,32 @@ func _process(delta: float) -> void:
 					for request in message[ENUMS.PACKET_VALUE.CLIENT_REQUESTS]:
 						broadcast_request(request, from, channel == 0)
 
+const _TARGET_CLIENT_ID_MASK : int = 0x3FFFFFFF
+const _TARGET_PERMISSION_SHIFT : int = 30
+
+func _decode_target_client(encoded : int) -> int:
+	var id_part : int = encoded & _TARGET_CLIENT_ID_MASK
+	return -1 if id_part == _TARGET_CLIENT_ID_MASK else id_part
+
 func broadcast_request(request : Array, from : Client, reliable : bool) -> void:
 	if !from.valid: return
 	
+	request = request_processor.stamp_caller_id(request, from.client_id)
 	var peers : Array = get_target_peers(request, from)
 	for client in peers:
-		if connection_controller.USE_SENDER_ID: set_sender_id(from, client, reliable)
 		put_request(request, client, reliable)
 
 func get_target_peers(request : Array, from : Client) -> Array:
 	var targets : Array = []
 	if from.valid:
-		var target_client : int = int(request[int(ENUMS.DATA.TARGET_CLIENT)])
+		var encoded_target : int = int(request[int(ENUMS.DATA.TARGET_CLIENT)])
+		var target_client : int = _decode_target_client(encoded_target)
 		if target_client >= 0:
 			if lobby_client_table.has(target_client):
 				targets.append(lobby_client_table[target_client])
 		else:
 			return from.lobby_targets
 	return targets
-
-func set_sender_id(from : Client, client : Client, reliable : bool) -> void:
-	if !connection_controller.USE_SENDER_ID: return
-	
-	put_request([
-		int(ENUMS.REQUEST_TYPE.MESSAGE),
-		int(ENUMS.MESSAGE_TYPE.SET_SENDER_ID),
-		from.client_id
-	], client, reliable)
 
 func send_message(message : int, client : Client, value = null, value2 = null, value3 = null) -> void:
 	if client == null:
@@ -543,6 +545,9 @@ func erase_player_data_request(from : Client, request : Array) -> void:
 
 func kick_player(from : Client, request : Array) -> void:
 	var client_id : int = request[ENUMS.DATA.NAME]
+	var reason : String = ""
+	if request.size() >= 3:
+		reason = str(request[ENUMS.DATA.VALUE])
 	
 	if(from.client_id != GDSync.get_client_id()): return
 	
@@ -550,7 +555,10 @@ func kick_player(from : Client, request : Array) -> void:
 	if kicked_client == null: return
 	
 	lobby_client_table.erase(client_id)
-	send_message(ENUMS.MESSAGE_TYPE.KICKED, kicked_client)
+	if reason.is_empty():
+		send_message(ENUMS.MESSAGE_TYPE.KICKED, kicked_client)
+	else:
+		send_message(ENUMS.MESSAGE_TYPE.KICKED, kicked_client, reason)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	kicked_client.peer.peer_disconnect()

@@ -3,7 +3,7 @@
 extends RigidBody2D
 class_name SynchronizedRigidBody2D
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -168,7 +168,8 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 		
 		if _pending_sync:
 			_pending_sync = false
-			GDSync.call_func(_sync_received, 
+			GDSync.call_func_relevant(
+				_sync_received,
 				GDSync.get_multiplayer_time(),
 				state.linear_velocity,
 				state.angular_velocity,
@@ -206,6 +207,19 @@ func _sync_received(time : float, lv : Vector2, av : float, pos : Vector2, rotat
 	_last_sync_position = pos
 	_last_sync_rotation = rotation
 	sleeping = false
+
+func _interest_object_client_entered(client_id : int) -> void:
+	if !_should_broadcast:
+		return
+	GDSync.call_func_on(
+		client_id,
+		_sync_received,
+		GDSync.get_multiplayer_time(),
+		linear_velocity,
+		angular_velocity,
+		global_position,
+		global_rotation
+	)
 
 func _owner_changed(owner) -> void:
 	if owner >= 0: _last_owner = owner

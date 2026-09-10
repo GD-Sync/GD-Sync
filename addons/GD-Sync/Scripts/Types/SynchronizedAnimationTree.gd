@@ -3,7 +3,7 @@
 extends AnimationTree
 class_name SynchronizedAnimationTree
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -74,11 +74,14 @@ var _current_cooldown : float = 0.0
 var _should_broadcast : bool = false
 var last_owner : int = -1
 
+var GDSync
+
 func _ready() -> void:
 	if Engine.is_editor_hint():
 		set_process(false)
 		return
 	
+	GDSync = get_node("/root/GDSync")
 	_cooldown = 1.0/refresh_rate
 	GDSync.connect_gdsync_owner_changed(self, _owner_changed)
 	GDSync.host_changed.connect(_host_changed)
@@ -138,9 +141,13 @@ func _update_inputs(inputs : Dictionary, forced : bool = false) -> void:
 			
 			if "/active" in input_name:
 				var request : String = input_name.replace("/active", "/request")
-				GDSync.call_func(set, request, AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE if new_value else AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT)
+				GDSync.call_func_relevant(
+					set,
+					request,
+					AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE if new_value else AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT
+				)
 			else:
-				GDSync.sync_var(self, input_name)
+				GDSync.sync_var_relevant(self, input_name)
 
 func _update_state_machines(forced : bool = false) -> void:
 	for state_machine_path in _state_machines:
@@ -150,11 +157,29 @@ func _update_state_machines(forced : bool = false) -> void:
 		
 		if forced or old_node != new_node:
 			_state_machine_inputs[state_machine] = new_node
-			GDSync.call_func(_travel_remote, state_machine_path, new_node)
+			GDSync.call_func_relevant(_travel_remote, state_machine_path, new_node)
 
 func _travel_remote(state_machine_path : String, node_name : String) -> void:
 	var state_machine : AnimationNodeStateMachinePlayback = _state_machines[state_machine_path]
 	state_machine.travel(node_name)
+
+func _interest_object_client_entered(client_id : int) -> void:
+	if !_should_broadcast:
+		return
+	for input_name in _current_variable_inputs:
+		GDSync.sync_var_on(client_id, self, input_name)
+	for input_name in _current_instant_inputs:
+		if "/active" in input_name:
+			var request : String = input_name.replace("/active", "/request")
+			GDSync.call_func_on(
+				client_id,
+				set,
+				request,
+				AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE if get(input_name) else AnimationNodeOneShot.ONE_SHOT_REQUEST_ABORT
+			)
+	for state_machine_path in _state_machines:
+		var state_machine : AnimationNodeStateMachinePlayback = _state_machines[state_machine_path]
+		GDSync.call_func_on(client_id, _travel_remote, state_machine_path, state_machine.get_current_node())
 
 func _host_changed(is_host : bool, new_host_id : int) -> void:
 	_update_sync_mode()

@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -48,9 +48,6 @@ var owner_cache : Dictionary = {}
 var lobby_name : String = ""
 var lobby_password : String = ""
 var own_lobby : bool = false
-var connect_time : float = 0
-var lobby_switch_pending : bool = false
-
 var synced_time : float = 0.0
 var remote_time : float = 0.0
 var remote_time_counter : int = 0
@@ -60,6 +57,11 @@ var events : Array[Dictionary] = []
 
 var active_scene_change : String = ""
 var scene_ready_list : Array[int] = []
+var _scene_change_elapsed : float = 0.0
+var _scene_change_resolved : bool = false
+
+const _SCENE_CHANGE_TIMEOUT : float = 30.0
+const _SCENE_CHANGE_CLIENT_TIMEOUT : float = 40.0
 
 var ping_sessions : Dictionary = {}
 
@@ -85,13 +87,13 @@ func _ready() -> void:
 	GDSync.client_joined.connect(client_joined)
 	GDSync.client_left.connect(client_left)
 	GDSync.client_id_changed.connect(client_id_changed)
+	GDSync.host_changed.connect(host_changed)
 	
 	randomize()
 	synced_time = randf_range(0, 1000)
-	
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	
+
 func _process(delta):
+	_process_scene_change(delta)
 	if !GDSync.is_active(): return
 	handle_events(delta)
 
@@ -187,12 +189,17 @@ func lobby_left() -> void:
 	owner_cache.clear()
 	events.clear()
 	sender_id = -1
+	_incoming_caller_id = -1
 	
 	lobby_name = ""
 	lobby_password = ""
 	own_lobby = false
 	
 	synced_time = 0.0
+	
+	if active_scene_change != "":
+		logger.write_error("Scene change aborted, the lobby was left. <"+active_scene_change+">")
+		switch_scene_failed()
 	
 	for id in player_data.keys():
 		if id != own_id:
@@ -216,6 +223,11 @@ func client_joined(client_id : int) -> void:
 
 func client_left(id : int) -> void:
 	if player_data.has(id): player_data.erase(id)
+	if scene_ready_list.has(id): scene_ready_list.erase(id)
+	check_scene_ready()
+
+func host_changed(is_host : bool, _new_host_id : int) -> void:
+	if is_host: check_scene_ready()
 
 func get_all_clients() -> Array:
 	return player_data.keys()
@@ -225,6 +237,31 @@ func set_sender_id(id : int) -> void:
 
 func get_sender_id() -> int:
 	return sender_id
+
+var _incoming_caller_id : int = -1
+
+func begin_incoming_request(caller_id : int) -> void:
+	_incoming_caller_id = caller_id
+	if caller_id >= 0:
+		sender_id = caller_id
+
+func end_incoming_request() -> void:
+	_incoming_caller_id = -1
+
+func is_caller_permitted(permission : int, caller_id : int = -1) -> bool:
+	if permission == ENUMS.EXPOSE_PERMISSION.ANYONE:
+		return true
+	if caller_id < 0:
+		caller_id = _incoming_caller_id
+	if caller_id < 0:
+		return false
+	var host_id : int = connection_controller.host
+	match permission:
+		ENUMS.EXPOSE_PERMISSION.HOST:
+			return caller_id == host_id
+		ENUMS.EXPOSE_PERMISSION.CLIENT:
+			return host_id >= 0 and caller_id != host_id
+	return true
 
 func nodepath_is_cached(node_path : String) -> bool:
 	return node_path_cache.has(node_path)
@@ -435,12 +472,17 @@ func hide_object(object : Object) -> void:
 func object_is_exposed(object : Object) -> bool:
 	return object.get_meta("Exposed", false)
 
-func expose_func(function : Callable) -> void:
+func expose_func(function : Callable, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
 	var object : Object = function.get_object()
 	var functionName : String = function.get_method()
 	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
-	exposedArray.append(functionName)
-	object.set_meta("ExposedFunctions", exposedArray)
+	if !exposedArray.has(functionName):
+		exposedArray.append(functionName)
+		object.set_meta("ExposedFunctions", exposedArray)
+	
+	var permissions : Dictionary = object.get_meta("ExposedFunctionPermissions", {})
+	permissions[functionName] = permission
+	object.set_meta("ExposedFunctionPermissions", permissions)
 	
 	if object is GDScript:
 		create_resource_reference(object, object.resource_path)
@@ -450,52 +492,85 @@ func hide_func(function : Callable) -> void:
 	var functionName : String = function.get_method()
 	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	if exposedArray.has(functionName): exposedArray.erase(functionName)
+	var permissions : Dictionary = object.get_meta("ExposedFunctionPermissions", {})
+	if permissions.has(functionName): permissions.erase(functionName)
 
 func function_is_exposed(object : Object, function_name : String) -> bool:
 	var exposedArray : Array = object.get_meta("ExposedFunctions", [])
 	return exposedArray.has(function_name)
 
-func expose_signal(target_signal : Signal) -> void:
+func get_function_permission(object : Object, function_name : String) -> int:
+	return object.get_meta("ExposedFunctionPermissions", {}).get(function_name, ENUMS.EXPOSE_PERMISSION.ANYONE)
+
+func expose_signal(target_signal : Signal, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
 	var object : Object = target_signal.get_object()
+	var signal_name : StringName = target_signal.get_name()
 	var exposedArray : Array = object.get_meta("ExposedSignals", [])
-	exposedArray.append(target_signal.get_name())
-	object.set_meta("ExposedSignals", exposedArray)
+	if !exposedArray.has(signal_name):
+		exposedArray.append(signal_name)
+		object.set_meta("ExposedSignals", exposedArray)
+	
+	var permissions : Dictionary = object.get_meta("ExposedSignalPermissions", {})
+	permissions[signal_name] = permission
+	object.set_meta("ExposedSignalPermissions", permissions)
 
 func signal_is_exposed(object : Object, signal_name : StringName) -> bool:
 	var exposedArray : Array = object.get_meta("ExposedSignals", [])
 	return exposedArray.has(signal_name)
 
+func get_signal_permission(object : Object, signal_name : StringName) -> int:
+	return object.get_meta("ExposedSignalPermissions", {}).get(signal_name, ENUMS.EXPOSE_PERMISSION.ANYONE)
+
 func hide_signal(target_signal : Signal) -> void:
 	var exposedArray : Array = target_signal.get_object().get_meta("ExposedSignals", [])
 	var signal_name : StringName = target_signal.get_name()
 	if exposedArray.has(signal_name): exposedArray.erase(signal_name)
+	var permissions : Dictionary = target_signal.get_object().get_meta("ExposedSignalPermissions", {})
+	if permissions.has(signal_name): permissions.erase(signal_name)
 
-func expose_property(object : Object, property_name : String) -> void:
+func expose_property(object : Object, property_name : String, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
 	var exposedArray : Array = object.get_meta("ExposedProperties", [])
-	exposedArray.append(property_name)
-	object.set_meta("ExposedProperties", exposedArray)
+	if !exposedArray.has(property_name):
+		exposedArray.append(property_name)
+		object.set_meta("ExposedProperties", exposedArray)
+	
+	var permissions : Dictionary = object.get_meta("ExposedPropertyPermissions", {})
+	permissions[property_name] = permission
+	object.set_meta("ExposedPropertyPermissions", permissions)
 
 func hide_property(object : Object, propertyName : String) -> void:
 	var exposedArray : Array = object.get_meta("ExposedProperties", [])
 	if exposedArray.has(propertyName): exposedArray.erase(propertyName)
+	var permissions : Dictionary = object.get_meta("ExposedPropertyPermissions", {})
+	if permissions.has(propertyName): permissions.erase(propertyName)
 
 func property_is_exposed(object : Object, propertyName : String) -> bool:
 	var exposedArray : Array = object.get_meta("ExposedProperties", [])
 	return exposedArray.has(propertyName)
 
+func get_property_permission(object : Object, property_name : String) -> int:
+	return object.get_meta("ExposedPropertyPermissions", {}).get(property_name, ENUMS.EXPOSE_PERMISSION.ANYONE)
+
 func set_gdsync_owner(node : Node, owner) -> void:
+	if owner == null:
+		owner = -1
+	if node.get_meta("gdsyncOwner", -1) == owner:
+		return
 	set_gdsync_owner_remote(node, owner)
 	request_processor.set_gdsync_owner(node, owner)
 
 func set_gdsync_owner_remote(node : Node, owner) -> void:
+	if owner == null:
+		owner = -1
+	var previous_owner = node.get_meta("gdsyncOwner", -1)
+	if previous_owner == owner:
+		return
+	
 	var path_string : String = str(node.get_path())
 	if owner_cache.has(path_string): owner_cache.erase(path_string)
 	
-	var previous_owner = node.get_meta("gdsyncOwner", -1)
 	node.set_meta("gdsyncOwner", owner)
-	
-	if previous_owner != owner:
-		emit_gdsync_owner_changed(node, owner)
+	emit_gdsync_owner_changed(node, owner)
 
 func set_gdsync_owner_delayed(node_path : String, owner) -> void:
 	owner_cache[node_path] = owner
@@ -554,16 +629,21 @@ func load_scene(scene_path : String) -> void:
 	
 	scene_ready_list.clear()
 	active_scene_change = scene_path
+	_scene_change_elapsed = 0.0
+	_scene_change_resolved = false
 	GDSync.change_scene_called.emit(scene_path)
 	
 	var tree : SceneTree = get_tree()
 	var packed_scene : PackedScene = await load_resource_threaded(tree, scene_path)
 	var new_scene : Node = await instantiate_threaded(tree, packed_scene)
-	var old_scene : Node = tree.current_scene
 	
 	if new_scene == null:
 		GDSync.call_func(switch_scene_failed)
 		switch_scene_failed()
+		return
+	
+	if scene_path != active_scene_change:
+		new_scene.queue_free()
 		return
 	
 	var own_id : int = GDSync.get_client_id()
@@ -571,7 +651,11 @@ func load_scene(scene_path : String) -> void:
 	mark_scene_ready(own_id)
 	
 	await scene_ready
-	if scene_path != active_scene_change: return
+	if scene_path != active_scene_change:
+		new_scene.queue_free()
+		return
+	
+	var old_scene : Node = tree.current_scene
 	
 	new_scene.tree_entered.connect(
 		func set_current_scene() -> void:
@@ -586,28 +670,52 @@ func load_scene(scene_path : String) -> void:
 	
 	active_scene_change = ""
 
-func mark_scene_ready(client_id : int) -> void:
-	scene_ready_list.append(client_id)
+func _process_scene_change(delta : float) -> void:
+	if active_scene_change == "" or _scene_change_resolved: return
 	
-	if GDSync.is_host():
-		var clients : Array = get_all_clients()
-		
-		for client in scene_ready_list:
-			if clients.has(client): clients.erase(client)
-		
-		if clients.size() == 0:
-			GDSync.call_func(switch_scene_success)
-			switch_scene_success()
+	if !GDSync.is_active():
+		logger.write_error("Scene change aborted, the connection was lost. <"+active_scene_change+">")
+		switch_scene_failed()
+		return
+	
+	_scene_change_elapsed += delta
+	var timeout : float = _SCENE_CHANGE_TIMEOUT if GDSync.is_host() else _SCENE_CHANGE_CLIENT_TIMEOUT
+	if _scene_change_elapsed < timeout: return
+	
+	logger.write_error("Scene change timed out, not all clients reported ready. <"+active_scene_change+">")
+	if GDSync.is_host(): GDSync.call_func(switch_scene_failed)
+	switch_scene_failed()
+
+func mark_scene_ready(client_id : int) -> void:
+	if active_scene_change == "": return
+	if !scene_ready_list.has(client_id): scene_ready_list.append(client_id)
+	check_scene_ready()
+
+func check_scene_ready() -> void:
+	if active_scene_change == "" or _scene_change_resolved: return
+	if !GDSync.is_host(): return
+	
+	for client in get_all_clients():
+		if !scene_ready_list.has(client): return
+	
+	GDSync.call_func(switch_scene_success)
+	switch_scene_success()
 
 func switch_scene_success() -> void:
+	if active_scene_change == "": return
+	_scene_change_resolved = true
 	scene_ready_list.clear()
 	GDSync.change_scene_success.emit(active_scene_change)
 	scene_ready.emit.call_deferred()
 
 func switch_scene_failed() -> void:
+	if active_scene_change == "": return
+	var scene_path : String = active_scene_change
+	_scene_change_resolved = true
 	scene_ready_list.clear()
-	GDSync.change_scene_failed.emit(active_scene_change)
 	active_scene_change = ""
+	GDSync.change_scene_failed.emit(scene_path)
+	scene_ready.emit.call_deferred()
 
 func load_resource_threaded(tree : SceneTree, path : String) -> Resource:
 	if connection_controller.is_web_export:
@@ -663,7 +771,8 @@ func emit_signal_on_clients(clients : Array, target_signal : Signal, params : Ar
 		if client == GDSync.get_client_id():
 			emit_signal_remote(id, signal_name, params)
 		else:
-			GDSync.call_func_on(client, emit_signal_remote, id, signal_name, params)
+			var permission : int = get_signal_permission(object, signal_name)
+			request_processor.create_function_call_request(emit_signal_remote, [id, signal_name, params], client, true, permission)
 
 func emit_signal_remote(id : String, signal_name : String, params : Array) -> void:
 	var object : Object
@@ -681,6 +790,9 @@ func emit_signal_remote(id : String, signal_name : String, params : Array) -> vo
 		if !object_is_exposed(object) and !signal_is_exposed(object, signal_name):
 			logger.write_error("Emit signal failed since the object or signal was not exposed. <"+id+"><"+signal_name+">")
 			push_error("Attempted to emit a protected signal \""+signal_name+"\" on "+id+", please expose it using GDSync.expose_signal() or GDSync.expose_node()/GDSync.expose_resource().")
+			return
+	if !object_is_exposed(object):
+		if !is_caller_permitted(get_signal_permission(object, signal_name)):
 			return
 	
 	if !object.has_signal(signal_name):

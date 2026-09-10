@@ -1,7 +1,7 @@
 @tool
 extends Control
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -33,6 +33,7 @@ signal client_left(client_id : int)
 signal ping_measured(client_id : int, ping : float, perceived_ping : float)
 signal start_monitoring_connections
 signal stop_monitoring_connections
+signal artificial_latency_changed(latency_ms : int)
 signal profiler_cleared()
 signal profiler_started()
 signal profiler_stopped()
@@ -41,6 +42,7 @@ signal profiler_stopped()
 @export var stop_button : Button = null : set = _set_stop_button
 
 var auto_start : bool = false
+var artificial_latency_ms : int = 0
 
 var valid_session : bool = false
 var global_stats : Dictionary = {
@@ -65,6 +67,10 @@ func _ready() -> void:
 
 func _on_auto_start_toggled(toggled_on: bool) -> void:
 	auto_start = true
+
+func _on_artificial_latency_changed(value : float) -> void:
+	artificial_latency_ms = int(value)
+	artificial_latency_changed.emit(artificial_latency_ms)
 
 func _set_start_button(btn) -> void:
 	start_button = btn

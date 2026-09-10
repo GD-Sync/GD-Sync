@@ -2,7 +2,7 @@
 extends AudioStreamPlayer3D
 class_name SynchronizedAudioStreamPlayer3D
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -27,16 +27,16 @@ class_name SynchronizedAudioStreamPlayer3D
 #SUCH DAMAGE.
 
 func play_synced(from_position : float = 0.0) -> void:
-	GDSync.sync_var(self, "volume_db")
-	GDSync.sync_var(self, "unit_size")
-	GDSync.sync_var(self, "max_db")
-	GDSync.sync_var(self, "pitch_scale")
-	GDSync.sync_var(self, "max_distance")
-	GDSync.sync_var(self, "attenuation")
-	GDSync.call_func_all(_play_remote, from_position)
+	GDSync.sync_var_relevant(self, "volume_db")
+	GDSync.sync_var_relevant(self, "unit_size")
+	GDSync.sync_var_relevant(self, "max_db")
+	GDSync.sync_var_relevant(self, "pitch_scale")
+	GDSync.sync_var_relevant(self, "max_distance")
+	GDSync.sync_var_relevant(self, "attenuation")
+	GDSync.call_func_all_relevant(_play_remote, from_position)
 
 func stop_synced() -> void:
-	GDSync.call_func_all(_stop_remote)
+	GDSync.call_func_all_relevant(_stop_remote)
 
 #Private functions ----------------------------------------------------------------------
 
@@ -60,3 +60,10 @@ func _play_remote(from_position : float) -> void:
 
 func _stop_remote() -> void:
 	stop()
+
+func _interest_object_client_entered(client_id : int) -> void:
+	if !playing:
+		return
+	for property_name in ["volume_db", "unit_size", "max_db", "pitch_scale", "max_distance", "attenuation"]:
+		GDSync.sync_var_on(client_id, self, property_name)
+	GDSync.call_func_on(client_id, _play_remote, get_playback_position())

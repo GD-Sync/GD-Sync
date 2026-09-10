@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -29,6 +29,8 @@ var GDSync
 
 var logging_enabled : bool = true
 var session_id : String
+
+var redacted_values : PackedStringArray = PackedStringArray()
 
 var logs : PackedStringArray
 
@@ -81,9 +83,7 @@ func _ready() -> void:
 		for i in range(files.size()-4):
 			var log_time : int = keys[i]
 			DirAccess.remove_absolute(LOG_PATH+"/"+file_times[log_time])
-	
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	
+
 func _process(delta: float) -> void:
 	log_timer -= delta
 	_process_logs()
@@ -147,10 +147,19 @@ func _write_logs() -> void:
 	logs.clear()
 	file.close()
 
+func register_redacted_value(value : String) -> void:
+	if redacted_values.has(value): return
+	redacted_values.append(value)
+
+func redact(log : String) -> String:
+	for value in redacted_values:
+		log = log.replace(value, "[REDACTED]")
+	return log
+
 func write_log(log : String, prefix : String = "") -> void:
 	if !logging_enabled: return
 	
-	log = prefix+" "+log
+	log = redact(prefix+" "+log)
 	
 	if !original_log_times.has(log): original_log_times[log] = Time.get_unix_time_from_system()
 	recent_log_times[log] = Time.get_unix_time_from_system()
@@ -176,6 +185,10 @@ func _capture(message : String, data : Array) -> bool:
 		return true
 	if message == "stop_monitoring_connections":
 		monitor_connections = false
+		return true
+	if message == "set_artificial_latency":
+		if data.size() > 0:
+			GDSync.set_artificial_latency(int(data[0]))
 		return true
 	return false
 

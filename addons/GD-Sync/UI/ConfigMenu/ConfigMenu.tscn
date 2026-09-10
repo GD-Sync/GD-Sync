@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://1ho7vq1qum7y"]
 
-[ext_resource type="Script" uid="uid://6g0xlogc3ewd" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
+[ext_resource type="Script" uid="uid://ctbm12j05lk6h" path="res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.gd" id="1"]
 [ext_resource type="Theme" uid="uid://5whm1igkt23h" path="res://addons/GD-Sync/UI/ConfigMenu/GD-Theme.tres" id="2_wd24h"]
 [ext_resource type="Texture2D" uid="uid://d2pl6xyfyub5k" path="res://addons/GD-Sync/UI/ConfigMenu/GDSLogo.png" id="3_eccmp"]
 [ext_resource type="Texture2D" uid="uid://o7408i2pu2eb" path="res://addons/GD-Sync/UI/Icons/LoadIcon.png" id="3_k7k3v"]
@@ -817,36 +817,6 @@ fit_content = true
 custom_minimum_size = Vector2(0, 35)
 layout_mode = 2
 
-[node name="SenderID" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=375885224]
-layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID" unique_id=1951844257]
-layout_mode = 2
-
-[node name="SenderID" type="CheckButton" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer" unique_id=353236050]
-unique_name_in_owner = true
-layout_mode = 2
-theme = ExtResource("2_wd24h")
-
-[node name="Label" type="Label" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer" unique_id=509645996]
-layout_mode = 2
-theme = ExtResource("2_wd24h")
-text = "Sender ID"
-
-[node name="RichTextLabel" type="RichTextLabel" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID" unique_id=368252836]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 2
-theme = ExtResource("2_wd24h")
-bbcode_enabled = true
-text = "Tells the server whether it should append extra data to each remote function call that includes the sender ID. This allows you to see which client a remote function call came from, at the cost of using slightly more data.
-
-Retrieving the sender ID can be done using [color=#408eab]GDSync.get_sender_id()[/color]."
-fit_content = true
-
-[node name="Spacing4" type="Control" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=573908170]
-custom_minimum_size = Vector2(0, 35)
-layout_mode = 2
-
 [node name="ScriptValidation" type="VBoxContainer" parent="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer" unique_id=1790531497]
 layout_mode = 2
 
@@ -897,6 +867,5 @@ text = "Close"
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode2/HBoxContainer/CSharpSupport" to="." method="_on_c_sharp_support_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ProtectionMode/HBoxContainer/Protected" to="." method="_on_protected_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/UniqueUsernames/HBoxContainer/UniqueUsernames" to="." method="_on_unique_usernames_toggled"]
-[connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/SenderID/HBoxContainer/SenderID" to="." method="_on_sender_id_toggled"]
 [connection signal="toggled" from="CenterContainer/UIAnchor/UI/Settings/ScrollContainer/VBoxContainer/ScriptValidation/HBoxContainer/ScriptValidation" to="." method="_on_script_validation_toggled"]
 [connection signal="pressed" from="CenterContainer/UIAnchor/UI/ButtonContainer/Close" to="." method="close"]

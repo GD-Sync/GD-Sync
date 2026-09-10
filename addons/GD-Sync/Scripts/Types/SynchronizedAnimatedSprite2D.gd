@@ -2,7 +2,7 @@
 extends AnimatedSprite2D
 class_name SynchronizedAnimatedSprite2D
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -31,6 +31,7 @@ func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bo
 	play(name, custom_speed, from_end)
 	
 	if !GDSync.is_active(): return
+	if !_should_broadcast: return
 	if !send_remote_play: return
 	
 	var use_name : bool = name.length() > 0
@@ -56,20 +57,26 @@ func play_synced(name: StringName = &"", custom_speed: float = 1.0, from_end: bo
 	
 	if name_cached:
 		parameters.push_front(_play_remote_cached)
-		GDSync.call_func.callv(parameters)
+		GDSync.call_func_relevant.callv(parameters)
 	else:
 		if use_name:GDSync._request_processor.create_name_cache("", name)
 		parameters.push_front(_play_remote)
-		GDSync.call_func.callv(parameters)
+		GDSync.call_func_relevant.callv(parameters)
 
 func play_backwards_synced(name: StringName = &"") -> void:
-	GDSync.call_func(_play_backwards_remote, name)
+	play_backwards(name)
+	if !GDSync.is_active() or !_should_broadcast: return
+	GDSync.call_func_relevant(_play_backwards_remote, name)
 
 func set_frame_and_progress_synced(frame: int, progress: float) -> void:
-	GDSync.call_func(_set_frame_and_progress_remote, frame, progress)
+	set_frame_and_progress(frame, progress)
+	if !GDSync.is_active() or !_should_broadcast: return
+	GDSync.call_func_relevant(_set_frame_and_progress_remote, frame, progress)
 
 func stop_synced() -> void:
-	GDSync.call_func(_stop_remote)
+	stop()
+	if !GDSync.is_active() or !_should_broadcast: return
+	GDSync.call_func_relevant(_stop_remote)
 
 
 
@@ -81,6 +88,8 @@ var _last_flip_h : bool
 var _last_flip_v : bool
 var _last_speed_scale : float
 var _last_animation : StringName
+var _should_broadcast : bool = false
+var _last_owner : int = -1
 
 func _ready() -> void:
 	GDSync = get_node("/root/GDSync")
@@ -102,19 +111,30 @@ func _ready() -> void:
 	timer.timeout.connect(_check_for_changes)
 	timer.start()
 	
+	_last_owner = GDSync.get_gdsync_owner(self)
+	GDSync.host_changed.connect(_host_changed)
+	GDSync.client_joined.connect(_client_joined)
+	GDSync.connect_gdsync_owner_changed(self, _owner_changed)
+	
 	_refresh_last_changes()
+	_update_sync_mode()
 
 func _multiplayer_ready() -> void:
 	_refresh_last_changes()
+	_update_sync_mode()
 
 func _check_for_changes() -> void:
-	if _has_changed():
+	if !_has_changed():
+		return
+	if _should_broadcast:
 		_refresh_last_changes()
 		play_synced(animation)
-		GDSync.sync_var(self, "flip_h")
-		GDSync.sync_var(self, "flip_v")
-		GDSync.sync_var(self, "speed_scale")
-		GDSync.call_func(_refresh_last_changes)
+		GDSync.sync_var_relevant(self, "flip_h")
+		GDSync.sync_var_relevant(self, "flip_v")
+		GDSync.sync_var_relevant(self, "speed_scale")
+		GDSync.call_func_relevant(_refresh_last_changes)
+	else:
+		_refresh_last_changes()
 
 func _refresh_last_changes() -> void:
 	_last_flip_h = flip_h
@@ -145,3 +165,33 @@ func _set_frame_and_progress_remote(frame : int, progress : float) -> void:
 
 func _stop_remote() -> void:
 	stop()
+
+func _owner_changed(owner) -> void:
+	if owner >= 0:
+		_last_owner = owner
+	_update_sync_mode()
+
+func _client_joined(_client_id : int) -> void:
+	_update_sync_mode()
+
+func _interest_object_client_entered(client_id : int) -> void:
+	if !_should_broadcast:
+		return
+	GDSync.sync_var_on(client_id, self, "flip_h")
+	GDSync.sync_var_on(client_id, self, "flip_v")
+	GDSync.sync_var_on(client_id, self, "speed_scale")
+	if is_playing():
+		GDSync.call_func_on(client_id, _play_remote, animation, speed_scale, false)
+		GDSync.call_func_on(client_id, _set_frame_and_progress_remote, frame, frame_progress)
+	else:
+		GDSync.call_func_on(client_id, _stop_remote)
+
+func _host_changed(_is_host : bool, _new_host_id : int) -> void:
+	_update_sync_mode()
+
+func _update_sync_mode() -> void:
+	if GDSync == null or !GDSync.is_active():
+		return
+	var is_host : bool = GDSync.is_host()
+	var valid_owner : bool = GDSync.lobby_get_all_clients().has(_last_owner)
+	_should_broadcast = (is_host and !valid_owner) || (valid_owner and _last_owner == GDSync.get_client_id())

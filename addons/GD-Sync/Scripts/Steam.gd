@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -41,9 +41,7 @@ func _ready() -> void:
 	
 	steam_integration_enabled = Engine.has_singleton("Steam")
 	if steam_integration_enabled: init_steam()
-	
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	
+
 func init_steam() -> void:
 	steam = Engine.get_singleton("Steam")
 	

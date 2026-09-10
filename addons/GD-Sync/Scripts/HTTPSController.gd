@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -46,6 +46,10 @@ func perform_https_request(endpoint : String, message : Dictionary) -> Dictionar
 		push_error("You must first start the plugin using GDSync.start_multiplayer() before using any cloudstorage functions.")
 		return {"Code" : 1}
 	
+	if active_lb.is_empty():
+		logger.write_error("Failed HTTP request, no load balancer resolved. <"+endpoint+">", "[HTTP]")
+		return {"Code" : 1}
+	
 	var request : HTTPRequest = HTTPRequest.new()
 	request.timeout = 20
 	add_child(request)
@@ -54,8 +58,8 @@ func perform_https_request(endpoint : String, message : Dictionary) -> Dictionar
 	
 	request.request(
 		active_lb+"/"+endpoint,
-		[],
-		HTTPClient.METHOD_GET,
+		["Content-Type: text/plain"],
+		HTTPClient.METHOD_POST,
 		var_to_str(message)
 	)
 	
@@ -66,8 +70,33 @@ func perform_https_request(endpoint : String, message : Dictionary) -> Dictionar
 	if result[1] == 200:
 		var text : String = result[3].get_string_from_ascii()
 		var received_message : Dictionary = str_to_var(text)
-		logger.write_log("Successfull HTTP request. <"+endpoint+"><"+text+">", "[HTTP]")
+		logger.write_log("Successful HTTP request. <"+endpoint+"><"+text+">", "[HTTP]")
 		return received_message
 	else:
 		logger.write_error("Failed HTTP request. <"+endpoint+"><"+str(result[1])+">", "[HTTP]")
 		return {"Code" : 1 if result[1] != 503 else 3}
+
+func ping_https(url : String, timeout_seconds : float = 3.0) -> float:
+	logger.write_log("HTTPS ping. <"+url+">", "[HTTP]")
+	var request : HTTPRequest = HTTPRequest.new()
+	request.timeout = timeout_seconds
+	add_child(request)
+	
+	var started_ms : int = Time.get_ticks_msec()
+	var error : Error = request.request(url, [], HTTPClient.METHOD_GET)
+	if error != OK:
+		request.queue_free()
+		logger.write_error("HTTPS ping failed to start. <"+url+"><"+str(error)+">", "[HTTP]")
+		return -1.0
+	
+	var result = await request.request_completed
+	var elapsed_ms : float = float(Time.get_ticks_msec() - started_ms)
+	request.queue_free()
+	
+	var response_code : int = result[1]
+	if response_code <= 0:
+		logger.write_error("HTTPS ping failed. <"+url+"><"+str(response_code)+">", "[HTTP]")
+		return -1.0
+	
+	logger.write_log("HTTPS ping complete. <"+url+"><"+str(elapsed_ms)+"ms><"+str(response_code)+">", "[HTTP]")
+	return elapsed_ms

@@ -3,7 +3,7 @@
 extends Node
 class_name NodeInstantiator
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -248,8 +248,8 @@ func _set_spawn_type(t : int) -> void:
 	spawn_type = t
 	notify_property_list_changed()
 
-func _get_property_list() -> Array:
-	var properties : Array = []
+func _get_property_list() -> Array[Dictionary]:
+	var properties : Array[Dictionary] = []
 	
 	properties.append({
 		"name" : "target_location",

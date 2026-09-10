@@ -1,7 +1,7 @@
 @tool
 extends EditorPlugin
 
-# Copyright (c) 2026 GD-Sync.
+# Copyright (c) 2023-present GD-Sync.
 # All rights reserved.
 #
 # Redistribution and use in source form, with or without modification,
@@ -27,13 +27,17 @@ extends EditorPlugin
 
 #region GD-Sync
 
-const CSHARP_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCSharp/main/GDSync.cs"
+const CSHARP_REPO_URL : String = "https://raw.githubusercontent.com/GD-Sync/GD-SyncCSharp/"
 const PLUGIN_PATH : String = "res://addons/GD-Sync"
 const CSHARP_PATH : String = "res://addons/GD-Sync/GDSync.cs"
+const CSHARP_UID_PATH : String = "res://addons/GD-Sync/GDSync.cs.uid"
 
-var version : String = "0.14"
+const KeyStore = preload("res://addons/GD-Sync/Scripts/KeyStore.gd")
+
+var version : String = "1.0"
 
 var debugger = GDSyncProfiler.new()
+var export_plugin : EditorExportPlugin = GDSyncExportPlugin.new()
 
 func _enable_plugin() -> void:
 	add_autoload_singleton("GDSync", "res://addons/GD-Sync/MultiplayerClient.gd")
@@ -48,11 +52,6 @@ Please visit our website for more info ([color=#408EAB][url=https://www.gd-sync.
 
 var config_menu : Control
 func _enter_tree() -> void:
-	config_menu = load("res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.tscn").instantiate()
-	config_menu.plugin = self
-	get_editor_interface().get_base_control().add_child(config_menu)
-	add_tool_menu_item("GD-Sync", config_selected)
-	
 	var previous_version : String = ProjectSettings.get_setting("GD-Sync/version", version)
 	ProjectSettings.set_setting("GD-Sync/version", version)
 	
@@ -64,13 +63,44 @@ func _enter_tree() -> void:
 	if Engine.has_singleton("Steam"):
 		print_rich("[color=#408EAB]	- Steam integration detected and enabled.[/color]")
 	
+	_relocate_api_keys()
+	
+	config_menu = load("res://addons/GD-Sync/UI/ConfigMenu/ConfigMenu.tscn").instantiate()
+	config_menu.plugin = self
+	get_editor_interface().get_base_control().add_child(config_menu)
+	add_tool_menu_item("GD-Sync", config_selected)
+	
+	_cleanup_stale_csharp_uid()
 	check_for_updates_and_news()
 	_initialize_remote_call_validator()
 	add_debugger_plugin(debugger)
+	add_export_plugin(export_plugin)
 
 func _exit_tree() -> void:
-	config_menu.free()
+	_disable_remote_call_validator()
+	remove_tool_menu_item("GD-Sync")
+	
+	if config_menu != null:
+		config_menu.free()
+		config_menu = null
+	
 	remove_debugger_plugin(debugger)
+	remove_export_plugin(export_plugin)
+
+func _relocate_api_keys() -> void:
+	KeyStore.ensure_gitignore()
+	if !KeyStore.needs_migrate() or !KeyStore.migrate():
+		return
+	if Engine.is_editor_hint():
+		get_editor_interface().get_resource_filesystem().update_file(KeyStore.KEYS_PATH)
+	print_rich("[color=#61ff71]	- API keys were moved out of project.godot into "+KeyStore.KEYS_PATH+".[/color]")
+	show_message("[b]GD-Sync moved your API keys out of project.godot.[/b]
+They are now in [code]"+KeyStore.KEYS_PATH+"[/code]. If those keys were ever committed, we recommend creating a new API key.", 15.0)
+
+func _cleanup_stale_csharp_uid() -> void:
+	if FileAccess.file_exists(CSHARP_PATH): return
+	if !FileAccess.file_exists(CSHARP_UID_PATH): return
+	DirAccess.remove_absolute(CSHARP_UID_PATH)
 
 func config_selected() -> void:
 	config_menu.open()
@@ -78,27 +108,50 @@ func config_selected() -> void:
 func enable_csharp_api() -> void:
 	if FileAccess.file_exists(CSHARP_PATH): return
 	
+	var body : PackedByteArray = await _download_csharp_api()
+	
+	if body.is_empty():
+		show_message("[color=indianred][b]GD-Sync C# API failed to download. Please disable and enable C# support to try again.[/b][/color]")
+		return
+	
+	var file : FileAccess = FileAccess.open(CSHARP_PATH, FileAccess.WRITE)
+	if file == null:
+		show_message("[color=indianred][b]GD-Sync C# API could not be saved to "+CSHARP_PATH+".[/b][/color]")
+		return
+	
+	file.store_buffer(body)
+	file.close()
+	
+	add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
+	show_message("[b]GD-Sync C# API installed. Please restart and build your project.[/b]")
+
+func _download_csharp_api() -> PackedByteArray:
 	var request : HTTPRequest = HTTPRequest.new()
+	request.timeout = 20
 	add_child(request)
 	
-	request.download_file = CSHARP_PATH
-	request.request(CSHARP_URL)
-	var result = await request.request_completed
+	var result : Array = []
+	if request.request(CSHARP_REPO_URL+"main/GDSync.cs") == OK:
+		result = await request.request_completed
 	
-	if result[1] == 200:
-		add_autoload_singleton("GDSyncSharp", CSHARP_PATH)
-		show_message("[b]GD-Sync C# API installed. Please restart and build your project.[/b]")
-	else:
-		show_message("[color=indianred][b]GD-Sync C# API failed to download. Please disable and enable C# support to try again.[/b][/color]")
+	if is_instance_valid(request): request.queue_free()
 	
-	request.queue_free()
+	if result.size() < 4: return PackedByteArray()
+	if result[1] != 200: return PackedByteArray()
+	
+	var body : PackedByteArray = result[3]
+	if !body.get_string_from_utf8().contains("class GDSync"): return PackedByteArray()
+	
+	return body
 
 func disable_csharp_api() -> void:
 	if !FileAccess.file_exists(CSHARP_PATH): return
 	show_message("[b]GD-Sync C# API removed.[/b]")
 	
 	var dir : DirAccess = DirAccess.open(PLUGIN_PATH)
-	dir.remove("GDSync.cs")
+	if dir != null:
+		dir.remove("GDSync.cs")
+		if dir.file_exists("GDSync.cs.uid"): dir.remove("GDSync.cs.uid")
 	
 	remove_autoload_singleton("GDSyncSharp")
 
@@ -159,8 +212,6 @@ func is_version_newer(current_version: String, new_version: String) -> bool:
 	return false
 
 func _disable_plugin() -> void:
-	_disable_remote_call_validator()
-	remove_tool_menu_item("GD-Sync")
 	remove_autoload_singleton("GDSync")
 	if FileAccess.file_exists(CSHARP_PATH): 
 		remove_autoload_singleton("GDSyncSharp")
@@ -220,8 +271,9 @@ func _start_text_change_monitoring(script: Script) -> void:
 		if code_edit:
 			_last_validated_sources[script.resource_path] = code_edit.text
 			
-			if not code_edit.text_changed.is_connected(_on_code_edit_text_changed):
-				code_edit.text_changed.connect(_on_code_edit_text_changed.bind(code_edit))
+			var callable : Callable = _on_code_edit_text_changed.bind(code_edit)
+			if not code_edit.text_changed.is_connected(callable):
+				code_edit.text_changed.connect(callable)
 
 func _on_code_edit_text_changed(code_edit: CodeEdit) -> void:
 	if not _monitored_script or _script_editor.get_current_script() != _monitored_script:
@@ -277,7 +329,10 @@ func _set_editor_issues(issues : PackedStringArray, script_validation_enabled : 
 	
 	var label : RichTextLabel
 	
-	var vsplitcontainer = find_node_of_type(current_editor, "VSplitContainer").get_parent()
+	var vsplitcontainer : Node = _get_issue_label_container(current_editor)
+	if vsplitcontainer == null:
+		return
+	
 	if vsplitcontainer.has_node("GDSyncWarning"):
 		label = vsplitcontainer.get_node("GDSyncWarning")
 	else:
@@ -364,7 +419,7 @@ class RemoteCallParser:
 	func _find_exposed_functions(lines: PackedStringArray) -> Array:
 		var functions: Array = []
 		var expose_func_pattern: RegEx = RegEx.new()
-		expose_func_pattern.compile("GDSync\\.expose_func\\(([a-zA-Z_][a-zA-Z0-9_]*)\\)")
+		expose_func_pattern.compile("GDSync\\.expose_func\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*,\\s*[^)]+)?\\s*\\)")
 		
 		for line in lines:
 			var comment_pos = line.find("#")
@@ -382,7 +437,7 @@ class RemoteCallParser:
 	func _find_exposed_variables(lines: PackedStringArray) -> Array:
 		var variables: Array = []
 		var expose_var_pattern: RegEx = RegEx.new()
-		expose_var_pattern.compile("GDSync\\.expose_var\\(\\s*self\\s*,\\s*\"([^\"]+)\"\\)")
+		expose_var_pattern.compile("GDSync\\.expose_var\\(\\s*self\\s*,\\s*\"([^\"]+)\"(?:\\s*,\\s*[^)]+)?\\s*\\)")
 		
 		for line in lines:
 			var comment_pos = line.find("#")
@@ -399,7 +454,7 @@ class RemoteCallParser:
 	func _find_exposed_signals(lines: PackedStringArray) -> Array:
 		var functions: Array = []
 		var expose_func_pattern: RegEx = RegEx.new()
-		expose_func_pattern.compile("GDSync\\.expose_signal\\(([a-zA-Z_][a-zA-Z0-9_]*)\\)")
+		expose_func_pattern.compile("GDSync\\.expose_signal\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)(?:\\s*,\\s*[^)]+)?\\s*\\)")
 		
 		for line in lines:
 			var comment_pos = line.find("#")
@@ -420,12 +475,30 @@ class RemoteCallParser:
 			RegEx.new(),
 			RegEx.new(),
 			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
 		]
 		
 		
 		call_patterns[0].compile("GDSync\\.call_func_all\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		call_patterns[1].compile("GDSync\\.call_func\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		call_patterns[2].compile("GDSync\\.call_func_on\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[3].compile("GDSync\\.call_func_all_relevant\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[4].compile("GDSync\\.call_func_relevant\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[5].compile("GDSync\\.call_func_all_relevant_unreliable\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[6].compile("GDSync\\.call_func_relevant_unreliable\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[7].compile("GDSync\\.call_func_all_unreliable\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[8].compile("GDSync\\.call_func_unreliable\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[9].compile("GDSync\\.call_func_on_unreliable\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[10].compile("GDSync\\.call_func_on_relevant\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[11].compile("GDSync\\.call_func_on_relevant_unreliable\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		
 		for line_num in range(lines.size()):
 			var line = lines[line_num]
@@ -448,7 +521,7 @@ class RemoteCallParser:
 	func _find_sync_var_calls(lines: PackedStringArray) -> Dictionary:
 		var vars: Dictionary = {}
 		var sync_var_pattern: RegEx = RegEx.new()
-		sync_var_pattern.compile("GDSync\\.sync_var\\(\\s*self\\s*,\\s*\"([^\"]+)\"\\s*[,\\)]")
+		sync_var_pattern.compile("GDSync\\.sync_var(?:_relevant)?\\(\\s*self\\s*,\\s*\"([^\"]+)\"\\s*[,\\)]|GDSync\\.sync_var_on_relevant\\(\\s*[^,]+\\s*,\\s*self\\s*,\\s*\"([^\"]+)\"\\s*[,\\)]")
 		
 		for line_num in range(lines.size()):
 			var line = lines[line_num]
@@ -459,7 +532,7 @@ class RemoteCallParser:
 			
 			var result = sync_var_pattern.search(clean_line)
 			while result:
-				var var_name: String = result.get_string(1)
+				var var_name: String = result.get_string(1) if result.get_string(1) != "" else result.get_string(2)
 				if var_name not in vars:
 					vars[var_name] = line_num + 1
 				result = sync_var_pattern.search(clean_line, result.get_end())
@@ -472,12 +545,18 @@ class RemoteCallParser:
 			RegEx.new(),
 			RegEx.new(),
 			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
+			RegEx.new(),
 		]
 		
 		
 		call_patterns[0].compile("GDSync\\.emit_signal_remote_all\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		call_patterns[1].compile("GDSync\\.emit_signal_remote\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		call_patterns[2].compile("GDSync\\.emit_signal_remote_on\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[3].compile("GDSync\\.emit_signal_remote_all_relevant\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[4].compile("GDSync\\.emit_signal_remote_relevant\\(\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
+		call_patterns[5].compile("GDSync\\.emit_signal_remote_on_relevant\\(\\s*[^,]+\\s*,\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*[,\\)]")
 		
 		for line_num in range(lines.size()):
 			var line = lines[line_num]
@@ -498,11 +577,44 @@ class RemoteCallParser:
 		return calls
 
 func _disable_remote_call_validator() -> void:
-	if _script_editor and _script_editor.has_signal("editor_script_saved"):
-		_script_editor.disconnect("editor_script_saved", Callable(self, "_on_script_saved"))
+	_remove_editor_issue_labels()
 	
-	if _file_system and _file_system.has_signal("filesystem_changed"):
-		_file_system.disconnect("filesystem_changed", Callable(self, "_on_filesystem_changed"))
+	if _script_editor:
+		if _script_editor.is_connected("editor_script_changed", _on_editor_script_changed):
+			_script_editor.disconnect("editor_script_changed", _on_editor_script_changed)
+		
+		if _script_editor.is_connected("editor_script_saved", _on_script_saved):
+			_script_editor.disconnect("editor_script_saved", _on_script_saved)
+	
+	if _file_system and _file_system.is_connected("filesystem_changed", _on_filesystem_changed):
+		_file_system.disconnect("filesystem_changed", _on_filesystem_changed)
+	
+	if _validation_timer != null:
+		_validation_timer.queue_free()
+		_validation_timer = null
+	
+	_monitored_script = null
+	_last_validated_sources.clear()
+	_script_editor = null
+	_file_system = null
+
+func _remove_editor_issue_labels() -> void:
+	if _script_editor == null: return
+	
+	for script_editor in _script_editor.get_open_script_editors():
+		var container : Node = _get_issue_label_container(script_editor)
+		if container == null: continue
+		
+		var label : Node = container.get_node_or_null("GDSyncWarning")
+		if label == null: continue
+		
+		container.remove_child(label)
+		label.queue_free()
+
+func _get_issue_label_container(script_editor : Node) -> Node:
+	var split : Node = find_node_of_type(script_editor, "VSplitContainer")
+	if split == null: return null
+	return split.get_parent()
 
 #endregion
 
@@ -541,6 +653,8 @@ class GDSyncProfiler extends EditorDebuggerPlugin:
 			profiler.callv("emit_signal", data)
 		elif message == "gdsyncprofiler:gamestart":
 			profiler.game_started()
+			if profiler.artificial_latency_ms > 0:
+				get_session(session_id).send_message("gdsyncprofiler:set_artificial_latency", [profiler.artificial_latency_ms])
 		return true
 
 	func _setup_session(session_id : int):
@@ -555,7 +669,10 @@ class GDSyncProfiler extends EditorDebuggerPlugin:
 		session.started.connect(func ():
 			profiler.validate_session()
 			message_history[session_id].clear()
-			profiler.clear())
+			profiler.clear()
+			if profiler.artificial_latency_ms > 0:
+				get_session(session_id).send_message("gdsyncprofiler:set_artificial_latency", [profiler.artificial_latency_ms])
+		)
 		session.stopped.connect(func (): 
 			profiler.stop()
 			profiler.invalidate_session())
@@ -582,9 +699,31 @@ class GDSyncProfiler extends EditorDebuggerPlugin:
 		profiler.stop_monitoring_connections.connect(func ():
 			get_session(session_id).send_message("gdsyncprofiler:stop_monitoring_connections", [])
 		)
+		profiler.artificial_latency_changed.connect(func (latency_ms : int):
+			get_session(session_id).send_message("gdsyncprofiler:set_artificial_latency", [latency_ms])
+		)
 		
 		session.add_session_tab(profiler)
 		profilers[session_id] = profiler
+
+#endregion
+
+
+#region ExportPlugin
+class GDSyncExportPlugin extends EditorExportPlugin:
+	const KeyStore = preload("res://addons/GD-Sync/Scripts/KeyStore.gd")
+	
+	func _get_name() -> String:
+		return "GD-Sync"
+	
+	func _export_begin(_features : PackedStringArray, _is_debug : bool, _path : String, _flags : int) -> void:
+		var keys : Dictionary = KeyStore.load_keys()
+		
+		if keys["PublicKey"].is_empty() or keys["PrivateKey"].is_empty():
+			push_warning("GD-Sync could not find any API keys. The exported project will be unable to connect. Keys can be entered under Project > Tools > GD-Sync.")
+			return
+		
+		add_file(KeyStore.KEYS_PATH, KeyStore.encode_keys(keys["PublicKey"], keys["PrivateKey"]), false)
 
 #endregion
 

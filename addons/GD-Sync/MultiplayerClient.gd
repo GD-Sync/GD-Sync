@@ -1,7 +1,7 @@
 extends Node
 class_name MultiplayerClient
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -46,7 +46,7 @@ signal connected()
 
 ## Emitted if the connection handshake fails. This signal is emitted after using [method start_multiplayer].
 ## [br]
-## [br][b]error -[/b] The reason behind the failed connection attempt. See [constant ENUMS.CONNECTION_ERROR] for possible errors.
+## [br][b]error -[/b] The reason behind the failed connection attempt. See [constant ENUMS.CONNECTION_FAILED] for possible errors.
 signal connection_failed(error : int)
 
 ## Emitted when the client disconnects. Might be due to connectivity issues or when the server goes down.
@@ -126,7 +126,9 @@ signal client_left(client_id : int)
 signal player_data_changed(client_id : int, key : String, value)
 
 ## Emitted if you get kicked from the current lobby.
-signal kicked()
+## [br]
+## [br][b]reason -[/b] The reason you were kicked, or an empty string if none was provided.
+signal kicked(reason : String)
 
 ## Emitted as a result of [method get_public_lobbies].
 ## [br]
@@ -138,10 +140,29 @@ signal lobbies_received(lobbies : Array)
 ## [br][b]lobby -[/b] A dictionary containing public lobby data. If the lobby was not found the dictionary will be empty.
 signal lobby_received(lobby : Dictionary)
 
+## Emitted when the server accepts a matchmaking request.
+signal matchmaking_started()
+
+## Emitted whenever the current matchmaking phase changes.
+signal matchmaking_status_changed(status : int, details : Dictionary)
+
+## Emitted when matchmaking reserves a lobby. The normal [signal lobby_joined]
+## signal follows after the existing lobby join flow completes.
+signal matchmaking_match_found(lobby_name : String)
+
+## Emitted when matchmaking cannot find or create a match.
+signal matchmaking_failed(error : int)
+
+## Emitted after an active matchmaking request is cancelled.
+signal matchmaking_cancelled()
+
+## Emitted when a server switch rolls back or fails.
+signal lobby_switch_failed(error : int)
+
 ## Emitted when the host of the current lobby changes. This might happen if the current host leaves or disconnects.
 ## The server automatically decides which player is the host.
 ## [br]
-## [br]Being the host does not do anything by itself, but is something that can help you when developing authorative code.
+## [br]Being the host does not do anything by itself, but is something that can help you when developing authoritative code.
 ## [br]The [PropertySynchronizer] class will also make use of this if told to do so in the inspector.
 ## [br]
 ## [br][b]is_host -[/b] A boolean that indicates if you are the new host or not.
@@ -176,6 +197,16 @@ signal change_scene_failed(scene_path : String)
 ## [br][b]has_password -[/b] If the lobby has a password or not.
 signal steam_join_request(lobby_name : String, has_password : bool)
 
+## Emitted when the local player successfully logs into a GD-Sync account.
+## See [method account_login], [method account_login_from_session] and [method steam_login].
+## [br]
+## [br][b]username -[/b] The username of the logged in account.
+signal account_logged_in(username : String)
+
+## Emitted when the local player logs out of their GD-Sync account.
+## See [method account_logout].
+signal account_logged_out()
+
 
 
 
@@ -191,11 +222,16 @@ var _session_controller
 var _https_controller
 var _data_controller
 var _node_tracker
+var _interest_manager
 var _local_server
 var _steam
 var _logger
+var _matchmaking_controller
+var _server_switch_controller
 
 func _init():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 	_request_processor = preload("res://addons/GD-Sync/Scripts/RequestProcessor.gd").new()
 	_request_processor.GDSync = self
 	
@@ -214,6 +250,9 @@ func _init():
 	_node_tracker = preload("res://addons/GD-Sync/Scripts/NodeTracker.gd").new()
 	_node_tracker.GDSync = self
 	
+	_interest_manager = preload("res://addons/GD-Sync/Scripts/InterestManager.gd").new()
+	_interest_manager.GDSync = self
+
 	_local_server = preload("res://addons/GD-Sync/Scripts/LocalServer.gd").new()
 	_local_server.GDSync = self
 	
@@ -223,6 +262,12 @@ func _init():
 	_logger = preload("res://addons/GD-Sync/Scripts/Logger.gd").new()
 	_logger.GDSync = self
 
+	_matchmaking_controller = preload("res://addons/GD-Sync/Scripts/MatchmakingController.gd").new()
+	_matchmaking_controller.GDSync = self
+
+	_server_switch_controller = preload("res://addons/GD-Sync/Scripts/ServerSwitchController.gd").new()
+	_server_switch_controller.GDSync = self
+
 func _ready():
 	add_child(_request_processor)
 	add_child(_connection_controller)
@@ -230,9 +275,12 @@ func _ready():
 	add_child(_https_controller)
 	add_child(_data_controller)
 	add_child(_node_tracker)
+	add_child(_interest_manager)
 	add_child(_local_server)
 	add_child(_steam)
 	add_child(_logger)
+	add_child(_matchmaking_controller)
+	add_child(_server_switch_controller)
 
 
 
@@ -250,11 +298,31 @@ func _ready():
 
 ## Starts the GD-Sync plugin by connecting to a server. If successful, [signal connected] will be emitted.
 ## If not, [signal connection_failed] will be emitted.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.connected.connect(_on_connected)
+##     GDSync.connection_failed.connect(_on_connection_failed)
+##     GDSync.disconnected.connect(_on_disconnected)
+##     GDSync.start_multiplayer()
+##
+## func _on_connected() -> void:
+##     print("Connected! Client ID: ", GDSync.get_client_id())
+##
+## func _on_connection_failed(error: int) -> void:
+##     match error:
+##         ENUMS.CONNECTION_FAILED.INVALID_PUBLIC_KEY:
+##             push_error("Invalid public or private key.")
+##         ENUMS.CONNECTION_FAILED.TIMEOUT:
+##             push_error("Connection timed out.")
+##
+## func _on_disconnected() -> void:
+##     print("Disconnected from GD-Sync.")
+## [/codeblock]
 func start_multiplayer() -> void:
 	_connection_controller.start_multiplayer()
 
 ## An alternative for get_tree().quit(). Only use if you log into a GD-Sync account using [method account_login].
-## When quiting while logged in the plugin makes some callbacks to the server to update information like
+## When quitting while logged in the plugin makes some callbacks to the server to update information like
 ## your friend status.
 func quit() -> void:
 	_data_controller.quit()
@@ -293,15 +361,34 @@ func get_client_ping(client_id : int) -> float:
 func get_client_perceived_ping(client_id : int) -> float:
 	return await _session_controller.get_ping(client_id, false)
 
-## Returns the Client ID of the last client to perform a remote function call on this client.
+## Sets artificial network latency in milliseconds for debugging purposes.
+## The delay is applied locally on this client to both outgoing and incoming packets.
+## Set to [code]0[/code] to disable.
+## [br]
+## [br][b]latency_ms -[/b] The artificial latency in milliseconds.
+func set_artificial_latency(latency_ms : int) -> void:
+	_connection_controller.set_artificial_latency(latency_ms)
+
+## Returns the current artificial latency in milliseconds. Returns [code]0[/code] when disabled.
+func get_artificial_latency() -> int:
+	return _connection_controller.get_artificial_latency()
+
+## Returns the Client ID of the last client to perform a remote function call or variable sync on this client.
 ## Useful for knowing where a remote function call came from.
 ## Returns -1 if nobody performed a remote function call yet.
-## [br]
-## [br][b]IMPORTANT:[/b] For this function to work, make sure to enable it in the GD-Sync configuration menu.
 func get_sender_id() -> int:
 	return _session_controller.get_sender_id()
 
 ## Returns whether you are the host of the lobby you are in.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.host_changed.connect(_on_host_changed)
+##     if GDSync.is_host():
+##         print("I am the host")
+##
+## func _on_host_changed(is_host: bool, new_host_id: int) -> void:
+##     print("Host is now ", new_host_id, " (me=", is_host, ")")
+## [/codeblock]
 func is_host() -> bool:
 	return _connection_controller.host == get_client_id()
 
@@ -319,11 +406,22 @@ func set_host(client_id : int) -> void:
 ## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## Prefer [PropertySynchronizer] for values that change every frame.
 ## [br]
 ## [br][b]object -[/b] The Object you want to synchronize a variable on.
 ## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
 ## [br][b]reliable -[/b] If reliable, if the request fails to deliver it will reattempt until successful.
 ## This may introduce more latency. Use unreliable if the sync happens frequently (such as the position of a Node) for lower latency.
+## [br][br][codeblock]
+## var health := 100
+##
+## func _ready() -> void:
+##     GDSync.expose_var(self, "health")
+##
+## func take_damage(amount: int) -> void:
+##     health -= amount
+##     GDSync.sync_var(self, "health")
+## [/codeblock]
 func sync_var(object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, -1, reliable)
 
@@ -340,13 +438,50 @@ func sync_var(object : Object, variable_name : String, reliable : bool = true) -
 func sync_var_on(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
 	_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
 
+## Synchronizes a variable on an Object to a specific client, but only if that client is interested in the nearest [InterestObject].
+## If no enabled [InterestObject] is found, this behaves exactly like [method sync_var_on].
+## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to synchronize to.
+## [br][b]object -[/b] The Object you want to synchronize a variable on.
+## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
+## [br][b]reliable -[/b] If reliable, failed delivery will be retried until successful.
+## This may introduce more latency. Use unreliable for frequently synchronized state such as position.
+func sync_var_on_relevant(client_id : int, object : Object, variable_name : String, reliable : bool = true) -> void:
+	if _interest_manager.get_relevant_clients(object, true).has(client_id):
+		_request_processor.create_set_var_request(object, variable_name, client_id, reliable)
+
+## Synchronizes a variable on an Object to clients interested in the nearest [InterestObject].
+## If no enabled [InterestObject] is found, this behaves exactly like [method sync_var].
+## Make sure that the variable is exposed using [method expose_var] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]object -[/b] The Object you want to synchronize a variable on.
+## [br][b]variable_name -[/b] The name of the variable you want to synchronize.
+## [br][b]reliable -[/b] If reliable, failed delivery will be retried until successful.
+## This may introduce more latency. Use unreliable for frequently synchronized state such as position.
+func sync_var_relevant(object : Object, variable_name : String, reliable : bool = true) -> void:
+	_interest_manager.sync_variable(object, variable_name, reliable)
+
 ## Calls a function on a Node or Resource on all other clients in the current lobby, excluding yourself. If the request fails to deliver it will reattempt until successful.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function that you want to call.
-## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+## [br][b]parameters -[/b] Optional arguments passed after the callable.
+## [br][br][codeblock]
+## # This Node must exist at the same path on every client.
+## func _ready() -> void:
+##     GDSync.expose_func(open_door)
+##     GDSync.call_func(open_door, "north")
+##
+## func open_door(door_id: String) -> void:
+##     print("Door opened: ", door_id, " by ", GDSync.get_sender_id())
+## [/codeblock]
 func call_func(callable : Callable, ...parameters : Array) -> void:
 	_request_processor.create_function_call_request(callable, parameters, -1, true)
 
@@ -382,6 +517,54 @@ func call_func_on(client_id : int, callable : Callable, ...parameters : Array) -
 func call_func_on_unreliable(client_id : int, callable : Callable, ...parameters : Array) -> void:
 	_request_processor.create_function_call_request(callable, parameters, client_id, false)
 
+## Calls a function on a specific client, but only if that client is interested in the nearest [InterestObject].
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func_on].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_on_relevant(client_id : int, callable : Callable, ...parameters : Array) -> void:
+	if _interest_manager.get_relevant_clients(callable.get_object(), true).has(client_id):
+		_request_processor.create_function_call_request(callable, parameters, client_id, true)
+
+## Calls a function on a specific client, but only if that client is interested in the nearest [InterestObject]. If the request fails to deliver it will not reattempt, which may result in lower latency.
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func_on_unreliable].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to call the function on.
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] Optional parameters.
+func call_func_on_relevant_unreliable(client_id : int, callable : Callable, ...parameters : Array) -> void:
+	if _interest_manager.get_relevant_clients(callable.get_object(), true).has(client_id):
+		_request_processor.create_function_call_request(callable, parameters, client_id, false)
+
+## Calls a function on clients interested in the nearest [InterestObject], excluding yourself. If the request fails to deliver it will reattempt until successful.
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_relevant(callable : Callable, ...parameters : Array) -> void:
+	_interest_manager.call_function(callable, parameters, true)
+
+## Calls a function on clients interested in the nearest [InterestObject], excluding yourself. If the request fails to deliver it will not reattempt, which may result in lower latency.
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func_unreliable].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_relevant_unreliable(callable : Callable, ...parameters : Array) -> void:
+	_interest_manager.call_function(callable, parameters, false)
+
 ## Calls a function on a Node or Resource on all clients in the current lobby, including yourself. If the request fails to deliver it will reattempt until successful.
 ## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
 ## [br]
@@ -404,6 +587,30 @@ func call_func_all_unreliable(callable : Callable, ...parameters : Array) -> voi
 	callable.callv(parameters)
 	_request_processor.create_function_call_request(callable, parameters, -1, false)
 
+## Calls a function locally and on clients interested in the nearest [InterestObject]. If the request fails to deliver it will reattempt until successful.
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func_all].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_all_relevant(callable : Callable, ...parameters : Array) -> void:
+	callable.callv(parameters)
+	_interest_manager.call_function(callable, parameters, true)
+
+## Calls a function locally and on clients interested in the nearest [InterestObject]. If the request fails to deliver it will not reattempt, which may result in lower latency.
+## If no enabled [InterestObject] is found, this behaves exactly like [method call_func_all_unreliable].
+## Make sure that the function is exposed using [method expose_func] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]callable -[/b] The function that you want to call.
+## [br][b]parameters -[/b] The parameters of the function you are calling (if it has any).
+func call_func_all_relevant_unreliable(callable : Callable, ...parameters : Array) -> void:
+	callable.callv(parameters)
+	_interest_manager.call_function(callable, parameters, false)
+
 ## Emits a signal on a Node or Resource on all other clients in the current lobby, excluding yourself.
 ## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
 ## [br]
@@ -411,10 +618,29 @@ func call_func_all_unreliable(callable : Callable, ...parameters : Array) -> voi
 ## [br]
 ## [br][b]object -[/b] The object on which you want to emit the signal.
 ## [br][b]signal_name -[/b] The name of the signal.
-## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+## [br][b]parameters -[/b] Optional signal arguments.
+## [br][br][codeblock]
+## signal door_opened(door_id: String)
+##
+## func _ready() -> void:
+##     GDSync.expose_signal(door_opened)
+##     GDSync.emit_signal_remote(door_opened, "north")
+## [/codeblock]
 func emit_signal_remote(target_signal : Signal, ...parameters : Array) -> void:
 	var clients : Array = lobby_get_all_clients()
 	clients.erase(get_client_id())
+	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
+
+## Emits a signal on clients interested in the nearest [InterestObject], excluding yourself.
+## If no enabled [InterestObject] is found, this behaves exactly like [method emit_signal_remote].
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]target_signal -[/b] The signal you want to emit.
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote_relevant(target_signal : Signal, ...parameters : Array) -> void:
+	var clients : Array = _interest_manager.get_relevant_clients(target_signal.get_object())
 	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
 
 ## Emits a signal on a Node or Resource on specific client in the current lobby.
@@ -429,6 +655,19 @@ func emit_signal_remote(target_signal : Signal, ...parameters : Array) -> void:
 func emit_signal_remote_on(client_id : int, target_signal : Signal, ...parameters : Array) -> void:
 	_session_controller.emit_signal_on_clients([client_id], target_signal, parameters)
 
+## Emits a signal on a specific client, but only if that client is interested in the nearest [InterestObject].
+## If no enabled [InterestObject] is found, this behaves exactly like [method emit_signal_remote_on].
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]client_id -[/b] The Client ID of the client you want to emit the signal on.
+## [br][b]target_signal -[/b] The signal you want to emit.
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote_on_relevant(client_id : int, target_signal : Signal, ...parameters : Array) -> void:
+	if _interest_manager.get_relevant_clients(target_signal.get_object(), true).has(client_id):
+		_session_controller.emit_signal_on_clients([client_id], target_signal, parameters)
+
 ## Emits a signal on a Node or Resource on all other clients in the current lobby, including yourself.
 ## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
 ## [br]
@@ -439,6 +678,18 @@ func emit_signal_remote_on(client_id : int, target_signal : Signal, ...parameter
 ## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
 func emit_signal_remote_all(target_signal : Signal, ...parameters : Array) -> void:
 	var clients : Array = lobby_get_all_clients()
+	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
+
+## Emits a signal locally and on clients interested in the nearest [InterestObject].
+## If no enabled [InterestObject] is found, this behaves exactly like [method emit_signal_remote_all].
+## Make sure that the signal is exposed using [method expose_signal] or [method expose_node]/[method expose_resource].
+## [br]
+## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
+## [br]
+## [br][b]target_signal -[/b] The signal you want to emit.
+## [br][b]parameters -[/b] The parameters of the signal you are emitting (if it has any).
+func emit_signal_remote_all_relevant(target_signal : Signal, ...parameters : Array) -> void:
+	var clients : Array = _interest_manager.get_relevant_clients(target_signal.get_object(), true)
 	_session_controller.emit_signal_on_clients(clients, target_signal, parameters)
 
 ## Instantiates a Node on all clients in the current lobby.
@@ -452,6 +703,11 @@ func emit_signal_remote_all(target_signal : Signal, ...parameters : Array) -> vo
 ## [br][b]excluded_properties -[/b] Names of properties you want to exclude from sync_starting_changes.
 ## [br][b]replicate_on_join -[/b] If enabled, the instantiated Node will be replicated on clients that
 ## join the lobby later on.
+## [br][br][codeblock]
+## var player := GDSync.multiplayer_instantiate(player_scene, $Players)
+## player.global_position = spawn_point.global_position
+## GDSync.set_gdsync_owner(player, GDSync.get_client_id())
+## [/codeblock]
 func multiplayer_instantiate(
 		scene : PackedScene,
 		parent : Node,
@@ -460,6 +716,7 @@ func multiplayer_instantiate(
 		replicate_on_join : bool = true) -> Node:
 	return _node_tracker.multiplayer_instantiate(scene, parent, sync_starting_changes, excluded_properties, replicate_on_join)
 
+## Queues a Node to be freed on all clients in the lobby.
 func multiplayer_queue_free(node : Node) -> void:
 	_node_tracker.multiplayer_queue_free(node)
 
@@ -481,6 +738,17 @@ func get_multiplayer_time() -> float:
 ## [br][b]event_name -[/b] The name of the event. Queued events can share the same name.
 ## [br][b]delay -[/b] The delay in seconds after which the event should be triggered.
 ## [br][b]parameters -[/b] Any parameters which should be binded to the event.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.synced_event_triggered.connect(_on_synced_event)
+##
+## func start_round() -> void:
+##     GDSync.synced_event_create("RoundStart", 3.0, ["Desert"])
+##
+## func _on_synced_event(event_name: String, parameters: Array) -> void:
+##     if event_name == "RoundStart":
+##         print("Round starts on map ", parameters[0])
+## [/codeblock]
 func synced_event_create(event_name : String, delay : float = 1.0, parameters : Array = []) -> void:
 	_session_controller.register_event(event_name, get_multiplayer_time()+delay, parameters, true)
 
@@ -489,6 +757,15 @@ func synced_event_create(event_name : String, delay : float = 1.0, parameters : 
 ## and [code]change_scene_failed[/code] if it fails on any client.
 ## [br]
 ## [br][b]scene_path -[/b] The resource path of the scene.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.change_scene_called.connect(func (path): print("Loading ", path))
+##     GDSync.change_scene_success.connect(func (path): print("Switched to ", path))
+##     GDSync.change_scene_failed.connect(func (path): push_error("Failed to load ", path))
+##
+## func go_to_game() -> void:
+##     GDSync.change_scene("res://Scenes/game.tscn")
+## [/codeblock]
 func change_scene(scene_path : String) -> void:
 	_session_controller.change_scene(scene_path)
 
@@ -564,15 +841,16 @@ func expose_resource(resource : RefCounted) -> void:
 func hide_resource(resource : RefCounted) -> void:
 	_session_controller.hide_object(resource)
 
-## Exposes a function so that [method call_func] and [method call_func_on] will succeed.
+## Exposes a function so that the [code]call_func*[/code] methods will succeed.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]callable -[/b] The function you want to expose.
-func expose_func(callable : Callable) -> void:
-	_session_controller.expose_func(callable)
+## [br][b]permission -[/b] Which lobby members may invoke this remotely. See [constant ENUMS.EXPOSE_PERMISSION].
+func expose_func(callable : Callable, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
+	_session_controller.expose_func(callable, permission)
 
-## Hides a function so that [method call_func] and [method call_func_on] will fail.
+## Hides a function so that the [code]call_func*[/code] methods will fail.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -580,15 +858,16 @@ func expose_func(callable : Callable) -> void:
 func hide_func(callable : Callable) -> void:
 	_session_controller.hide_func(callable)
 
-## Exposes a signal so that [method emit_signal_remote], [method emit_signal_remote_on] and [method emit_signal_remote_all] will succeed.
+## Exposes a signal so that the [code]emit_signal_remote*[/code] methods will succeed.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]signal_name -[/b] The signal you want to expose.
-func expose_signal(target_signal : Signal) -> void:
-	_session_controller.expose_signal(target_signal)
+## [br][b]permission -[/b] Which lobby members may emit this remotely. See [constant ENUMS.EXPOSE_PERMISSION].
+func expose_signal(target_signal : Signal, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
+	_session_controller.expose_signal(target_signal, permission)
 
-## Hides a signal so that [method emit_signal_remote], [method emit_signal_remote_on] and [method emit_signal_remote_all] will fail.
+## Hides a signal so that the [code]emit_signal_remote*[/code] methods will fail.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -596,16 +875,17 @@ func expose_signal(target_signal : Signal) -> void:
 func hide_signal(target_signal : Signal) -> void:
 	_session_controller.hide_signal(target_signal)
 
-## Exposes a variable so that [method sync_var] and [method sync_var_on] will succeed.
+## Exposes a variable so that the [code]sync_var*[/code] methods will succeed.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
 ## [br][b]object -[/b] The Object on which you want to expose the variable.
 ## [br][b]variable_name -[/b] The name of the variable you want to expose.
-func expose_var(object : Object, variable_name : String) -> void:
-	_session_controller.expose_property(object, variable_name)
+## [br][b]permission -[/b] Which lobby members may sync this remotely. See [constant ENUMS.EXPOSE_PERMISSION].
+func expose_var(object : Object, variable_name : String, permission : int = ENUMS.EXPOSE_PERMISSION.ANYONE) -> void:
+	_session_controller.expose_property(object, variable_name, permission)
 
-## Hides a variable so that [method sync_var] and [method sync_var_on] will fail.
+## Hides a variable so that the [code]sync_var*[/code] methods will fail.
 ## [br]
 ## [br][b]IMPORTANT:[/b] For Nodes, make sure the NodePath of the Node matches up on all clients. For Resources, register them using [method register_resource].
 ## [br]
@@ -638,6 +918,19 @@ func hide_var(object : Object, variable_name : String) -> void:
 ## [br]
 ## [br][b]node -[/b] The Node on which you want to assign ownership to.
 ## [br][b]owner -[/b] The client ID of the new owner.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.connect_gdsync_owner_changed(self, _on_owner_changed)
+##     GDSync.set_gdsync_owner(self, GDSync.get_client_id())
+##
+## func _process(_delta: float) -> void:
+##     if not GDSync.is_gdsync_owner(self):
+##         return
+##     # Local input only on the owned player instance.
+##
+## func _on_owner_changed(new_owner: int) -> void:
+##     print("Owner is now ", new_owner)
+## [/codeblock]
 func set_gdsync_owner(node : Node, owner : int) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_gdsync_owner(node, owner)
@@ -696,6 +989,15 @@ func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 
 ## Attempts to retrieve all publicly visible lobbies from the server.
 ## Will emit the signal [signal lobbies_received] once the server has collected all lobbies
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.lobbies_received.connect(_on_lobbies_received)
+##     GDSync.get_public_lobbies()
+##
+## func _on_lobbies_received(lobbies: Array) -> void:
+##     for lobby in lobbies:
+##         print(lobby["Name"], " ", lobby["PlayerCount"], "/", lobby["PlayerLimit"])
+## [/codeblock]
 func get_public_lobbies() -> void:
 	if !_connection_controller.valid_connection(): return
 	if _connection_controller.is_local():
@@ -716,6 +1018,7 @@ func get_public_lobby(lobby_name : String) -> void:
 
 ## Attempts to create a lobby on the server. If successful [signal lobby_created] is emitted.
 ## If it fails [signal lobby_creation_failed] is emitted. Creating a lobby has a cooldown of 3 seconds.
+## Creating a lobby does not automatically join it. Call [method lobby_join] after [signal lobby_created].
 ## [br]
 ## [br][b]name -[/b] The name of the lobby you want to create. Has a maximum of 32 characters.
 ## [br][b]password -[/b] The password of the lobby. Leave empty if you want everyone to be able to join without a password.
@@ -725,6 +1028,24 @@ func get_public_lobby(lobby_name : String) -> void:
 ## This is also the case if the limit entered exceeds your plan limit.
 ## [br][b]tags -[/b] Any starting tags you would like to add to the lobby.
 ## [br][b]data -[/b] Any starting data you would like to add to the lobby.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.lobby_created.connect(_on_lobby_created)
+##     GDSync.lobby_creation_failed.connect(_on_lobby_creation_failed)
+##     GDSync.lobby_create(
+##         "Cool Lobby",
+##         "",
+##         true,
+##         8,
+##         {"Map": "Desert", "Mode": "FFA"},
+##     )
+##
+## func _on_lobby_created(lobby_name: String) -> void:
+##     GDSync.lobby_join(lobby_name)
+##
+## func _on_lobby_creation_failed(lobby_name: String, error: int) -> void:
+##     push_error("Failed to create ", lobby_name, ": ", error)
+## [/codeblock]
 func lobby_create(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
 	if !_connection_controller.valid_connection(): return
 	if _connection_controller.is_local():
@@ -739,6 +1060,14 @@ func lobby_create(name : String, password : String = "", public : bool = true, p
 ## [br][b]name -[/b] The name of the lobby you are trying to join.
 ## [br][b]password -[/b] The password of the lobby you are trying to join.
 ## If the lobby has no password this can have any value.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.lobby_joined.connect(func (n): print("Joined ", n))
+##     GDSync.lobby_join_failed.connect(func (n, e): push_error("Join failed ", n, " ", e))
+##     GDSync.client_joined.connect(func (id): print("Client joined ", id))
+##     GDSync.client_left.connect(func (id): print("Client left ", id))
+##     GDSync.lobby_join("Cool Lobby")
+## [/codeblock]
 func lobby_join(name : String, password : String = "") -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_lobby_data(name, password)
@@ -785,14 +1114,16 @@ func lobby_leave() -> void:
 	_data_controller.set_friend_status()
 	_session_controller.lobby_left()
 	_node_tracker.lobby_left()
+	_interest_manager.clear()
 	_steam.leave_steam_lobby()
 
 ## Kicks a client from the current lobby. Only works for the host of the lobby.
 ## [br]
 ## [br][b]client_id -[/b] The ID of the client you want to kick.
-func lobby_kick_client(client_id : int) -> void:
+## [br][b]reason -[/b] An optional message explaining why the client was kicked.
+func lobby_kick_client(client_id : int, reason : String = "") -> void:
 	if !_connection_controller.valid_connection(): return
-	_request_processor.kick_player(client_id)
+	_request_processor.kick_player(client_id, reason)
 
 ## Returns the client IDs of all clients in the current lobby.
 func lobby_get_all_clients() -> Array:
@@ -906,6 +1237,51 @@ func lobby_get_all_data() -> Dictionary:
 
 
 #endregion
+# Matchmaking Functions -------------------------------------------------------
+# *****************************************************************************
+# -----------------------------------------------------------------------------
+#region Matchmaking Functions
+
+## Starts matchmaking. Starting a new request automatically cancels the
+## previous request. Matchmaking is not available in local multiplayer.
+## Use [method MatchmakingRequest.set_min_players] to create a lobby before it is full;
+## later queued players can still join while that lobby stays open.
+## [br][br]See [MatchmakingRequest] for full configuration options.
+## [br][br][codeblock]
+## func _ready() -> void:
+##     GDSync.matchmaking_started.connect(func (): print("Searching…"))
+##     GDSync.matchmaking_match_found.connect(func (name): print("Found ", name))
+##     GDSync.matchmaking_failed.connect(func (error): push_error(error))
+##     GDSync.lobby_joined.connect(func (name): print("In lobby ", name))
+##
+##     var request := MatchmakingRequest.new(4)
+##     request.set_min_players(2)
+##     request.set_required_tags({"Mode": "Co-op"})
+##     request.set_timeout(60.0)
+##     GDSync.matchmaking_start(request)
+## [/codeblock]
+func matchmaking_start(request: MatchmakingRequest) -> void:
+	_matchmaking_controller.start(request)
+
+## Cancels the active matchmaking request.
+func matchmaking_cancel() -> void:
+	_matchmaking_controller.cancel()
+
+## Returns whether a matchmaking request is currently active.
+func matchmaking_is_active() -> bool:
+	return _matchmaking_controller.is_active()
+
+## Returns the status of the active matchmaking request.
+## See [enum ENUMS.MATCHMAKING_STATUS] for all possible values.
+func matchmaking_get_status() -> int:
+	return _matchmaking_controller.get_status()
+
+## Returns additional information about the status of the active matchmaking request,
+## such as the amount of queued players. Empty if no request is active.
+func matchmaking_get_status_details() -> Dictionary:
+	return _matchmaking_controller.get_status_details()
+
+#endregion
 # Player Functions ------------------------------------------------------------
 # *****************************************************************************
 # -----------------------------------------------------------------------------
@@ -918,6 +1294,20 @@ func lobby_get_all_data() -> Dictionary:
 ## [br]
 ## [br][b]key -[/b] The key of the player data.
 ## [br][b]value -[/b] The value of the player data.
+## [br][br][codeblock]
+## var player_id: int
+##
+## func _ready() -> void:
+##     player_id = GDSync.get_client_id()
+##     GDSync.player_data_changed.connect(_on_player_data_changed)
+##     GDSync.player_set_data("Color", Color.RED)
+##
+## func _on_player_data_changed(client_id: int, key: String, value) -> void:
+##     if client_id != player_id:
+##         return
+##     if key == "Color" and value is Color:
+##         modulate = value
+## [/codeblock]
 func player_set_data(key : String, value) -> void:
 	if !_connection_controller.valid_connection(): return
 	_session_controller.set_player_data(key, value)
@@ -1032,6 +1422,11 @@ func account_resend_verification_code(email : String, password : String) -> int:
 func account_is_verified(username : String = "") -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.is_verified(username)
+
+## Returns whether the local player is currently logged into a GD-Sync account.
+## This does not reflect lobby usernames set using [method player_set_username].
+func account_is_logged_in() -> bool:
+	return _data_controller.logged_in
 
 ## Attempt to login into an existing account.
 ## [br][br]Returns a [Dictionary] with the format seen below
@@ -1202,6 +1597,37 @@ func account_get_friend_status(friend : String) -> Dictionary:
 func account_get_friends() -> Dictionary:
 	if _connection_controller.is_local_check(): return {"Code" : 1}
 	return await _data_controller.get_friends()
+
+## Sends a lobby invitation to the specified friend. You must be in a lobby for this to succeed.
+## [br][br]Returns the result of the request as [constant ENUMS.ACCOUNT_INVITE_FRIEND_TO_LOBBY_RESPONSE_CODE].
+## [br]
+## [br][b]friend -[/b] The username of the friend you want to invite.
+func account_invite_friend_to_lobby(friend : String) -> int:
+	if _connection_controller.is_local_check(): return 1
+	return await _data_controller.invite_friend_to_lobby(friend)
+
+## Returns all pending lobby invitations for the currently logged-in account.
+## [br][br]Returns a [Dictionary] with the format seen below
+## and the [constant ENUMS.ACCOUNT_GET_LOBBY_INVITATIONS_RESPONSE_CODE] response code.
+## [codeblock]
+## {
+##    "Code" : 0,
+##    "Result" : [
+##       {
+##          "Username" : "Epic Username",
+##          "LobbyName" : "Arena_12345",
+##          "Password" : "dragon"
+##       },
+##       {
+##          "Username" : "Cool Username",
+##          "LobbyName" : "CustomLobby_987",
+##          "Password" : ""
+##       }
+##    ]
+## }[/codeblock]
+func account_get_lobby_invitations() -> Dictionary:
+	if _connection_controller.is_local_check(): return {"Code" : 1}
+	return await _data_controller.get_lobby_invitations()
 
 ## Store a dictionary/document of data on the currently logged-in account using GD-Sync cloud storage. The document
 ## will be stored on the specified location. If the collections specified in the path don't already

@@ -56,6 +56,21 @@ layout_mode = 2
 layout_mode = 2
 text = "Auto Start"
 
+[node name="VSeparator3" type="VSeparator" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+
+[node name="LatencyLabel" type="Label" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+tooltip_text = "Adds artificial send and receive latency to this client for debugging. Set to 0 to disable."
+text = "Artificial Latency (ms)"
+
+[node name="LatencySpinBox" type="SpinBox" parent="VBoxContainer/HBoxContainer"]
+layout_mode = 2
+tooltip_text = "Adds artificial send and receive latency to this client for debugging. Set to 0 to disable."
+max_value = 5000.0
+prefix = ""
+suffix = "ms"
+
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
 layout_mode = 2
 
@@ -791,4 +806,5 @@ fit_content = true
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/Stop" to="." method="stop"]
 [connection signal="pressed" from="VBoxContainer/HBoxContainer/Clear" to="." method="clear"]
 [connection signal="toggled" from="VBoxContainer/HBoxContainer/AutoStart" to="." method="_on_auto_start_toggled"]
+[connection signal="value_changed" from="VBoxContainer/HBoxContainer/LatencySpinBox" to="." method="_on_artificial_latency_changed"]
 [connection signal="toggled" from="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer/HBoxContainer/HBoxContainer/VBoxContainer/MonitorButton" to="VBoxContainer/TabContainer/Connections/ScrollContainer/VBoxContainer/PanelContainer" method="_on_monitor_button_toggled"]

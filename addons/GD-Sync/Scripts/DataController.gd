@@ -1,6 +1,6 @@
 extends Node
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -48,9 +48,7 @@ func _ready() -> void:
 		DirAccess.make_dir_absolute("user://GD-Sync")
 	
 	load_config()
-	
-	process_mode = Node.PROCESS_MODE_ALWAYS
-	
+
 func _process(delta: float) -> void:
 	if logged_in:
 		status_ping_timer -= delta
@@ -72,10 +70,11 @@ func quit() -> void:
 	save_config()
 	get_tree().quit()
 
-func log_in() -> void:
+func log_in(username : String = "") -> void:
 	logged_in = true
 	safe_quit = false
 	get_tree().set_auto_accept_quit(false)
+	GDSync.account_logged_in.emit.call_deferred(username)
 
 func load_config() -> void:
 	var dir = DirAccess.open("user://")
@@ -181,7 +180,7 @@ func login(email : String, password : String, valid_time : float) -> Dictionary:
 	
 	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
-		log_in()
+		log_in(result["Username"])
 		save_config()
 		GDSync.player_set_username(result["Username"])
 	elif result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.BANNED:
@@ -204,7 +203,7 @@ func login_from_session(valid_time : int) -> int:
 	
 	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
-		log_in()
+		log_in(result["Username"])
 		GDSync.player_set_username(result["Username"])
 	else:
 		login_token = ""
@@ -247,10 +246,14 @@ func logout() -> int:
 		}
 	)
 	
+	var was_logged_in : bool = logged_in
 	login_token = ""
 	login_email = ""
 	logged_in = false
 	save_config()
+	
+	if was_logged_in:
+		GDSync.account_logged_out.emit.call_deferred()
 	
 	return result["Code"]
 
@@ -547,6 +550,35 @@ func remove_friend(friend : String) -> int:
 	
 	return result["Code"]
 
+func invite_friend_to_lobby(friend : String) -> int:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"invitefriendtolobby",
+		{
+			"Token" : login_token,
+			"Friend" : friend,
+			"Data" : {
+				"LobbyName" : session_controller.lobby_name,
+				"Password" : session_controller.lobby_password
+			}
+		}
+	)
+	
+	return result["Code"]
+
+func get_lobby_invitations() -> Dictionary:
+	var result : Dictionary = await https_controller.perform_https_request(
+		"getlobbyinvitations",
+		{
+			"Token" : login_token
+		}
+	)
+	
+	var data : Dictionary = {
+		"Code" : result["Code"],
+		"Result" : result["Result"] if result.size() > 1 else []
+	}
+	return data
+
 func link_steam_account(auth_ticket : PackedByteArray, app_id : int) -> int:
 	var result : Dictionary = await https_controller.perform_https_request(
 		"linksteamaccount",
@@ -585,7 +617,7 @@ func steam_login(auth_ticket : PackedByteArray, app_id : int, valid_time : float
 	
 	if result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.SUCCESS:
 		login_token = result["Result"]
-		log_in()
+		log_in(result["Username"])
 		save_config()
 		GDSync.player_set_username(result["Username"])
 	elif result["Code"] == ENUMS.ACCOUNT_LOGIN_RESPONSE_CODE.BANNED:

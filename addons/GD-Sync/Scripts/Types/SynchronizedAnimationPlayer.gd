@@ -2,7 +2,7 @@
 extends AnimationPlayer
 class_name SynchronizedAnimationPlayer
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -65,11 +65,11 @@ func play_synced(name: StringName = &"", custom_blend: float = -1, custom_speed:
 	
 	if name_cached:
 		parameters.push_front(_play_remote_cached)
-		GDSync.call_func.callv(parameters)
+		GDSync.call_func_relevant.callv(parameters)
 	else:
 		if use_name:GDSync._request_processor.create_name_cache("", name)
 		parameters.push_front(_play_remote)
-		GDSync.call_func.callv(parameters)
+		GDSync.call_func_relevant.callv(parameters)
 
 func play_backwards_synced(name: StringName = &"", custom_blend: float = -1) -> void:
 	self.play(name, custom_blend, -1.0, true)
@@ -77,17 +77,17 @@ func play_backwards_synced(name: StringName = &"", custom_blend: float = -1) -> 
 func pause_synced() -> void:
 	pause()
 	if !GDSync.is_active(): return
-	GDSync.call_func(_pause_remote)
+	GDSync.call_func_relevant(_pause_remote)
 
 func stop_synced(keep_state : bool = false) -> void:
 	stop(keep_state)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_stop_remote, keep_state)
+	GDSync.call_func_relevant(_stop_remote, keep_state)
 
 func queue_synced(name : StringName) -> void:
 	queue(name)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_queue_remote, name)
+	GDSync.call_func_relevant(_queue_remote, name)
 
 func seek_synced(seconds : float, update : bool = false, update_only : bool = false) -> void:
 	seek(seconds, update, update_only)
@@ -111,12 +111,12 @@ func seek_synced(seconds : float, update : bool = false, update_only : bool = fa
 	parameters.push_front(seconds)
 	parameters.push_front(GDSync.get_multiplayer_time())
 	parameters.push_front(_seek_remote)
-	GDSync.call_func.callv(parameters)
+	GDSync.call_func_relevant.callv(parameters)
 
 func advance_synced(delta : float) -> void:
 	advance(delta)
 	if !GDSync.is_active(): return
-	GDSync.call_func(_advance_remote, delta)
+	GDSync.call_func_relevant(_advance_remote, delta)
 
 
 
@@ -145,6 +145,14 @@ func _ready() -> void:
 	GDSync.client_joined.connect(_client_joined)
 
 func _client_joined(client_id : int) -> void:
+	if GDSync._interest_manager.has_interest_object(self):
+		return
+	_send_state_to(client_id)
+
+func _interest_object_client_entered(client_id : int) -> void:
+	_send_state_to(client_id)
+
+func _send_state_to(client_id : int) -> void:
 	if is_playing():
 		GDSync.call_func_on(client_id, _stop_remote)
 		

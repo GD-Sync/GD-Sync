@@ -3,7 +3,7 @@
 extends Node
 class_name VoiceChat
 
-#Copyright (c) 2026 GD-Sync.
+#Copyright (c) 2023-present GD-Sync.
 #All rights reserved.
 #
 #Redistribution and use in source form, with or without modification,
@@ -61,6 +61,8 @@ var _input_configured : bool = false
 var _output_configured : bool = false
 var _muted : bool = false
 
+var GDSync
+
 func set_input_device(device_name : String) -> void:
 	AudioServer.input_device = device_name
 
@@ -78,6 +80,7 @@ func _ready() -> void:
 		set_process(false)
 		return
 	
+	GDSync = get_node("/root/GDSync")
 	GDSync.expose_func(_process_audio)
 	GDSync.connect_gdsync_owner_changed(self, _owner_changed)
 	
@@ -130,7 +133,7 @@ func _process(delta: float) -> void:
 			max_amp = max(abs(data[i]), max_amp)
 		
 		if max_amp > input_volume_threshold:
-			GDSync.call_func(_process_audio, data, sr)
+			GDSync.call_func_relevant_unreliable(_process_audio, data, sr)
 
 func _process_audio(audio : PackedFloat32Array, mixrate : float) -> void:
 	if _output_stream.mix_rate != mixrate: _output_stream.mix_rate = mixrate
@@ -228,8 +231,8 @@ func set_output_player(p : Node) -> void:
 	_output_player = p
 	update_configuration_warnings()
 
-func _get_property_list() -> Array:
-	var properties : Array = []
+func _get_property_list() -> Array[Dictionary]:
+	var properties : Array[Dictionary] = []
 	
 	var type : String = ""
 	match(spatial_mode):
