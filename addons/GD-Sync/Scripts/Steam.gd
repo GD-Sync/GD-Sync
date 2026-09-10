@@ -41,7 +41,9 @@ func _ready() -> void:
 	
 	steam_integration_enabled = Engine.has_singleton("Steam")
 	if steam_integration_enabled: init_steam()
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func init_steam() -> void:
 	steam = Engine.get_singleton("Steam")
 	

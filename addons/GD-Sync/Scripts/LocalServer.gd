@@ -90,7 +90,9 @@ func _ready() -> void:
 	add_child(local_lobby_timer)
 	
 	set_process(false)
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func reset_multiplayer() -> void:
 	logger.write_log("Closing local multiplayer.", "[LocalServer]")
 	local_peer.close()
