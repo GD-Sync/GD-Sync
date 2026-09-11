@@ -5,7 +5,7 @@ Get your multiplayer game up and running quickly with our easy-to-integrate plug
 
 ## Key Features
 - **Interactive Lobbies & Matchmaking:** Enable players to easily find and join each other from across the globe.
-- **Acount System:** Allow players to easily create accounts. Comes with built-in email verification and a moderation system.
+- **Account System:** Allow players to easily create accounts. Comes with built-in email verification and a moderation system.
 - **Persistent Data Storage:** Create databases to store and retrieve data from the cloud.
 - **Global Servers:** Deliver high uptime and seamless gameplay through our extensive global server infrastructure.
 - **In-Depth Analytics:** Gain valuable insights with detailed tracking of player statistics.
