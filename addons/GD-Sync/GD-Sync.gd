@@ -34,7 +34,7 @@ const CSHARP_UID_PATH : String = "res://addons/GD-Sync/GDSync.cs.uid"
 
 const KeyStore = preload("res://addons/GD-Sync/Scripts/KeyStore.gd")
 
-var version : String = "1.0"
+var version : String = "1.0.1"
 
 var debugger = GDSyncProfiler.new()
 var export_plugin : EditorExportPlugin = GDSyncExportPlugin.new()
@@ -157,7 +157,7 @@ func disable_csharp_api() -> void:
 
 func check_for_updates_and_news() -> void:
 	var request : HTTPRequest = HTTPRequest.new()
-	request.timeout = 5
+	request.timeout = 15
 	add_child(request)
 	
 	var url : String = "https://www.gd-sync.com/version"

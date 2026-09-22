@@ -495,6 +495,8 @@ func process_message(request : Array) -> void:
 			GDSync.lobby_creation_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOINED:
 			if request.size() <= ENUMS.MESSAGE_DATA.VALUE: return
+			if connection_controller.is_local():
+				connection_controller.in_local_lobby = true
 			data_controller.set_friend_status()
 			await get_tree().process_frame
 			server_switch_controller.lobby_joined()
@@ -502,6 +504,8 @@ func process_message(request : Array) -> void:
 			GDSync.lobby_joined.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED:
 			if request.size() <= ENUMS.MESSAGE_DATA.ERROR: return
+			if connection_controller.is_local():
+				connection_controller.leave_local_lobby_client()
 			server_switch_controller.lobby_join_failed()
 			matchmaking_controller.lobby_join_failed()
 			GDSync.lobby_join_failed.emit(request[ENUMS.MESSAGE_DATA.VALUE], request[ENUMS.MESSAGE_DATA.ERROR])
@@ -536,8 +540,9 @@ func process_message(request : Array) -> void:
 			var kick_reason : String = ""
 			if request.size() > ENUMS.MESSAGE_DATA.VALUE:
 				kick_reason = str(request[ENUMS.MESSAGE_DATA.VALUE])
+			connection_controller.in_local_lobby = false
 			GDSync.kicked.emit(kick_reason)
-			GDSync.lobby_leave()
+			GDSync.lobby_leave.call_deferred()
 		ENUMS.MESSAGE_TYPE.LOBBY_RECEIVED:
 			if request.size() <= ENUMS.MESSAGE_DATA.VALUE: return
 			GDSync.lobby_received.emit(request[ENUMS.MESSAGE_DATA.VALUE])
@@ -734,7 +739,7 @@ func validate_public_key() -> void:
 		connection_controller.API_VERSION,
 		connection_controller.PLUGIN_VERSION,
 		OS.get_name(),
-		Engine.is_editor_hint(),
+		OS.has_feature("editor"),
 	]
 	
 	requestsSETUP.append(request)
@@ -990,7 +995,7 @@ func create_new_lobby_request(name : String, password : String, public : bool, p
 			"Tags" : tags,
 			"Data" : data,
 			"UniqueUsernames" : connection_controller.UNIQUE_USERNAMES,
-			"Editor" : Engine.is_editor_hint(),
+			"Editor" : OS.has_feature("editor"),
 		}
 	]
 	

@@ -375,6 +375,13 @@ func get_player_data(client_id : int, key : String, default):
 			return data[key]
 	return default
 
+func has_player_data(client_id : int, key : String, default) -> bool:
+	if player_data.has(client_id):
+		var data : Dictionary = player_data[client_id]
+		if data.has(key):
+			return true
+	return false
+
 func get_all_player_data(client_id : int) -> Dictionary:
 	if player_data.has(client_id):
 		var data : Dictionary = player_data[client_id]

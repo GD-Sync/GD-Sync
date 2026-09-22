@@ -577,13 +577,19 @@ func _refresh_property_lookup() -> void:
 		var script : Script = node.get_script()
 		if script.get_class() != "CSharpScript":
 			property_list.append_array(script.get_script_property_list())
+		elif Engine.is_editor_hint():
+			property_list.append_array(_parse_csharp_properties(script))
 		else:
-			property_list.append_array(parse_csharp_properties(script))
+			property_list.append_array(script.get_script_property_list())
+			property_list.append_array(_parse_csharp_properties(script))
 	
 	for property_name in properties:
-		_property_lookup[property_name] = _create_property_metadata(property_name, property_list)
+		var property_data : Dictionary = _create_property_metadata(property_name, property_list)
+		if !property_data["Exists"] and !Engine.is_editor_hint():
+			property_data = _create_runtime_property_metadata(property_name)
+		_property_lookup[property_name] = property_data
 
-func parse_csharp_properties(script : Script) -> Array[Dictionary]:
+func _parse_csharp_properties(script : Script) -> Array[Dictionary]:
 	var csharp_code : String = FileAccess.get_file_as_string(script.resource_path)
 	var lines : PackedStringArray = csharp_code.split("\n")
 	
@@ -624,6 +630,31 @@ func parse_csharp_properties(script : Script) -> Array[Dictionary]:
 			if brace_level == 0:
 				inside_method = false
 	return variables
+
+func _create_runtime_property_metadata(property_path : String) -> Dictionary:
+	var property_data : Dictionary = _create_property_metadata(property_path, [])
+	if _is_indexed_property_path(property_path):
+		var parsed : Dictionary = _parse_indexed_property_path(property_path)
+		if !(parsed["BaseName"] in node):
+			return property_data
+		var base_type : int = typeof(node.get(parsed["BaseName"]))
+		if base_type == TYPE_NIL or !_is_valid_indexed_component(base_type, parsed["Component"]):
+			return property_data
+		property_data["Indexed"] = true
+		property_data["Exists"] = true
+		property_data["Type"] = TYPE_FLOAT
+		property_data["IsFloating"] = true
+		return property_data
+	if !(property_path in node):
+		return property_data
+	var value = node.get(property_path)
+	var property_type : int = typeof(value)
+	if property_type == TYPE_NIL:
+		return property_data
+	property_data["Exists"] = true
+	property_data["Type"] = property_type
+	property_data["IsFloating"] = _property_type_is_floating(property_type)
+	return property_data
 
 func _clean_property_lookup() -> void:
 	for property_name in _property_lookup:

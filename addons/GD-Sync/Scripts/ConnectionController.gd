@@ -64,7 +64,8 @@ var _session_crypto_ready : bool = false
 
 var artificial_latency_ms : int = 0
 
-const _LB_TIMEOUT_MS : int = 2000
+const _LB_TIMEOUT_MS : int = 10000
+const _LB_MAX_ATTEMPTS : int = 3
 const _UDP_PING_EARLY_MS : int = 400
 const _UDP_PING_CAP_MS : int = 600
 const _CONNECT_TIMEOUT_S : float = 4.0
@@ -236,8 +237,9 @@ func _start_web_connect(gen : int) -> void:
 		_fail_connect(gen, ENUMS.CONNECTION_FAILED.TIMEOUT, "No reachable web servers.")
 		return
 	
+	var lb_wait_budget_ms : int = _LB_TIMEOUT_MS * _LB_MAX_ATTEMPTS
 	var waited_ms : int = 0
-	while !lb_state.done and waited_ms < _LB_TIMEOUT_MS:
+	while !lb_state.done and waited_ms < lb_wait_budget_ms:
 		if !_connect_is_current(gen):
 			return
 		await get_tree().create_timer(0.05).timeout
@@ -295,6 +297,28 @@ func stop_multiplayer() -> void:
 	reset_multiplayer()
 
 func _fetch_game_servers(gen : int) -> Dictionary:
+	var empty : Dictionary = { "servers": [], "invalid_key": false }
+	if load_balancers.is_empty():
+		return empty
+	
+	for attempt in _LB_MAX_ATTEMPTS:
+		if !_connect_is_current(gen):
+			return empty
+		if attempt > 0:
+			logger.write_log("Retrying load balancer request. <attempt "+str(attempt + 1)+"/"+str(_LB_MAX_ATTEMPTS)+">")
+			await get_tree().create_timer(0.5).timeout
+			if !_connect_is_current(gen):
+				return empty
+		
+		var result : Dictionary = await _fetch_game_servers_once(gen)
+		if !_connect_is_current(gen):
+			return result
+		if result.get("invalid_key", false) or !result.get("servers", []).is_empty():
+			return result
+	
+	return empty
+
+func _fetch_game_servers_once(gen : int) -> Dictionary:
 	var result : Dictionary = { "servers": [], "invalid_key": false }
 	var lbs : Array = load_balancers.duplicate()
 	lbs.shuffle()

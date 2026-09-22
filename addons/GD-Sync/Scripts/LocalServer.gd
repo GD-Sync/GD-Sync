@@ -26,6 +26,8 @@ extends Node
 
 var min_port_range : int = 42354
 var max_port_range : int = min_port_range + 20
+var min_game_port : int = 42400
+var max_game_port : int = min_game_port + 20
 
 var GDSync
 var connection_controller
@@ -38,6 +40,7 @@ var local_lobby_password : String = ""
 var local_lobby_public : bool = false
 var local_lobby_open : bool = true
 var local_lobby_player_limit : int = 0
+var local_lobby_port : int = -1
 
 var local_lobby_data : Dictionary = {}
 var local_lobby_tags : Dictionary = {}
@@ -83,8 +86,7 @@ func _ready() -> void:
 	session_controller = GDSync._session_controller
 	logger = GDSync._logger
 	
-	local_server.peer_connected.connect(peer_connected)
-	local_server.peer_disconnected.connect(peer_disconnected)
+	_bind_local_server_signals()
 	
 	local_lobby_timer.wait_time = 0.5
 	local_lobby_timer.timeout.connect(perform_local_scan)
@@ -104,16 +106,49 @@ func reset_multiplayer() -> void:
 
 func clear_lobby_data() -> void:
 	logger.write_log("Clear lobby data.", "[LocalServer]")
+	_clear_lobby_state()
+	local_server.close()
+
+func _clear_lobby_state() -> void:
 	local_lobby_name = ""
 	local_lobby_password = ""
-	
+	local_lobby_public = false
+	local_lobby_open = true
+	local_lobby_player_limit = 0
+	local_lobby_port = -1
 	local_lobby_data.clear()
 	local_lobby_tags.clear()
 	local_owner_cache.clear()
 	peer_client_table.clear()
 	lobby_client_table.clear()
 	_lobby_host_id = -1
+
+func _bind_local_server_signals() -> void:
+	if !local_server.peer_connected.is_connected(peer_connected):
+		local_server.peer_connected.connect(peer_connected)
+	if !local_server.peer_disconnected.is_connected(peer_disconnected):
+		local_server.peer_disconnected.connect(peer_disconnected)
+
+func _close_lobby_server() -> void:
+	logger.write_log("Closing local lobby server.", "[LocalServer]")
+	set_process(false)
+	if local_lobby_name != "":
+		found_lobbies.erase(local_lobby_name)
+	_clear_lobby_state()
 	local_server.close()
+	local_server = ENetMultiplayerPeer.new()
+	_bind_local_server_signals()
+
+func leave_local_lobby() -> void:
+	if local_lobby_name == "":
+		return
+	logger.write_log("Leaving hosted local lobby.", "[LocalServer]")
+	for client_id in lobby_client_table:
+		var other_client : Client = lobby_client_table[client_id]
+		if other_client.client_id != GDSync.get_client_id():
+			send_message(ENUMS.MESSAGE_TYPE.KICKED, other_client)
+	_flush_outgoing_requests()
+	_close_lobby_server()
 
 func start_local_peer() -> bool:
 	logger.write_log("Starting local peer.", "[LocalServer]")
@@ -127,40 +162,57 @@ func start_local_peer() -> bool:
 	logger.write_error("Local peer war unable to bind to a port.", "[LocalServer]")
 	return false
 
+func _bind_game_server() -> int:
+	for port in range(min_game_port, max_game_port):
+		local_server.close()
+		local_server = ENetMultiplayerPeer.new()
+		if local_server.create_server(port) == OK:
+			_bind_local_server_signals()
+			logger.write_log("Local lobby server binded to port. <"+str(port)+">", "[LocalServer]")
+			return port
+	_bind_local_server_signals()
+	return -1
+
 func create_local_lobby(name : String, password : String = "", public : bool = true, player_limit : int = 0, tags : Dictionary = {}, data : Dictionary = {}) -> void:
 	logger.write_log("Creating local lobby.", "[LocalServer]")
 	var result : int = -1
 	
+	if name.length() < 3: result = ENUMS.LOBBY_CREATION_ERROR.NAME_TOO_SHORT
+	elif name.length() > 32: result = ENUMS.LOBBY_CREATION_ERROR.NAME_TOO_LONG
+	elif password.length() > 16: result = ENUMS.LOBBY_CREATION_ERROR.PASSWORD_TOO_LONG
+	elif var_to_bytes(tags).size() > 2048: result = ENUMS.LOBBY_CREATION_ERROR.TAGS_TOO_LARGE
+	elif var_to_bytes(data).size() > 2048: result = ENUMS.LOBBY_CREATION_ERROR.DATA_TOO_LARGE
+	
+	if result != -1:
+		GDSync.lobby_creation_failed.emit.call_deferred(name, result)
+		return
+	
 	local_peer.set_broadcast_enabled(true)
 	
-	var server_error : int = local_server.create_server(8080)
-	if server_error != OK: result = ENUMS.LOBBY_CREATION_ERROR.LOCAL_PORT_ERROR
+	var bound_port : int = _bind_game_server()
+	if bound_port < 0:
+		GDSync.lobby_creation_failed.emit.call_deferred(name, ENUMS.LOBBY_CREATION_ERROR.LOCAL_PORT_ERROR)
+		return
 	
-	if name.length() < 3: result = ENUMS.LOBBY_CREATION_ERROR.NAME_TOO_SHORT
-	if name.length() > 32: result = ENUMS.LOBBY_CREATION_ERROR.NAME_TOO_LONG
-	if password.length() > 16: result = ENUMS.LOBBY_CREATION_ERROR.PASSWORD_TOO_LONG
-	if var_to_bytes(tags).size() > 2048: result = ENUMS.LOBBY_CREATION_ERROR.TAGS_TOO_LARGE
-	if var_to_bytes(data).size() > 2048: result = ENUMS.LOBBY_CREATION_ERROR.DATA_TOO_LARGE
+	local_lobby_name = name
+	local_lobby_password = password
+	local_lobby_public = public
+	local_lobby_player_limit = player_limit
+	local_lobby_port = bound_port
+	local_lobby_tags = tags
+	local_lobby_data = data
 	
-	if result == -1:
-		local_lobby_name = name
-		local_lobby_password = password
-		local_lobby_public = public
-		local_lobby_player_limit = player_limit
-		local_lobby_tags = tags
-		local_lobby_data = data
-		
-		var lobby_dict : Dictionary = get_lobby_dictionary()
-		lobby_dict["IP"] = "127.0.0.1"
-		found_lobbies[local_lobby_name] = lobby_dict
-		
-		_lobby_host_id = GDSync.get_client_id()
-		connection_controller.set_host(_lobby_host_id)
-		
-		set_process(true)
-		GDSync.lobby_created.emit.call_deferred(name)
-	else:
-		GDSync.lobby_creation_failed.emit.call_deferred(name, result)
+	var lobby_dict : Dictionary = get_lobby_dictionary()
+	lobby_dict["IP"] = "127.0.0.1"
+	lobby_dict["DetectionTime"] = Time.get_unix_time_from_system()
+	found_lobbies[local_lobby_name] = lobby_dict
+	
+	_lobby_host_id = GDSync.get_client_id()
+	connection_controller.set_host(_lobby_host_id)
+	session_controller.lobby_created()
+	
+	set_process(true)
+	GDSync.lobby_created.emit.call_deferred(name)
 
 func join_lobby(name : String, password : String) -> void:
 	logger.write_log("Joining local lobby. <"+name+">", "[LocalServer]")
@@ -173,11 +225,11 @@ func join_lobby(name : String, password : String) -> void:
 	
 	if found_lobbies.has(name):
 		var lobby_data : Dictionary = found_lobbies[name]
-		var connect_err : int = connection_controller.connect_to_local_server(lobby_data["IP"])
+		var lobby_port : int = lobby_data.get("Port", min_game_port)
+		var connect_err : int = connection_controller.connect_to_local_server(lobby_data["IP"], lobby_port)
 		
 		if connect_err == OK:
 			logger.write_log("Connected to local lobby host.", "[LocalServer]")
-			connection_controller.in_local_lobby = true
 			request_processor.send_client_id()
 			session_controller.broadcast_player_data()
 			request_processor.create_join_lobby_request(name, password)
@@ -219,13 +271,22 @@ func perform_local_scan() -> void:
 			lobby_data["DetectionTime"] = Time.get_unix_time_from_system()
 			found_lobbies[lobby_data["Name"]] = lobby_data
 	
-	for lobby_data in found_lobbies.values():
+	var expired : Array = []
+	for lobby_name in found_lobbies:
+		var lobby_data : Dictionary = found_lobbies[lobby_name]
 		if !lobby_data.has("DetectionTime"): continue
 		if Time.get_unix_time_from_system() - lobby_data["DetectionTime"] > 2.0:
-			found_lobbies.erase(lobby_data["Name"])
-			logger.write_log("Local lobby lost. <"+lobby_data["Name"]+">", "[LocalServer]")
+			expired.append(lobby_name)
+	for lobby_name in expired:
+		found_lobbies.erase(lobby_name)
+		logger.write_log("Local lobby lost. <"+lobby_name+">", "[LocalServer]")
 	
 	if local_lobby_name != "":
+		if found_lobbies.has(local_lobby_name):
+			var lobby_dict : Dictionary = get_lobby_dictionary()
+			lobby_dict["IP"] = found_lobbies[local_lobby_name].get("IP", "127.0.0.1")
+			lobby_dict["DetectionTime"] = Time.get_unix_time_from_system()
+			found_lobbies[local_lobby_name] = lobby_dict
 		for port in range(min_port_range, max_port_range):
 			var bind_error : int = local_peer.set_dest_address("255.255.255.255", port)
 			if bind_error == OK:
@@ -247,28 +308,32 @@ func peer_disconnected(id : int) -> void:
 		var client : Client = peer_client_table[id]
 		leave_lobby_request(client)
 
+func _flush_outgoing_requests() -> void:
+	if local_server.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return
+	for peer in peer_client_table:
+		var client : Client = peer_client_table[peer]
+		if client.requests_RUDP.size() > 0:
+			local_server.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
+			local_server.set_target_peer(client.peer_id)
+			local_server.put_packet(var_to_bytes(client.requests_RUDP))
+			client.requests_RUDP.clear()
+		if client.requests_UDP.size() > 0:
+			local_server.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
+			local_server.set_target_peer(client.peer_id)
+			local_server.put_packet(var_to_bytes(client.requests_UDP))
+			client.requests_UDP.clear()
+	local_server.poll()
+
 func _process(delta: float) -> void:
 	match(local_server.get_connection_status()):
 		MultiplayerPeer.CONNECTION_DISCONNECTED:
-			logger.write_log("Peer lost its connection.", "[LocalServer]")
-			connection_controller.reset_multiplayer()
+			return
 		MultiplayerPeer.CONNECTION_CONNECTING:
 			local_server.poll()
 		MultiplayerPeer.CONNECTION_CONNECTED:
 			local_server.poll()
-			
-			for peer in peer_client_table:
-				var client : Client = peer_client_table[peer]
-				if client.requests_RUDP.size() > 0:
-					local_server.transfer_mode = MultiplayerPeer.TRANSFER_MODE_RELIABLE
-					local_server.set_target_peer(client.peer_id)
-					local_server.put_packet(var_to_bytes(client.requests_RUDP))
-					client.requests_RUDP.clear()
-				if client.requests_UDP.size() > 0:
-					local_server.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
-					local_server.set_target_peer(client.peer_id)
-					local_server.put_packet(var_to_bytes(client.requests_UDP))
-					client.requests_UDP.clear()
+			_flush_outgoing_requests()
 			
 			while local_server.get_available_packet_count() > 0:
 				var channel : int = local_server.get_packet_channel()
@@ -447,7 +512,9 @@ func leave_lobby_request(from : Client) -> void:
 				var other_client : Client = lobby_client_table[client_id]
 				if other_client != from:
 					send_message(ENUMS.MESSAGE_TYPE.KICKED, other_client)
-			clear_lobby_data()
+			_flush_outgoing_requests()
+			_close_lobby_server()
+			return
 	
 	if peer_client_table.has(from.peer_id):
 		peer_client_table.erase(from.peer_id)
@@ -469,8 +536,8 @@ func set_owner_request(from : Client, request : Array) -> void:
 	var node_path = request[ENUMS.DATA.NAME]
 	var owner = request[ENUMS.DATA.VALUE]
 	if owner == null or owner == -1:
-		if local_owner_cache.has(owner):
-			local_owner_cache.erase(owner)
+		if local_owner_cache.has(node_path):
+			local_owner_cache.erase(node_path)
 	else:
 		local_owner_cache[node_path] = owner
 	
@@ -540,8 +607,8 @@ func erase_player_data_request(from : Client, request : Array) -> void:
 		from.player_data.erase(key)
 		
 		for client in from.lobby_targets:
-			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_RECEIVED, from, from.collect_player_data())
-			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_CHANGED, from, from.client_id, key)
+			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_RECEIVED, client, from.collect_player_data())
+			send_message(ENUMS.MESSAGE_TYPE.PLAYER_DATA_CHANGED, client, from.client_id, key)
 
 func kick_player(from : Client, request : Array) -> void:
 	var client_id : int = request[ENUMS.DATA.NAME]
@@ -573,16 +640,24 @@ func change_lobby_name(from : Client, request : Array) -> void:
 	var name : String = request[ENUMS.DATA.NAME]
 	local_lobby_name = name
 
+func _get_lobby_player_count() -> int:
+	var count : int = lobby_client_table.size()
+	var host_id : int = GDSync.get_client_id()
+	if host_id >= 0 and !lobby_client_table.has(host_id):
+		count += 1
+	return count
+
 func get_lobby_dictionary(with_data : bool = false) -> Dictionary:
 	var dict : Dictionary = {
 		"Name" : local_lobby_name,
-		"PlayerCount" : GDSync.lobby_get_all_clients().size(),
+		"PlayerCount" : _get_lobby_player_count(),
 		"PlayerLimit" : local_lobby_player_limit,
 		"Public" : local_lobby_public,
 		"Open" : local_lobby_open,
 		"Tags" : local_lobby_tags,
 		"HasPassword" : local_lobby_password != "",
-		"Host" : GDSync.player_get_data(GDSync.get_client_id(), "Username", "")
+		"Host" : GDSync.player_get_data(GDSync.get_client_id(), "Username", ""),
+		"Port" : local_lobby_port
 	}
 	
 	if with_data:

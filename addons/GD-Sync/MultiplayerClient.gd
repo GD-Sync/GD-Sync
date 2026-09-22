@@ -1110,7 +1110,11 @@ func lobby_change_password(password : String) -> void:
 ## Leaves the lobby you are currently in. This does not emit any signals.
 func lobby_leave() -> void:
 	if !_connection_controller.valid_connection(): return
-	_request_processor.create_leave_lobby_request()
+	if _connection_controller.is_local():
+		_local_server.leave_local_lobby()
+		_connection_controller.leave_local_lobby_client()
+	else:
+		_request_processor.create_leave_lobby_request()
 	_data_controller.set_friend_status()
 	_session_controller.lobby_left()
 	_node_tracker.lobby_left()
@@ -1331,6 +1335,16 @@ func player_erase_data(key : String) -> void:
 func player_get_data(client_id : int, key : String, default = null):
 	if !_connection_controller.valid_connection(): return default
 	return _session_controller.get_player_data(client_id, key, default)
+
+## Returns whether a specific client has player data stored under the given key.
+## If you want to check your own data you can input your own id.
+## You can get your own id using [method get_client_id].
+## [br]
+## [br][b]client_id -[/b] The Client ID of which client you would like to check the data from.
+## [br][b]key -[/b] The key of the player data.
+func player_has_data(client_id : int, key : String) -> bool:
+	if !_connection_controller.valid_connection(): return false
+	return _session_controller.has_player_data(client_id, key)
 
 ## Gets all data from a specific client. If you want to retrieve your own data you can input your own id.
 ## You can get your own id using [method get_client_id].
