@@ -24,7 +24,7 @@ extends Node
 #ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 #SUCH DAMAGE.
 
-enum State {
+enum _SwitchState {
 	IDLE,
 	CONNECTING_DESTINATION,
 	TUNNELING,
@@ -43,7 +43,7 @@ var session_controller
 var matchmaking_controller
 var logger
 
-var state: State = State.IDLE
+var state: _SwitchState = _SwitchState.IDLE
 var _state_deadline: int = 0
 var _reservation_deadline: int = 0
 var source_address: String = ""
@@ -87,18 +87,18 @@ func begin(data: Dictionary) -> void:
 
 	var expires_in := maxf(float(data.get("ExpiresIn", 20.0)), 1.0)
 	_reservation_deadline = Time.get_ticks_msec() + int(expires_in * 1000.0)
-	_set_state(State.CONNECTING_DESTINATION)
+	_set_state(_SwitchState.CONNECTING_DESTINATION)
 	pending_tunnel_address = destination_address
 	request_processor.clear_for_server_switch()
 	connection_controller.switch_server(destination_address, use_websocket)
 
 
 func is_active() -> bool:
-	return state != State.IDLE
+	return state != _SwitchState.IDLE
 
 
 func _process(_delta : float) -> void:
-	if state == State.IDLE: return
+	if state == _SwitchState.IDLE: return
 	
 	var now : int = Time.get_ticks_msec()
 	
@@ -111,10 +111,10 @@ func _process(_delta : float) -> void:
 		_timed_out(ENUMS.LOBBY_SWITCH_ERROR.DESTINATION_UNREACHABLE)
 
 
-func _set_state(new_state : State) -> void:
+func _set_state(new_state : _SwitchState) -> void:
 	state = new_state
 	
-	if new_state == State.IDLE:
+	if new_state == _SwitchState.IDLE:
 		_state_deadline = 0
 		_reservation_deadline = 0
 		return
@@ -128,20 +128,20 @@ func _refresh_state_deadline() -> void:
 
 func _is_rollback_state() -> bool:
 	return (
-		state == State.ROLLING_BACK
-		or state == State.TUNNELING_ROLLBACK
-		or state == State.RESTORING_SOURCE
+		state == _SwitchState.ROLLING_BACK
+		or state == _SwitchState.TUNNELING_ROLLBACK
+		or state == _SwitchState.RESTORING_SOURCE
 	)
 
 
 func _timed_out(error : int) -> void:
-	logger.write_error("Server switch timed out. <"+str(State.keys()[state])+">")
+	logger.write_error("Server switch timed out. <"+str(_SwitchState.keys()[state])+">")
 	
 	if _is_rollback_state():
 		fail_permanently(ENUMS.LOBBY_SWITCH_ERROR.ROLLBACK_FAILED)
 		return
 	
-	if state == State.JOINING_DESTINATION:
+	if state == _SwitchState.JOINING_DESTINATION:
 		rollback(ENUMS.LOBBY_SWITCH_ERROR.JOIN_FAILED)
 		return
 	
@@ -153,29 +153,29 @@ func _should_web_tunnel() -> bool:
 
 
 func connection_secured() -> bool:
-	if state == State.CONNECTING_DESTINATION:
+	if state == _SwitchState.CONNECTING_DESTINATION:
 		if _should_web_tunnel():
-			_set_state(State.TUNNELING)
+			_set_state(_SwitchState.TUNNELING)
 			request_processor.create_tunnel_to_request(pending_tunnel_address)
 			return true
 		_join_destination()
 		return true
-	if state == State.TUNNELING:
+	if state == _SwitchState.TUNNELING:
 		_join_destination()
 		return true
-	if state == State.ROLLING_BACK:
+	if state == _SwitchState.ROLLING_BACK:
 		if _should_web_tunnel():
-			_set_state(State.TUNNELING_ROLLBACK)
+			_set_state(_SwitchState.TUNNELING_ROLLBACK)
 			request_processor.create_tunnel_to_request(pending_tunnel_address)
 			return true
 		return _restore_source_after_secure()
-	if state == State.TUNNELING_ROLLBACK:
+	if state == _SwitchState.TUNNELING_ROLLBACK:
 		return _restore_source_after_secure()
 	return false
 
 
 func tunnel_ready() -> void:
-	if state != State.TUNNELING and state != State.TUNNELING_ROLLBACK:
+	if state != _SwitchState.TUNNELING and state != _SwitchState.TUNNELING_ROLLBACK:
 		return
 	request_processor.clear_for_server_switch()
 	_refresh_state_deadline()
@@ -183,10 +183,10 @@ func tunnel_ready() -> void:
 
 
 func tunnel_local() -> void:
-	if state == State.TUNNELING:
+	if state == _SwitchState.TUNNELING:
 		_join_destination()
 		return
-	if state == State.TUNNELING_ROLLBACK:
+	if state == _SwitchState.TUNNELING_ROLLBACK:
 		_restore_source_after_secure()
 
 
@@ -195,20 +195,20 @@ func tunnel_failed() -> void:
 
 
 func transport_failed() -> bool:
-	if state == State.CONNECTING_DESTINATION or state == State.JOINING_DESTINATION or state == State.TUNNELING:
+	if state == _SwitchState.CONNECTING_DESTINATION or state == _SwitchState.JOINING_DESTINATION or state == _SwitchState.TUNNELING:
 		rollback(ENUMS.LOBBY_SWITCH_ERROR.DESTINATION_UNREACHABLE)
 		return true
-	if state == State.ROLLING_BACK or state == State.TUNNELING_ROLLBACK or state == State.RESTORING_SOURCE:
+	if state == _SwitchState.ROLLING_BACK or state == _SwitchState.TUNNELING_ROLLBACK or state == _SwitchState.RESTORING_SOURCE:
 		fail_permanently(ENUMS.LOBBY_SWITCH_ERROR.ROLLBACK_FAILED)
 		return true
 	return false
 
 
 func lobby_joined() -> void:
-	if state == State.RESTORING_SOURCE:
+	if state == _SwitchState.RESTORING_SOURCE:
 		finish_rollback()
 		return
-	if state != State.JOINING_DESTINATION:
+	if state != _SwitchState.JOINING_DESTINATION:
 		return
 	if !fallback_reservation_id.is_empty():
 		request_processor.create_commit_server_switch_request(
@@ -218,21 +218,21 @@ func lobby_joined() -> void:
 
 
 func lobby_join_failed() -> bool:
-	if state == State.RESTORING_SOURCE:
+	if state == _SwitchState.RESTORING_SOURCE:
 		fail_permanently(ENUMS.LOBBY_SWITCH_ERROR.ROLLBACK_FAILED)
 		return true
-	if state != State.JOINING_DESTINATION:
+	if state != _SwitchState.JOINING_DESTINATION:
 		return false
 	rollback(ENUMS.LOBBY_SWITCH_ERROR.JOIN_FAILED)
 	return true
 
 
 func rollback(error: int) -> void:
-	if state == State.IDLE or _is_rollback_state():
+	if state == _SwitchState.IDLE or _is_rollback_state():
 		return
 	rollback_error = error
 	_reservation_deadline = 0
-	_set_state(State.ROLLING_BACK)
+	_set_state(_SwitchState.ROLLING_BACK)
 	pending_tunnel_address = source_address
 	request_processor.clear_for_server_switch()
 	connection_controller.switch_server(source_address, use_websocket)
@@ -246,7 +246,7 @@ func finish_rollback() -> void:
 
 
 func fail_permanently(error: int) -> void:
-	var was_switching : bool = state != State.IDLE
+	var was_switching : bool = state != _SwitchState.IDLE
 	reset()
 	
 	if was_switching:
@@ -257,7 +257,7 @@ func fail_permanently(error: int) -> void:
 
 
 func _join_destination() -> void:
-	_set_state(State.JOINING_DESTINATION)
+	_set_state(_SwitchState.JOINING_DESTINATION)
 	session_controller.broadcast_player_data()
 	if connect_time > 0.0:
 		request_processor.set_connect_time(connect_time)
@@ -266,7 +266,7 @@ func _join_destination() -> void:
 
 func _restore_source_after_secure() -> bool:
 	if !fallback_reservation_id.is_empty():
-		_set_state(State.RESTORING_SOURCE)
+		_set_state(_SwitchState.RESTORING_SOURCE)
 		request_processor.create_join_lobby_with_ticket_request(fallback_reservation_id, proof)
 		return true
 	finish_rollback()
@@ -274,7 +274,7 @@ func _restore_source_after_secure() -> bool:
 
 
 func reset() -> void:
-	_set_state(State.IDLE)
+	_set_state(_SwitchState.IDLE)
 	source_address = ""
 	destination_address = ""
 	reservation_id = ""

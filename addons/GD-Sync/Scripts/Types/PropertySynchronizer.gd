@@ -114,12 +114,6 @@ enum PROCESS_MODE {
 ## Property indices sent over the network are derived from this list's order.
 @export var properties : PackedStringArray = [] : set = _set_properties
 
-var property_name : String :
-	set(value):
-		property_name = value
-		_refresh_property_list()
-		update_configuration_warnings()
-
 ## If enabled, properties will be interpolated. This will smooth out the synchronization. 
 ## Interpolation is only applied to types that support interpolation.
 ## [br][br]
@@ -166,10 +160,6 @@ const _VECTOR4_COMPONENTS : Array[String] = ["x", "y", "z", "w"]
 const _COLOR_COMPONENTS : Array[String] = ["r", "g", "b", "a", "h", "s", "v"]
 
 func _ready() -> void:
-	#Backward compatability check
-	if property_name != "":
-		properties.append(property_name)
-	
 	node = get_node_or_null(node_path)
 	if Engine.is_editor_hint():
 		set_process(false)

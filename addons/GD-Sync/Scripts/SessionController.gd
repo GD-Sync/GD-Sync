@@ -49,12 +49,14 @@ var lobby_name : String = ""
 var lobby_password : String = ""
 var own_lobby : bool = false
 var synced_time : float = 0.0
+var multiplayer_clock_synced : bool = false
 var remote_time : float = 0.0
 var remote_time_counter : int = 0
 var remote_time_latency : float = 0.0
 var synced_time_cooldown : float = 0.0
 var events : Array[Dictionary] = []
 
+var current_scene : Node
 var active_scene_change : String = ""
 var scene_ready_list : Array[int] = []
 var _scene_change_elapsed : float = 0.0
@@ -89,6 +91,10 @@ func _ready() -> void:
 	GDSync.client_id_changed.connect(client_id_changed)
 	GDSync.host_changed.connect(host_changed)
 	
+	get_tree().scene_changed.connect(_on_scene_change)
+	current_scene = get_tree().current_scene
+	current_scene.tree_exiting.connect(_on_old_scene_exiting)
+	
 	randomize()
 	synced_time = randf_range(0, 1000)
 
@@ -117,6 +123,7 @@ func sync_timer(time : float) -> void:
 	remote_time = time
 	remote_time_counter = 0
 	remote_time_latency = 0.0
+	multiplayer_clock_synced = true
 	
 	if(abs(time - synced_time) > 0.5): synced_time = remote_time
 	
@@ -169,6 +176,7 @@ func broadcast_player_data() -> void:
 
 func set_lobby_data(name : String, password : String) -> void:
 	synced_time = 0.0
+	multiplayer_clock_synced = false
 	lobby_name = name
 	lobby_password = password
 	
@@ -196,6 +204,8 @@ func lobby_left() -> void:
 	own_lobby = false
 	
 	synced_time = 0.0
+	multiplayer_clock_synced = false
+	request_processor.clear_unreliable_nonces()
 	
 	if active_scene_change != "":
 		logger.write_error("Scene change aborted, the lobby was left. <"+active_scene_change+">")
@@ -227,7 +237,9 @@ func client_left(id : int) -> void:
 	check_scene_ready()
 
 func host_changed(is_host : bool, _new_host_id : int) -> void:
-	if is_host: check_scene_ready()
+	if is_host:
+		multiplayer_clock_synced = true
+		check_scene_ready()
 
 func get_all_clients() -> Array:
 	return player_data.keys()
@@ -625,6 +637,15 @@ func connect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 func disconnect_gdsync_owner_changed(node : Node, callable : Callable) -> void:
 	node.disconnect("gdsync_owner_changed", callable)
 
+func _on_scene_change() -> void:
+	request_processor.end_scene_swap()
+	current_scene = get_tree().current_scene
+	current_scene.tree_exiting.connect(_on_old_scene_exiting)
+
+func _on_old_scene_exiting() -> void:
+	current_scene.tree_exiting.disconnect(_on_old_scene_exiting)
+	request_processor.begin_scene_swap()
+
 func change_scene(scene_path : String) -> void:
 	GDSync.call_func(load_scene, scene_path)
 	load_scene(scene_path)
@@ -676,6 +697,7 @@ func load_scene(scene_path : String) -> void:
 	tree.current_scene = new_scene
 	
 	active_scene_change = ""
+	request_processor.end_scene_swap()
 
 func _process_scene_change(delta : float) -> void:
 	if active_scene_change == "" or _scene_change_resolved: return
@@ -713,6 +735,7 @@ func switch_scene_success() -> void:
 	_scene_change_resolved = true
 	scene_ready_list.clear()
 	GDSync.change_scene_success.emit(active_scene_change)
+	request_processor.begin_scene_swap()
 	scene_ready.emit.call_deferred()
 
 func switch_scene_failed() -> void:
@@ -721,6 +744,7 @@ func switch_scene_failed() -> void:
 	_scene_change_resolved = true
 	scene_ready_list.clear()
 	active_scene_change = ""
+	request_processor.cancel_scene_swap()
 	GDSync.change_scene_failed.emit(scene_path)
 	scene_ready.emit.call_deferred()
 

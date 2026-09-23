@@ -31,7 +31,7 @@ var local_server
 var logger
 
 const API_VERSION : int = 6
-const PLUGIN_VERSION : String = "1.0"
+const PLUGIN_VERSION : String = "1.0.2"
 
 const KeyStore = preload("res://addons/GD-Sync/Scripts/KeyStore.gd")
 
@@ -63,6 +63,7 @@ var _session_aes_key : PackedByteArray = PackedByteArray()
 var _session_crypto_ready : bool = false
 
 var artificial_latency_ms : int = 0
+var _unreliable_throttle_ready : bool = false
 
 const _LB_TIMEOUT_MS : int = 10000
 const _LB_MAX_ATTEMPTS : int = 3
@@ -127,12 +128,13 @@ func valid_connection() -> bool:
 	return true
 
 func reset_multiplayer(force_disconnect_signal : bool = false) -> void:
-	var emit_disconnect : bool = force_disconnect_signal or status > ENUMS.CONNECTION_STATUS.CONNECTED
+	var emit_disconnect : bool = force_disconnect_signal or (status > ENUMS.CONNECTION_STATUS.CONNECTED and status != ENUMS.CONNECTION_STATUS.LOCAL_CONNECTION)
 	_connect_generation += 1
 	
 	client.close()
 	local_server.reset_multiplayer()
 	_reset_session_crypto()
+	_unreliable_throttle_ready = false
 	
 	status = ENUMS.CONNECTION_STATUS.DISABLED
 	client_id = -1
@@ -294,7 +296,14 @@ func start_local_multiplayer() -> void:
 
 func stop_multiplayer() -> void:
 	logger.write_log("Stopping multiplayer.")
-	reset_multiplayer()
+	reset_multiplayer(true)
+
+func leave_local_lobby_client() -> void:
+	in_local_lobby = false
+	host = -1
+	if client is MultiplayerPeer:
+		client.close()
+		client = ENetMultiplayerPeer.new()
 
 func _fetch_game_servers(gen : int) -> Dictionary:
 	var empty : Dictionary = { "servers": [], "invalid_key": false }
@@ -553,12 +562,12 @@ func _begin_client_connect(server : String) -> void:
 		logger.write_log("Connecting using UDP.")
 		client.create_client(server, 8080)
 
-func connect_to_local_server(server : String) -> int:
-	logger.write_log("Connecting to local server. <"+server+">")
+func connect_to_local_server(server : String, port : int) -> int:
+	logger.write_log("Connecting to local server. <"+server+":"+str(port)+">")
 	
 	client.close()
 	client = ENetMultiplayerPeer.new()
-	return client.create_client(server, 8080)
+	return client.create_client(server, port)
 
 func _rank_web_servers(gen : int) -> Array:
 	logger.write_log("HTTPS pinging web servers. <"+str(web_servers)+">")
@@ -640,6 +649,17 @@ func _receive_packet(bytes : PackedByteArray, packet_channel : int) -> void:
 		return
 	request_processor.unpack_packet(bytes, packet_channel)
 
+func _configure_unreliable_throttle() -> void:
+	if _unreliable_throttle_ready or !(client is ENetMultiplayerPeer):
+		return
+	if client.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
+		return
+	var enet_peer : ENetPacketPeer = client.get_peer(1)
+	if enet_peer == null:
+		return
+	enet_peer.throttle_configure(5000, 2, 0)
+	_unreliable_throttle_ready = true
+
 func _send_multiplayer_packet(bytes : PackedByteArray, transfer_mode : int, transfer_channel : int) -> void:
 	await _await_artificial_latency()
 	if !(client is MultiplayerPeer) or client.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
@@ -665,15 +685,21 @@ func _process(delta) -> void:
 	if client is MultiplayerPeer:
 		match(client.get_connection_status()):
 			MultiplayerPeer.CONNECTION_DISCONNECTED:
-				if !is_local() or in_local_lobby:
-					if status >= ENUMS.CONNECTION_STATUS.CONNECTED:
-						logger.write_error("MultiplayerPeer lost its connection.")
-						if GDSync._server_switch_controller.transport_failed():
-							return
-						reset_multiplayer()
+				if is_local():
+					if in_local_lobby:
+						logger.write_log("Local lobby connection lost, leaving lobby.")
+						in_local_lobby = false
+						GDSync.kicked.emit("")
+						GDSync.lobby_leave.call_deferred()
+				elif status >= ENUMS.CONNECTION_STATUS.CONNECTED:
+					logger.write_error("MultiplayerPeer lost its connection.")
+					if GDSync._server_switch_controller.transport_failed():
+						return
+					reset_multiplayer()
 			MultiplayerPeer.CONNECTION_CONNECTING:
 				client.poll()
 			MultiplayerPeer.CONNECTION_CONNECTED:
+				_configure_unreliable_throttle()
 				client.poll()
 			
 				while client.get_available_packet_count() > 0:
@@ -699,7 +725,9 @@ func _process(delta) -> void:
 						MultiplayerPeer.TRANSFER_MODE_RELIABLE,
 						0
 					)
-				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
+				var unreliable_packets : int = 8
+				while unreliable_packets > 0 and request_processor.has_packets(ENUMS.PACKET_CHANNEL.UNRELIABLE):
+					unreliable_packets -= 1
 					_send_multiplayer_packet(
 						request_processor.package_requests(ENUMS.PACKET_CHANNEL.UNRELIABLE),
 						MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED,

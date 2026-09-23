@@ -8,6 +8,7 @@
 [sub_resource type="Animation" id="Animation_p5x7e"]
 resource_name = "Downloading"
 length = 1.8
+step = 0.1
 tracks/0/type = "bezier"
 tracks/0/imported = false
 tracks/0/enabled = true
@@ -61,6 +62,18 @@ tracks/4/interp = 1
 tracks/4/loop_wrap = true
 tracks/4/keys = {
 "times": PackedFloat32Array(0, 1, 1.76667),
+"transitions": PackedFloat32Array(1, 1, 1),
+"update": 0,
+"values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
+}
+tracks/5/type = "value"
+tracks/5/imported = false
+tracks/5/enabled = true
+tracks/5/path = NodePath("CenterContainer/LogoAnchor/Logo/UpdateLabel:modulate")
+tracks/5/interp = 1
+tracks/5/loop_wrap = true
+tracks/5/keys = {
+"times": PackedFloat32Array(0, 1, 1.8),
 "transitions": PackedFloat32Array(1, 1, 1),
 "update": 0,
 "values": [Color(1, 1, 1, 0), Color(1, 1, 1, 0), Color(1, 1, 1, 1)]
@@ -241,6 +254,18 @@ tracks/7/path = NodePath("CenterContainer/LogoAnchor/Logo/LoadIcon:modulate")
 tracks/7/interp = 1
 tracks/7/loop_wrap = true
 tracks/7/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Color(1, 1, 1, 0)]
+}
+tracks/8/type = "value"
+tracks/8/imported = false
+tracks/8/enabled = true
+tracks/8/path = NodePath("CenterContainer/LogoAnchor/Logo/UpdateLabel:modulate")
+tracks/8/interp = 1
+tracks/8/loop_wrap = true
+tracks/8/keys = {
 "times": PackedFloat32Array(0),
 "transitions": PackedFloat32Array(1),
 "update": 0,
@@ -540,7 +565,7 @@ animations = [{
 "duration": 1.0,
 "texture": SubResource("AtlasTexture_oxpxj")
 }],
-"loop": true,
+"loop": 1,
 "name": &"default",
 "speed": 25.0
 }]
@@ -585,6 +610,7 @@ layout_mode = 2
 
 [node name="Logo" type="Control" parent="CenterContainer/LogoAnchor" unique_id=169430659]
 anchors_preset = 0
+theme = ExtResource("2_wd24h")
 
 [node name="Logo" type="Sprite2D" parent="CenterContainer/LogoAnchor/Logo" unique_id=1768483165]
 unique_name_in_owner = true
@@ -598,6 +624,25 @@ scale = Vector2(0.5, 0.5)
 sprite_frames = SubResource("SpriteFrames_m25b5")
 autoplay = "default"
 frame_progress = 0.471284
+
+[node name="UpdateLabel" type="Label" parent="CenterContainer/LogoAnchor/Logo" unique_id=1648919198]
+unique_name_in_owner = true
+modulate = Color(1, 1, 1, 0)
+custom_minimum_size = Vector2(400, 30)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = 220.0
+offset_right = 200.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Updating gd-sync"
+horizontal_alignment = 1
 
 [node name="UIAnchor" type="Control" parent="CenterContainer" unique_id=72271274]
 modulate = Color(1, 1, 1, 0)

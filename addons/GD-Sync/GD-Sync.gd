@@ -34,7 +34,7 @@ const CSHARP_UID_PATH : String = "res://addons/GD-Sync/GDSync.cs.uid"
 
 const KeyStore = preload("res://addons/GD-Sync/Scripts/KeyStore.gd")
 
-var version : String = "1.0.1"
+var version : String = "1.0.2"
 
 var debugger = GDSyncProfiler.new()
 var export_plugin : EditorExportPlugin = GDSyncExportPlugin.new()
@@ -71,7 +71,7 @@ func _enter_tree() -> void:
 	add_tool_menu_item("GD-Sync", config_selected)
 	
 	_cleanup_stale_csharp_uid()
-	check_for_updates_and_news()
+	_check_for_updates_and_news()
 	_initialize_remote_call_validator()
 	add_debugger_plugin(debugger)
 	add_export_plugin(export_plugin)
@@ -155,7 +155,7 @@ func disable_csharp_api() -> void:
 	
 	remove_autoload_singleton("GDSyncSharp")
 
-func check_for_updates_and_news() -> void:
+func _check_for_updates_and_news() -> void:
 	var request : HTTPRequest = HTTPRequest.new()
 	request.timeout = 15
 	add_child(request)

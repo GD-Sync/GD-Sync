@@ -50,6 +50,7 @@ func _ready():
 		%ScriptValidation.button_pressed = ProjectSettings.get_setting("GD-Sync/scriptValidation")
 	
 	updater = Updater.new()
+	updater.update_label = %UpdateLabel
 	add_child(updater)
 
 func update_ready() -> void:

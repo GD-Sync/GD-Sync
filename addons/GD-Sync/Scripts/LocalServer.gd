@@ -46,6 +46,8 @@ var local_lobby_data : Dictionary = {}
 var local_lobby_tags : Dictionary = {}
 var local_owner_cache : Dictionary = {}
 
+const _UNRELIABLE_WIRE_LIMIT : int = 1200
+
 var local_server : ENetMultiplayerPeer = ENetMultiplayerPeer.new()
 var local_peer : PacketPeerUDP = PacketPeerUDP.new()
 var local_lobby_timer : Timer = Timer.new()
@@ -55,6 +57,7 @@ var found_lobbies : Dictionary = {}
 var peer_client_table : Dictionary = {}
 var lobby_client_table : Dictionary = {}
 var _lobby_host_id : int = -1
+var _creating_local_lobby : bool = false
 
 class Client extends RefCounted:
 	var valid : bool = false
@@ -186,6 +189,19 @@ func create_local_lobby(name : String, password : String = "", public : bool = t
 	if result != -1:
 		GDSync.lobby_creation_failed.emit.call_deferred(name, result)
 		return
+	if _creating_local_lobby or local_lobby_name != "":
+		GDSync.lobby_creation_failed.emit.call_deferred(name, ENUMS.LOBBY_CREATION_ERROR.LOBBY_ALREADY_EXISTS)
+		return
+	
+	_creating_local_lobby = true
+	_ingest_local_broadcasts()
+	if !_network_name_taken(name):
+		await get_tree().create_timer(0.6).timeout
+		_ingest_local_broadcasts()
+	_creating_local_lobby = false
+	if _network_name_taken(name) or local_lobby_name != "":
+		GDSync.lobby_creation_failed.emit.call_deferred(name, ENUMS.LOBBY_CREATION_ERROR.LOBBY_ALREADY_EXISTS)
+		return
 	
 	local_peer.set_broadcast_enabled(true)
 	
@@ -255,21 +271,46 @@ func get_public_lobby(lobby_name : String) -> void:
 	
 	GDSync.lobby_received.emit.call_deferred({})
 
-func perform_local_scan() -> void:
-	local_lobby_timer.start()
-	
+func _network_name_taken(lobby_name : String) -> bool:
+	if lobby_name == local_lobby_name or !found_lobbies.has(lobby_name):
+		return false
+	var lobby_data : Dictionary = found_lobbies[lobby_name]
+	if !lobby_data.has("DetectionTime"):
+		return true
+	return Time.get_unix_time_from_system() - float(lobby_data["DetectionTime"]) <= 2.0
+
+func _is_local_address(ip : String) -> bool:
+	if ip == "127.0.0.1" or ip == "::1":
+		return true
+	return IP.get_local_addresses().has(ip)
+
+func _ingest_local_broadcasts() -> void:
 	while local_peer.get_available_packet_count() > 0:
 		var server_ip : String = local_peer.get_packet_ip()
 		var port : int = local_peer.get_packet_port()
 		var bytes : PackedByteArray = local_peer.get_packet()
 		
-		if server_ip != '' and port > 0:
-			var lobby_data : Dictionary = bytes_to_var(bytes)
-			if !found_lobbies.has(lobby_data["Name"]):
-				logger.write_log("Discovered local lobby. <"+server_ip+"><"+lobby_data["Name"]+">", "[LocalServer]")
-			lobby_data["IP"] = server_ip
-			lobby_data["DetectionTime"] = Time.get_unix_time_from_system()
-			found_lobbies[lobby_data["Name"]] = lobby_data
+		if server_ip == '' or port <= 0:
+			continue
+		var parsed = bytes_to_var(bytes)
+		if typeof(parsed) != TYPE_DICTIONARY or !parsed.has("Name"):
+			continue
+		var lobby_data : Dictionary = parsed
+		var heard_name : String = str(lobby_data["Name"])
+		if local_lobby_name != "" and heard_name == local_lobby_name:
+			if _is_local_address(server_ip) and int(lobby_data.get("Port", -1)) == local_lobby_port:
+				if found_lobbies.has(heard_name):
+					found_lobbies[heard_name]["DetectionTime"] = Time.get_unix_time_from_system()
+			continue
+		if !found_lobbies.has(heard_name):
+			logger.write_log("Discovered local lobby. <"+server_ip+"><"+heard_name+">", "[LocalServer]")
+		lobby_data["IP"] = server_ip
+		lobby_data["DetectionTime"] = Time.get_unix_time_from_system()
+		found_lobbies[heard_name] = lobby_data
+
+func perform_local_scan() -> void:
+	local_lobby_timer.start()
+	_ingest_local_broadcasts()
 	
 	var expired : Array = []
 	for lobby_name in found_lobbies:
@@ -300,6 +341,8 @@ func peer_connected(id : int) -> void:
 	var client : Client = Client.new()
 	client.peer = local_server.get_peer(id)
 	client.peer_id = id
+	if client.peer != null:
+		client.peer.throttle_configure(5000, 2, 0)
 	peer_client_table[id] = client
 
 func peer_disconnected(id : int) -> void:
@@ -307,6 +350,24 @@ func peer_disconnected(id : int) -> void:
 	if peer_client_table.has(id):
 		var client : Client = peer_client_table[id]
 		leave_lobby_request(client)
+
+func _take_unreliable_batch(requests : Array) -> Array:
+	var fit : int = 1
+	var lo : int = 1
+	var hi : int = requests.size()
+	while lo <= hi:
+		var mid : int = (lo + hi) >> 1
+		if var_to_bytes(requests.slice(0, mid)).size() <= _UNRELIABLE_WIRE_LIMIT:
+			fit = mid
+			lo = mid + 1
+		else:
+			hi = mid - 1
+	var batch : Array = []
+	for i in fit:
+		batch.append(requests[i])
+	for i in fit:
+		requests.pop_front()
+	return batch
 
 func _flush_outgoing_requests() -> void:
 	if local_server.get_connection_status() != MultiplayerPeer.CONNECTION_CONNECTED:
@@ -321,8 +382,10 @@ func _flush_outgoing_requests() -> void:
 		if client.requests_UDP.size() > 0:
 			local_server.transfer_mode = MultiplayerPeer.TRANSFER_MODE_UNRELIABLE_ORDERED
 			local_server.set_target_peer(client.peer_id)
-			local_server.put_packet(var_to_bytes(client.requests_UDP))
-			client.requests_UDP.clear()
+			var unreliable_packets : int = 8
+			while unreliable_packets > 0 and client.requests_UDP.size() > 0:
+				unreliable_packets -= 1
+				local_server.put_packet(var_to_bytes(_take_unreliable_batch(client.requests_UDP)))
 	local_server.poll()
 
 func _process(delta: float) -> void:

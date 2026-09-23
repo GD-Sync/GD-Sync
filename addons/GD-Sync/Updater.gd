@@ -46,8 +46,16 @@ const EXCLUDED_FILES : Array = [
 	PLUGIN_PATH+"/keys.cfg",
 ]
 
+var update_label : Label
+
+func _set_status(text : String) -> void:
+	if update_label:
+		update_label.text = text
+
 func update_repo(path : String = PLUGIN_PATH) -> bool:
 	if path.is_empty(): path = PLUGIN_PATH
+	
+	_set_status("Connecting to GitHub...")
 	
 	var files : Array = []
 	if not await _collect_files(path, files):
@@ -99,6 +107,8 @@ func _is_excluded(path : String) -> bool:
 
 func _download(url : String, rel : String, expected_size : int) -> bool:
 	var dst : String = LOCAL_ROOT+rel
+	var filename : String = rel.get_file()
+	_set_status("Updating "+filename)
 	print_rich("[color=#8b8d8f]- Updating file " + dst + "[/color]")
 	
 	var body : PackedByteArray = await _request_bytes(url, [])

@@ -75,18 +75,27 @@ func clear_for_server_switch() -> void:
 	requestsRUDP.clear()
 	requestsUDP.clear()
 	_seen_unreliable_nonces.clear()
+	_senders_on_multiplayer_clock.clear()
+	_scene_swap_holding = false
+	_join_holding = false
+	_held_requests.clear()
 	settings_applied = false
 
 const _WIRE_COMPRESSION : int = FileAccess.COMPRESSION_ZSTD
 const _MAX_PLAIN_REQUEST_BATCH_BYTES : int = 20480
 const _MAX_DECOMPRESSED_PACKET_BYTES : int = 2097152
+const _UNRELIABLE_WIRE_LIMIT : int = 1200
+const _UNRELIABLE_COMPRESS_HEADROOM : int = 64
+const _UNRELIABLE_AUTH_NONCE_PLACEHOLDER : int = 9223372036854775807
 const _TARGET_CLIENT_ID_MASK : int = 0x3FFFFFFF
 const _TARGET_PERMISSION_SHIFT : int = 30
 
 const _UNRELIABLE_AUTH_KEY : String = "_gdsn"
-const _UNRELIABLE_NONCE_WINDOW_MS : int = 10000
+const _UNRELIABLE_NONCE_WINDOW_MS : int = 300000
+const _UNRELIABLE_UNSYNCED_SENDER_MS : int = 300000
 var _unreliable_nonce_counter : int = 0
 var _seen_unreliable_nonces : Dictionary = {}
+var _senders_on_multiplayer_clock : Dictionary = {}
 
 func encode_target_client(client_id : int, permission : int) -> int:
 	var id_part : int = client_id if client_id >= 0 else _TARGET_CLIENT_ID_MASK
@@ -193,19 +202,21 @@ func package_requests(type : int) -> PackedByteArray:
 			requests = requestsUDP
 			packet_type = ENUMS.PACKET_VALUE.CLIENT_REQUESTS
 	
-	var batch : Array = requests.duplicate()
+	var batch : Array = []
 	if type == ENUMS.PACKET_CHANNEL.UNRELIABLE:
+		batch = _detach_unreliable_batch(requests, packet_type)
+	else:
+		batch = requests.duplicate()
+		var sized : Dictionary = {packet_type: batch}
+		var sized_plain : PackedByteArray = var_to_bytes(sized)
+		while sized_plain.size() > _MAX_PLAIN_REQUEST_BATCH_BYTES and batch.size() > 1:
+			batch = batch.slice(0, ceili(batch.size() / 2.0))
+			sized = {packet_type: batch}
+			sized_plain = var_to_bytes(sized)
 		for request in batch:
-			if request is Array:
-				_stamp_unreliable_auth(request)
+			requests.erase(request)
 	var message : Dictionary = {packet_type: batch}
 	var plain : PackedByteArray = var_to_bytes(message)
-	while plain.size() > _MAX_PLAIN_REQUEST_BATCH_BYTES and batch.size() > 1:
-		batch = batch.slice(0, ceili(batch.size() / 2.0))
-		message = {packet_type: batch}
-		plain = var_to_bytes(message)
-	for request in batch:
-		requests.erase(request)
 	
 	var payload : PackedByteArray = _encrypt_outgoing_if_secured(plain, type)
 	packets_processed.emit()
@@ -229,6 +240,55 @@ func package_requests(type : int) -> PackedByteArray:
 					logger.register_transfer_usage(origin_data, compressed_size_estimate, true, var_to_str(r))
 	
 	return return_bytes
+
+func _detach_unreliable_batch(requests : Array, packet_type : int) -> Array:
+	if requests.is_empty():
+		return []
+	var fit : int = 1
+	var lo : int = 1
+	var hi : int = requests.size()
+	while lo <= hi:
+		var mid : int = (lo + hi) >> 1
+		if _unreliable_prefix_fits(requests, mid, packet_type):
+			fit = mid
+			lo = mid + 1
+		else:
+			hi = mid - 1
+	var batch : Array = []
+	for i in fit:
+		var request = requests[i]
+		if request is Array:
+			_stamp_unreliable_auth(request)
+		batch.append(request)
+	for i in fit:
+		requests.pop_front()
+	return batch
+
+func _unreliable_prefix_fits(requests : Array, count : int, packet_type : int) -> bool:
+	var batch : Array = []
+	for i in count:
+		var request = requests[i]
+		if request is Array:
+			var copy : Array = request.duplicate(true)
+			var mac := PackedByteArray()
+			mac.resize(32)
+			copy.append({_UNRELIABLE_AUTH_KEY: [1, _UNRELIABLE_AUTH_NONCE_PLACEHOLDER, mac]})
+			batch.append(copy)
+		else:
+			batch.append(request)
+	var plain : PackedByteArray = var_to_bytes({packet_type: batch})
+	return _estimate_unreliable_wire_bytes(plain) <= _UNRELIABLE_WIRE_LIMIT
+
+func _estimate_unreliable_wire_bytes(plain : PackedByteArray) -> int:
+	var pad : int = 16 - (plain.size() % 16)
+	if pad == 0:
+		pad = 16
+	var cipher_len : int = plain.size() + pad
+	if connection_controller.is_local():
+		return cipher_len
+	var blob := PackedByteArray()
+	blob.resize(cipher_len + _UNRELIABLE_COMPRESS_HEADROOM)
+	return var_to_bytes([cipher_len, 0, blob]).size()
 
 func _requests_from_payload_bytes(data : PackedByteArray) -> Array:
 	if data.is_empty():
@@ -264,9 +324,12 @@ func _decompress_remote_envelope(outer : Array) -> PackedByteArray:
 		return PackedByteArray()
 	return body
 
+func _multiplayer_time_ms() -> int:
+	return maxi(int(GDSync.get_multiplayer_time() * 1000.0), 0)
+
 func _next_unreliable_nonce() -> int:
 	_unreliable_nonce_counter = (_unreliable_nonce_counter + 1) & 0xFFFF
-	return (Time.get_ticks_msec() << 16) | _unreliable_nonce_counter
+	return (_multiplayer_time_ms() << 16) | _unreliable_nonce_counter
 
 func _unreliable_mac(request : Array, nonce : int) -> PackedByteArray:
 	var ctx : HMACContext = HMACContext.new()
@@ -280,17 +343,29 @@ func _stamp_unreliable_auth(request : Array) -> void:
 	var nonce : int = _next_unreliable_nonce()
 	request.append({_UNRELIABLE_AUTH_KEY: [1, nonce, _unreliable_mac(request, nonce)]})
 
-func _remember_unreliable_nonce(nonce : int) -> bool:
-	var now_ms : int = Time.get_ticks_msec()
-	var nonce_ms : int = nonce >> 16
-	if nonce_ms + _UNRELIABLE_NONCE_WINDOW_MS < now_ms:
-		return false
-	if nonce_ms > now_ms + 2000:
-		return false
+func clear_unreliable_nonces() -> void:
+	_seen_unreliable_nonces.clear()
+	_senders_on_multiplayer_clock.clear()
+	_unreliable_nonce_counter = 0
+
+func _remember_unreliable_nonce(nonce : int, sender_id : int) -> bool:
 	if _seen_unreliable_nonces.has(nonce):
 		return false
+	var now_ms : int = _multiplayer_time_ms()
+	var nonce_ms : int = nonce >> 16
+	var aligned : bool = absi(nonce_ms - now_ms) <= _UNRELIABLE_NONCE_WINDOW_MS
+	if aligned:
+		if sender_id >= 0 and session_controller.multiplayer_clock_synced:
+			_senders_on_multiplayer_clock[sender_id] = true
+	else:
+		var local_clock_ready : bool = session_controller.multiplayer_clock_synced
+		var sender_still_joining : bool = nonce_ms >= 0 and nonce_ms <= _UNRELIABLE_UNSYNCED_SENDER_MS
+		var sender_already_synced : bool = sender_id >= 0 and _senders_on_multiplayer_clock.has(sender_id)
+		if (local_clock_ready and !sender_still_joining) or sender_already_synced:
+			logger.write_error("Dropped an unreliable packet outside the multiplayer time window. <"+str(nonce_ms)+"><"+str(now_ms)+">")
+			return false
 	
-	_seen_unreliable_nonces[nonce] = nonce_ms
+	_seen_unreliable_nonces[nonce] = now_ms
 	if _seen_unreliable_nonces.size() > 4096:
 		var expired : Array = []
 		for seen in _seen_unreliable_nonces:
@@ -324,7 +399,10 @@ func _accept_incoming_request(request : Array) -> bool:
 	if !_macs_equal(_unreliable_mac(request, nonce), auth[2]):
 		logger.write_error("Dropped a packet whose authentication check failed.")
 		return false
-	if !_remember_unreliable_nonce(nonce):
+	var sender_id : int = -1
+	if request.size() > 0 and request[0] is int:
+		sender_id = _request_caller_id(request, request[0])
+	if !_remember_unreliable_nonce(nonce, sender_id):
 		return false
 	return true
 
@@ -381,17 +459,9 @@ func unpack_packet(bytes : PackedByteArray, transport_channel : int = 0) -> void
 		if request.size() < _request_min_size(request[ENUMS.DATA.REQUEST_TYPE]):
 			continue
 		
-		match request[ENUMS.DATA.REQUEST_TYPE]:
-			ENUMS.REQUEST_TYPE.SET_VARIABLE:
-				set_variable(request)
-			ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED:
-				set_variable_cached(request)
-			ENUMS.REQUEST_TYPE.CALL_FUNCTION:
-				call_function(request)
-			ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED:
-				call_function_cached(request)
-			ENUMS.REQUEST_TYPE.MESSAGE:
-				process_message(request)
+		if _should_hold_request(request):
+			continue
+		_dispatch_request(request)
 	
 	if logger.use_profiler and requests.size() > 0:
 		var total_uncompressed_size : float = 0.0
@@ -444,6 +514,73 @@ func get_request_origin_data(r : Array) -> Dictionary:
 		ENUMS.REQUEST_TYPE.MESSAGE:
 			return {"type" : "internal", "object" : "GD-Sync", "target" : "Internal Message ("+ENUMS.MESSAGE_TYPE.keys()[r[ENUMS.MESSAGE_DATA.TYPE]].capitalize()+")"}
 	return {}
+
+var _scene_swap_holding : bool = false
+var _join_holding : bool = false
+var _held_requests : Array = []
+
+const _SCENE_SWAP_HANDSHAKE : PackedStringArray = [
+	"load_scene",
+	"mark_scene_ready",
+	"switch_scene_success",
+	"switch_scene_failed",
+]
+
+func begin_scene_swap() -> void:
+	_scene_swap_holding = true
+
+func end_scene_swap() -> void:
+	_scene_swap_holding = false
+	flush_held_requests()
+
+func cancel_scene_swap() -> void:
+	_scene_swap_holding = false
+	flush_held_requests()
+
+func flush_held_requests() -> void:
+	if _scene_swap_holding or _join_holding or _held_requests.is_empty():
+		return
+	var pending : Array = _held_requests
+	_held_requests = []
+	for request in pending:
+		_dispatch_request(request)
+
+func _should_hold_request(request : Array) -> bool:
+	if !(_scene_swap_holding or _join_holding) or _is_scene_swap_handshake(request) or _is_lobby_data_received(request):
+		return false
+	_held_requests.append(request)
+	return true
+
+func _is_lobby_data_received(request : Array) -> bool:
+	if request[ENUMS.DATA.REQUEST_TYPE] != ENUMS.REQUEST_TYPE.MESSAGE:
+		return false
+	if request.size() <= ENUMS.MESSAGE_DATA.TYPE or !(request[ENUMS.MESSAGE_DATA.TYPE] is int):
+		return false
+	return request[ENUMS.MESSAGE_DATA.TYPE] == ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED
+
+func _is_scene_swap_handshake(request : Array) -> bool:
+	var request_type : int = request[ENUMS.DATA.REQUEST_TYPE]
+	if request_type != ENUMS.REQUEST_TYPE.CALL_FUNCTION and request_type != ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED:
+		return false
+	var function_name = request[ENUMS.FUNCTION_DATA.NAME]
+	if function_name is int:
+		if !session_controller.has_name_from_index(function_name):
+			return false
+		function_name = session_controller.get_name_from_index(function_name)
+	return _SCENE_SWAP_HANDSHAKE.has(str(function_name))
+
+func _dispatch_request(request : Array) -> void:
+	match request[ENUMS.DATA.REQUEST_TYPE]:
+		ENUMS.REQUEST_TYPE.SET_VARIABLE:
+			set_variable(request)
+		ENUMS.REQUEST_TYPE.SET_VARIABLE_CACHED:
+			set_variable_cached(request)
+		ENUMS.REQUEST_TYPE.CALL_FUNCTION:
+			call_function(request)
+		ENUMS.REQUEST_TYPE.CALL_FUNCTION_CACHED:
+			call_function_cached(request)
+		ENUMS.REQUEST_TYPE.MESSAGE:
+			process_message(request)
 
 func process_message(request : Array) -> void:
 	if request.size() <= ENUMS.MESSAGE_DATA.TYPE or !(request[ENUMS.MESSAGE_DATA.TYPE] is int):
@@ -498,10 +635,9 @@ func process_message(request : Array) -> void:
 			if connection_controller.is_local():
 				connection_controller.in_local_lobby = true
 			data_controller.set_friend_status()
-			await get_tree().process_frame
+			_join_holding = true
 			server_switch_controller.lobby_joined()
 			matchmaking_controller.lobby_joined()
-			GDSync.lobby_joined.emit(request[ENUMS.MESSAGE_DATA.VALUE])
 		ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED:
 			if request.size() <= ENUMS.MESSAGE_DATA.ERROR: return
 			if connection_controller.is_local():
@@ -521,6 +657,10 @@ func process_message(request : Array) -> void:
 		ENUMS.MESSAGE_TYPE.LOBBY_DATA_RECEIVED:
 			if request.size() <= ENUMS.MESSAGE_DATA.VALUE: return
 			session_controller.override_lobby_data(request[ENUMS.MESSAGE_DATA.VALUE])
+			GDSync.lobby_joined.emit(request[ENUMS.MESSAGE_DATA.VALUE]["Name"])
+			await get_tree().process_frame
+			_join_holding = false
+			flush_held_requests()
 		ENUMS.MESSAGE_TYPE.LOBBY_DATA_CHANGED:
 			if request.size() <= ENUMS.MESSAGE_DATA.VALUE: return
 			session_controller.lobby_data_changed(request[ENUMS.MESSAGE_DATA.VALUE])
