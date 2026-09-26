@@ -65,6 +65,8 @@ func _ready() -> void:
 	session_controller = GDSync._session_controller
 	matchmaking_controller = GDSync._matchmaking_controller
 	logger = GDSync._logger
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 
 func begin(data: Dictionary) -> void:
