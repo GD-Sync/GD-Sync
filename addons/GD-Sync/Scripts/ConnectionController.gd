@@ -107,7 +107,9 @@ func _ready() -> void:
 	
 	if _PUBLIC_KEY == "" || _PRIVATE_KEY == "":
 		logger.write_error("No Public or Private key was entered in the GD-Sync settings. Please add one under Project->Tools->GD-Sync. If you are using local multiplayer only, you can ignore this error.")
-
+	
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	
 func is_active() -> bool:
 	return status >= ENUMS.CONNECTION_STATUS.CONNECTING
 
