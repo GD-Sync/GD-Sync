@@ -50,11 +50,16 @@ var lobby_password : String = ""
 var own_lobby : bool = false
 var synced_time : float = 0.0
 var multiplayer_clock_synced : bool = false
-var remote_time : float = 0.0
-var remote_time_counter : int = 0
-var remote_time_latency : float = 0.0
-var synced_time_cooldown : float = 0.0
+var _clock_offset_sec : float = 0.0
+var _next_clock_sync_msec : int = 0
+var _sync_host_sec : float = 0.0
+var _sync_received_msec : int = 0
+var _sync_generation : int = 0
+var _sync_latency_sum : float = 0.0
+var _sync_latency_count : int = 0
 var events : Array[Dictionary] = []
+
+const _CLOCK_SYNC_INTERVAL_MSEC : int = 30000
 
 var current_scene : Node
 var active_scene_change : String = ""
@@ -96,50 +101,69 @@ func _ready() -> void:
 	current_scene.tree_exiting.connect(_on_old_scene_exiting)
 	
 	randomize()
-	synced_time = randf_range(0, 1000)
+	_set_synced_time(randf_range(0, 1000))
+
+func _get_ticks() -> float:
+	return Time.get_ticks_msec() / 1000.0
+
+func _set_synced_time(absolute_sec : float) -> void:
+	_clock_offset_sec = absolute_sec - _get_ticks()
+	synced_time = absolute_sec
+
+func get_synced_time() -> float:
+	synced_time = _get_ticks() + _clock_offset_sec
+	return synced_time
 
 func _process(delta):
 	_process_scene_change(delta)
 	if !GDSync.is_active(): return
-	handle_events(delta)
+	handle_events()
 
-func handle_events(delta : float) -> void:
-	synced_time += delta
-	remote_time += delta
+func handle_events() -> void:
+	var now := get_synced_time()
 	
 	for event in events:
-		if synced_time >= event["Time"]:
+		if now >= event["Time"]:
 			GDSync.synced_event_triggered.emit(event["Name"], event["Parameters"])
 			events.erase(event)
 	
 	if !GDSync.is_active() || !GDSync.is_host(): return
 	
-	synced_time_cooldown -= delta
-	if synced_time_cooldown <= 0.0:
-		synced_time_cooldown = 30.0
-		GDSync.call_func(sync_timer, synced_time)
+	var now_msec := Time.get_ticks_msec()
+	if now_msec >= _next_clock_sync_msec:
+		_next_clock_sync_msec = now_msec + _CLOCK_SYNC_INTERVAL_MSEC
+		GDSync.call_func(sync_timer, now)
 
 func sync_timer(time : float) -> void:
-	remote_time = time
-	remote_time_counter = 0
-	remote_time_latency = 0.0
+	_sync_host_sec = time
+	_sync_received_msec = Time.get_ticks_msec()
+	_sync_latency_sum = 0.0
+	_sync_latency_count = 0
+	_sync_generation += 1
 	multiplayer_clock_synced = true
+	var generation := _sync_generation
 	
-	if(abs(time - synced_time) > 0.5): synced_time = remote_time
+	if abs(time - get_synced_time()) > 0.5:
+		_set_synced_time(time)
 	
 	for i in range(5):
 		await get_tree().process_frame
-		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, GDSync.get_client_id(), Time.get_unix_time_from_system())
+		if generation != _sync_generation:
+			return
+		GDSync.call_func_on(GDSync.get_host(), get_timer_latency, GDSync.get_client_id(), _get_ticks(), generation)
 
-func get_timer_latency(client : int, timestamp : float) -> void:
-	GDSync.call_func_on(client, timer_latency_callback, timestamp)
+func get_timer_latency(client : int, timestamp : float, generation : int = -1) -> void:
+	GDSync.call_func_on(client, timer_latency_callback, timestamp, generation)
 
-func timer_latency_callback(timestamp : float) -> void:
-	remote_time_counter += 1
-	remote_time_latency += (Time.get_unix_time_from_system()-timestamp)/2.0
+func timer_latency_callback(timestamp : float, generation : int = -1) -> void:
+	if generation >= 0 and generation != _sync_generation:
+		return
+	_sync_latency_count += 1
+	_sync_latency_sum += (_get_ticks() - timestamp) / 2.0
 	
-	if remote_time_counter >= 5:
-		synced_time = remote_time + remote_time_latency/remote_time_counter
+	if _sync_latency_count >= 5:
+		var elapsed_sec := (Time.get_ticks_msec() - _sync_received_msec) / 1000.0
+		_set_synced_time(_sync_host_sec + elapsed_sec + _sync_latency_sum / _sync_latency_count)
 
 func register_event(event_name : String, time : float, parameters : Array, local : bool = false) -> void:
 	events.append({
@@ -175,7 +199,9 @@ func broadcast_player_data() -> void:
 			GDSync.player_set_data(key, own_data[key])
 
 func set_lobby_data(name : String, password : String) -> void:
-	synced_time = 0.0
+	_sync_generation += 1
+	_set_synced_time(0.0)
+	_next_clock_sync_msec = 0
 	multiplayer_clock_synced = false
 	lobby_name = name
 	lobby_password = password
@@ -203,7 +229,8 @@ func lobby_left() -> void:
 	lobby_password = ""
 	own_lobby = false
 	
-	synced_time = 0.0
+	_sync_generation += 1
+	_set_synced_time(0.0)
 	multiplayer_clock_synced = false
 	request_processor.clear_unreliable_nonces()
 	
@@ -219,7 +246,7 @@ func client_joined(client_id : int) -> void:
 	if client_id == GDSync.get_client_id(): return
 	
 	if GDSync.is_host():
-		synced_time_cooldown = 0.0
+		_next_clock_sync_msec = 0
 		
 		for event in events:
 			GDSync.call_func_on(client_id, register_event,

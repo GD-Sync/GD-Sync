@@ -726,7 +726,7 @@ func multiplayer_queue_free(node : Node) -> void:
 ## [br]
 ## [br][b]IMPORTANT:[/b] It may take up to a second for the time to synchronize after just joining a lobby.
 func get_multiplayer_time() -> float:
-	return _session_controller.synced_time
+	return _session_controller.get_synced_time()
 
 ## Create a time-based event that triggers after a delay. GD-Sync will attempt to trigger this event
 ## on all clients at the same time, regardless of the latency between clients. Useful for creating

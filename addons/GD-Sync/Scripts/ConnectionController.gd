@@ -227,8 +227,14 @@ func _start_native_connect(gen : int) -> void:
 		return
 	_fail_connect(gen, ENUMS.CONNECTION_FAILED.TIMEOUT, "Connection timeout, server did not respond.")
 
+func _new_web_socket() -> WebSocketPeer:
+	var peer := WebSocketPeer.new()
+	peer.inbound_buffer_size = 1048576
+	peer.outbound_buffer_size = 1048576
+	return peer
+
 func _start_web_connect(gen : int) -> void:
-	client = WebSocketPeer.new()
+	client = _new_web_socket()
 	status = ENUMS.CONNECTION_STATUS.PINGING_SERVERS
 	var lb_state : Dictionary = { "done": false, "invalid_key": false }
 	_resolve_lb_for_web(gen, lb_state)
@@ -258,7 +264,7 @@ func _start_web_connect(gen : int) -> void:
 		if !_connect_is_current(gen):
 			return
 		client.close()
-		client = WebSocketPeer.new()
+		client = _new_web_socket()
 		web_hub_host = host
 		if await _try_connect("wss://"+host, gen, _CONNECT_TIMEOUT_S):
 			return
@@ -282,7 +288,7 @@ func start_local_multiplayer() -> void:
 	
 	var rng : RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.randomize()
-	client_id = abs(rng.randi())
+	client_id = rng.randi_range(1, request_processor.MAX_ADDRESSABLE_CLIENT_ID)
 	logger.write_log("Local client id generated. <"+str(client_id)+">")
 	
 	if local_server.start_local_peer():
@@ -617,7 +623,7 @@ func switch_server(server: String, use_websocket: bool = false) -> void:
 	reset_multiplayer()
 	attempt_tcp = false
 	if is_web_export:
-		client = WebSocketPeer.new()
+		client = _new_web_socket()
 		var hub := web_hub_host
 		if hub.is_empty():
 			logger.write_error("Web hub host missing during server switch.")
@@ -751,8 +757,13 @@ func _process(delta) -> void:
 			WebSocketPeer.STATE_OPEN:
 				client.poll()
 			
-				while client.get_available_packet_count() > 0:
+				var packet_budget := 32
+				while packet_budget > 0 and client.get_available_packet_count() > 0:
+					packet_budget -= 1
+					var pending := client.get_available_packet_count()
 					var bytes : PackedByteArray = client.get_packet()
+					if client.get_available_packet_count() >= pending:
+						break
 					_receive_packet(bytes, 0)
 				
 				if request_processor.has_packets(ENUMS.PACKET_CHANNEL.SETUP):

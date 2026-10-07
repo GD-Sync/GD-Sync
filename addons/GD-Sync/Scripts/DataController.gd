@@ -76,12 +76,49 @@ func log_in(username : String = "") -> void:
 	get_tree().set_auto_accept_quit(false)
 	GDSync.account_logged_in.emit.call_deferred(username)
 
+const _CONFIG_PATH := "user://GD-Sync/DataController.conf"
+const _CONFIG_KEY_PATH := "user://GD-Sync/DataController.key"
+
+func _config_key_id() -> String:
+	return connection_controller._PRIVATE_KEY.md5_text()
+
+func _read_config_key_id() -> String:
+	if !FileAccess.file_exists(_CONFIG_KEY_PATH):
+		return ""
+	var key_file = FileAccess.open(_CONFIG_KEY_PATH, FileAccess.READ)
+	if key_file == null:
+		return ""
+	var key_id := key_file.get_as_text().strip_edges()
+	key_file.close()
+	return key_id
+
+func _write_config_key_id() -> void:
+	var key_file = FileAccess.open(_CONFIG_KEY_PATH, FileAccess.WRITE)
+	if key_file == null:
+		return
+	key_file.store_string(_config_key_id())
+	key_file.close()
+
+func _reset_config_for_new_key() -> void:
+	login_email = ""
+	login_token = ""
+	previous_token = ""
+	safe_quit = true
+	save_config()
+
 func load_config() -> void:
-	var dir = DirAccess.open("user://")
-	if !dir.file_exists("user://GD-Sync/DataController.conf"): return
+	if !FileAccess.file_exists(_CONFIG_PATH):
+		return
 	
-	var file = FileAccess.open_encrypted_with_pass("user://GD-Sync/DataController.conf", FileAccess.READ, connection_controller._PRIVATE_KEY)
-	if file == null: return
+	var stored_key := _read_config_key_id()
+	if stored_key != "" and stored_key != _config_key_id():
+		_reset_config_for_new_key()
+		return
+	
+	var file = FileAccess.open_encrypted_with_pass(_CONFIG_PATH, FileAccess.READ, connection_controller._PRIVATE_KEY)
+	if file == null:
+		_reset_config_for_new_key()
+		return
 	var data : Dictionary = bytes_to_var(file.get_buffer(file.get_length()))
 	file.close()
 	
@@ -96,13 +133,16 @@ func load_config() -> void:
 	save_config()
 
 func save_config() -> void:
-	var file = FileAccess.open_encrypted_with_pass("user://GD-Sync/DataController.conf", FileAccess.WRITE, connection_controller._PRIVATE_KEY)
+	var file = FileAccess.open_encrypted_with_pass(_CONFIG_PATH, FileAccess.WRITE, connection_controller._PRIVATE_KEY)
+	if file == null:
+		return
 	file.store_buffer(var_to_bytes({
 		"LoginEmail" : login_email,
 		"LoginToken" : login_token,
 		"SafeQuit" : safe_quit
 	}))
 	file.close()
+	_write_config_key_id()
 
 func set_friend_status() -> int:
 	if !logged_in: return 0

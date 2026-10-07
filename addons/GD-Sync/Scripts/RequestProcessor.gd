@@ -89,6 +89,7 @@ const _UNRELIABLE_COMPRESS_HEADROOM : int = 64
 const _UNRELIABLE_AUTH_NONCE_PLACEHOLDER : int = 9223372036854775807
 const _TARGET_CLIENT_ID_MASK : int = 0x3FFFFFFF
 const _TARGET_PERMISSION_SHIFT : int = 30
+const MAX_ADDRESSABLE_CLIENT_ID : int = _TARGET_CLIENT_ID_MASK - 1
 
 const _UNRELIABLE_AUTH_KEY : String = "_gdsn"
 const _UNRELIABLE_NONCE_WINDOW_MS : int = 300000
@@ -99,6 +100,8 @@ var _senders_on_multiplayer_clock : Dictionary = {}
 
 func encode_target_client(client_id : int, permission : int) -> int:
 	var id_part : int = client_id if client_id >= 0 else _TARGET_CLIENT_ID_MASK
+	if client_id > MAX_ADDRESSABLE_CLIENT_ID:
+		logger.write_error("Target client id does not fit in the routed id field, so this message cannot be delivered. <"+str(client_id)+">")
 	return (permission << _TARGET_PERMISSION_SHIFT) | (id_part & _TARGET_CLIENT_ID_MASK)
 
 const _CALLER_CLIENT_INDEX : int = 4
@@ -870,11 +873,33 @@ func set_gdsync_owner_remote(node_path : String, owner) -> void:
 	else:
 		session_controller.set_gdsync_owner_delayed(node_path, owner)
 
+func _machine_id() -> String:
+	if !OS.has_feature("web"):
+		return OS.get_unique_id()
+	
+	const path := "user://GD-Sync/web_machine_id"
+	if FileAccess.file_exists(path):
+		var existing_file := FileAccess.open(path, FileAccess.READ)
+		if existing_file:
+			var existing := existing_file.get_as_text().strip_edges()
+			existing_file.close()
+			if existing != "":
+				return existing
+	
+	var machine_id := Crypto.new().generate_random_bytes(16).hex_encode()
+	if !DirAccess.dir_exists_absolute("user://GD-Sync"):
+		DirAccess.make_dir_absolute("user://GD-Sync")
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file:
+		file.store_string(machine_id)
+		file.close()
+	return machine_id
+
 func validate_public_key() -> void:
 	var request : Array = [
 		ENUMS.REQUEST_TYPE.VALIDATE_KEY,
 		connection_controller._PUBLIC_KEY,
-		OS.get_unique_id(),
+		_machine_id(),
 		true,
 		connection_controller.API_VERSION,
 		connection_controller.PLUGIN_VERSION,

@@ -582,7 +582,8 @@ func leave_lobby_request(from : Client) -> void:
 	if peer_client_table.has(from.peer_id):
 		peer_client_table.erase(from.peer_id)
 	
-	if local_server.get_peer(from.peer_id) != null:
+	var enet_peer : ENetPacketPeer = local_server.get_peer(from.peer_id)
+	if enet_peer != null and enet_peer.get_state() != ENetPacketPeer.STATE_DISCONNECTED:
 		local_server.disconnect_peer(from.peer_id)
 
 func open_lobby_request(from : Client, request : Array) -> void:
