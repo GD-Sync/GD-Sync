@@ -390,7 +390,7 @@ func get_sender_id() -> int:
 ##     print("Host is now ", new_host_id, " (me=", is_host, ")")
 ## [/codeblock]
 func is_host() -> bool:
-	return _connection_controller.host == get_client_id()
+	return get_client_id() >= 0 and _connection_controller.host == get_client_id()
 
 ## Returns the Client ID of the host of the current lobby you are in. Returns -1 if you are not in a lobby.
 func get_host() -> int:
