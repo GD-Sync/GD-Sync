@@ -638,7 +638,8 @@ func process_message(request : Array) -> void:
 			if connection_controller.is_local():
 				connection_controller.in_local_lobby = true
 			data_controller.set_friend_status()
-			_join_holding = true
+			# LOBBY_DATA_RECEIVED can arrive first; holding then would never end.
+			_join_holding = session_controller.lobby_data.is_empty()
 			server_switch_controller.lobby_joined()
 			matchmaking_controller.lobby_joined()
 		ENUMS.MESSAGE_TYPE.LOBBY_JOIN_FAILED:
